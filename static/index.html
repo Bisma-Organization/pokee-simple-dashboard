@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USMD Simple Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        body { background: #1a1a2e; color: #e0e0e0; padding: 24px; min-height: 100vh; }
+        h1 { color: #fff; margin-bottom: 8px; font-size: 1.5rem; }
+        h2 { color: #a0aec0; font-size: 0.95rem; margin-bottom: 24px; font-weight: 400; }
+        h3 { color: #fff; font-size: 1rem; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #2d2d44; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+        .card { background: #16213e; border-radius: 12px; padding: 20px; border: 1px solid #2d2d44; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        th { text-align: left; color: #a0aec0; padding: 8px 10px; border-bottom: 2px solid #2d2d44; font-weight: 600; }
+        td { padding: 7px 10px; border-bottom: 1px solid #2d2d44; }
+        tr:hover { background: #1a2744; }
+        .badge { padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+        .badge-green { background: #065f46; color: #6ee7b7; }
+        .badge-blue { background: #1e3a5f; color: #93c5fd; }
+        .badge-yellow { background: #78350f; color: #fcd34d; }
+        .badge-gray { background: #374151; color: #d1d5db; }
+        .stats { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat { background: #16213e; border-radius: 10px; padding: 14px 20px; border: 1px solid #2d2d44; text-align: center; min-width: 120px; }
+        .stat-num { font-size: 1.8rem; font-weight: 700; color: #fff; }
+        .stat-label { font-size: 0.75rem; color: #a0aec0; margin-top: 4px; }
+        .loading { text-align: center; padding: 60px; color: #a0aec0; }
+        .loading::after { content: ''; display: inline-block; width: 20px; height: 20px; border: 2px solid #a0aec0; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin-left: 10px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .match-row { background: #1e2a4a; }
+        .refresh-btn { background: #3b82f6; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
+        .refresh-btn:hover { background: #2563eb; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>US Medical Directors — Dashboard</h1>
+            <h2>GoHighLevel + Monday.com | Live Data (50 records)</h2>
+        </div>
+        <button class="refresh-btn" onclick="loadData()">&#8635; Refresh</button>
+    </div>
+
+    <div id="content"><div class="loading">Loading data from GHL & Monday.com</div></div>
+
+    <script>
+    async function loadData() {
+        document.getElementById('content').innerHTML = '<div class="loading">Loading data from GHL & Monday.com</div>';
+        try {
+            const resp = await fetch('/api/data');
+            const data = await resp.json();
+            render(data);
+        } catch(e) {
+            document.getElementById('content').innerHTML = '<div class="loading" style="color:#f87171">Error loading data. Check API keys.</div>';
+        }
+    }
+
+    function badge(text, type) {
+        const classes = { Replied: 'badge-blue', 'New Lead': 'badge-green', 'Non Qualified New Lead': 'badge-yellow', 'No Pipeline': 'badge-gray', PAID: 'badge-green', Pending: 'badge-yellow' };
+        const cls = Object.entries(classes).find(([k]) => text.includes(k));
+        return `<span class="badge ${cls ? cls[1] : 'badge-gray'}">${text}</span>`;
+    }
+
+    function render(data) {
+        const { ghl_rows, monday_rows, matched, stage_counts } = data;
+
+        let html = `
+        <div class="stats">
+            <div class="stat"><div class="stat-num">${ghl_rows.length}</div><div class="stat-label">GHL Contacts</div></div>
+            <div class="stat"><div class="stat-num">${monday_rows.length}</div><div class="stat-label">Monday Items</div></div>
+            <div class="stat"><div class="stat-num">${matched.length}</div><div class="stat-label">Email Matches</div></div>
+            <div class="stat"><div class="stat-num">${Object.keys(stage_counts).length}</div><div class="stat-label">Pipeline Stages</div></div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h3>Contacts by Pipeline Stage</h3>
+                <canvas id="stageChart"></canvas>
+            </div>
+            <div class="card">
+                <h3>Matched Records (GHL &harr; Monday.com)</h3>
+                <table>
+                    <thead><tr><th>Business</th><th>Email</th><th>GHL Stage</th><th>Monday Status</th></tr></thead>
+                    <tbody>
+                        ${matched.length ? matched.map(m => `<tr class="match-row"><td>${m.business}</td><td style="font-size:0.75rem">${m.email}</td><td>${badge(m.ghl_stage)}</td><td>${badge(m.monday_status || '-')}</td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;padding:20px;color:#a0aec0">Matches shown when emails overlap between platforms</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h3>GoHighLevel Contacts</h3>
+                <div style="max-height:400px;overflow-y:auto">
+                <table>
+                    <thead><tr><th>Name</th><th>Email</th><th>Pipeline Stage</th></tr></thead>
+                    <tbody>${ghl_rows.map(r => `<tr><td>${r.name.substring(0,30)}</td><td style="font-size:0.75rem">${r.email || '-'}</td><td>${badge(r.stage)}</td></tr>`).join('')}</tbody>
+                </table>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Monday.com Items</h3>
+                <div style="max-height:400px;overflow-y:auto">
+                <table>
+                    <thead><tr><th>Item Name</th><th>Status</th><th>Owner</th></tr></thead>
+                    <tbody>${monday_rows.map(r => `<tr><td>${r.name.substring(0,30)}</td><td>${badge(r.status || '-')}</td><td style="font-size:0.75rem">${(r.owner || '-').substring(0,25)}</td></tr>`).join('')}</tbody>
+                </table>
+                </div>
+            </div>
+        </div>`;
+
+        document.getElementById('content').innerHTML = html;
+
+        // Render chart
+        const ctx = document.getElementById('stageChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(stage_counts),
+                datasets: [{ data: Object.values(stage_counts), backgroundColor: ['#6366f1','#3b82f6','#64748b','#f59e0b','#10b981','#ef4444'], borderRadius: 6 }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#a0aec0' }, grid: { display: false } },
+                    y: { ticks: { color: '#a0aec0' }, grid: { color: 'rgba(148,163,184,0.1)' }, beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    loadData();
+    </script>
+</body>
+</html>
