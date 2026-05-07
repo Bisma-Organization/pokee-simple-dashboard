@@ -1,0 +1,25 @@
+{
+  "name": "USMD Simple Dashboard",
+  "description": "Business dashboard integrating GoHighLevel and Monday.com",
+  "repository": "https://github.com/bismanazir53/usmd-simple-dashboard",
+  "keywords": ["python", "flask", "dashboard", "ghl", "monday"],
+  "env": {
+    "GHL_API_TOKEN": {
+      "description": "GoHighLevel Private Integration Token",
+      "required": true
+    },
+    "GHL_LOCATION_ID": {
+      "description": "GoHighLevel Location ID",
+      "required": true
+    },
+    "MONDAY_API_TOKEN": {
+      "description": "Monday.com API Token",
+      "required": true
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ]
+}
