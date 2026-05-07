@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>USMD Simple Dashboard</title>
+    <title>USMD Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%233b82f6'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='32' font-weight='bold' fill='white'>US</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
@@ -34,6 +35,11 @@
         .refresh-btn { background: #3b82f6; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
         .refresh-btn:hover { background: #2563eb; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .search-bar { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; }
+        .search-input { background: #16213e; border: 1px solid #2d2d44; border-radius: 8px; padding: 10px 16px; color: #e0e0e0; font-size: 0.9rem; width: 320px; outline: none; transition: border-color 0.2s; }
+        .search-input:focus { border-color: #3b82f6; }
+        .search-input::placeholder { color: #64748b; }
+        .search-count { font-size: 0.8rem; color: #64748b; }
     </style>
 </head>
 <body>
@@ -48,15 +54,30 @@
     <div id="content"><div class="loading">Loading data from GHL & Monday.com</div></div>
 
     <script>
+    let cachedData = null;
+
     async function loadData() {
         document.getElementById('content').innerHTML = '<div class="loading">Loading data from GHL & Monday.com</div>';
         try {
             const resp = await fetch('/api/data');
-            const data = await resp.json();
-            render(data);
+            cachedData = await resp.json();
+            render(cachedData);
         } catch(e) {
             document.getElementById('content').innerHTML = '<div class="loading" style="color:#f87171">Error loading data. Check API keys.</div>';
         }
+    }
+
+    function filterData(query) {
+        if (!cachedData) return;
+        const q = query.toLowerCase().trim();
+        if (!q) { render(cachedData); return; }
+        const filtered = {
+            ghl_rows: cachedData.ghl_rows.filter(r => r.name.toLowerCase().includes(q) || (r.email||'').toLowerCase().includes(q)),
+            monday_rows: cachedData.monday_rows.filter(r => r.name.toLowerCase().includes(q) || (r.email||'').toLowerCase().includes(q)),
+            matched: cachedData.matched.filter(r => r.business.toLowerCase().includes(q) || (r.email||'').toLowerCase().includes(q) || (r.contact||'').toLowerCase().includes(q)),
+            stage_counts: cachedData.stage_counts
+        };
+        render(filtered, q);
     }
 
     function badge(text, type) {
@@ -65,10 +86,17 @@
         return `<span class="badge ${cls ? cls[1] : 'badge-gray'}">${text}</span>`;
     }
 
-    function render(data) {
+    function render(data, searchQuery) {
         const { ghl_rows, monday_rows, matched, stage_counts } = data;
+        const currentQuery = searchQuery || '';
+        const totalShown = ghl_rows.length + monday_rows.length;
+        const totalAll = cachedData ? cachedData.ghl_rows.length + cachedData.monday_rows.length : totalShown;
 
         let html = `
+        <div class="search-bar">
+            <input type="text" class="search-input" id="searchBox" placeholder="Search by name or email..." value="${currentQuery}" oninput="filterData(this.value)">
+            ${currentQuery ? `<span class="search-count">Showing ${totalShown} of ${totalAll} records</span>` : ''}
+        </div>
         <div class="stats">
             <div class="stat"><div class="stat-num">${ghl_rows.length}</div><div class="stat-label">GHL Contacts</div></div>
             <div class="stat"><div class="stat-num">${monday_rows.length}</div><div class="stat-label">Monday Items</div></div>
