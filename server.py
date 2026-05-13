@@ -147,7 +147,7 @@ def fetch_conversations():
 def fetch_sales_data():
     def _fetch():
         query = '''{ boards(ids: [1944309746]) {
-            groups(ids: ["new_group_mkkazbjx", "1733497160_usmd_master_06dec24_MjivTF2Y"]) {
+            groups(ids: ["new_group_mkkazbjx"]) {
             items_page(limit: 500) { items { id name
             column_values(ids: ["numbers_Mjivm65q", "date4", "date_Mjiv0T8Z", "status",
             "text_MjivuCB8", "text_MjivTjDy"]) { id text column { title } } } } } } }'''
