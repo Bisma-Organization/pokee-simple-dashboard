@@ -178,6 +178,36 @@ def fetch_revenue_data():
     return cached('revenue', _fetch)
 
 
+def fetch_churn_data():
+    def _fetch():
+        query = '''{ boards(ids: [1944525313]) { groups(ids: ["group_title"]) {
+            items_page(limit: 500) { cursor items { id name
+            column_values(ids: ["date_mkmtbt5h", "date_mks817p7", "status_Mjj1A9wh"])
+            { id text } } } } } }'''
+        resp = monday_query(query)
+        items = resp['data']['boards'][0]['groups'][0]['items_page']['items']
+        records = []
+        for item in items:
+            end_date = ''
+            start_date = ''
+            status = ''
+            for cv in item['column_values']:
+                if cv['id'] == 'date_mkmtbt5h':
+                    end_date = cv.get('text', '')
+                elif cv['id'] == 'date_mks817p7':
+                    start_date = cv.get('text', '')
+                elif cv['id'] == 'status_Mjj1A9wh':
+                    status = cv.get('text', '')
+            records.append({
+                'name': item['name'],
+                'end_date': end_date,
+                'start_date': start_date,
+                'status': status or 'Cancelled/Inactive'
+            })
+        return records
+    return cached('churn', _fetch)
+
+
 def fetch_pipeline_data():
     def _fetch():
         resp = ghl_get('/opportunities/pipelines', {'locationId': GHL_LOCATION})
@@ -210,8 +240,8 @@ def get_kpis():
     won = fetch_opportunities('won')
     sales = [o for o in won if in_range(parse_date(o.get('lastStatusChangeAt')), start, end)]
 
-    lost = fetch_opportunities('lost')
-    churn = [o for o in lost if in_range(parse_date(o.get('lastStatusChangeAt')), start, end)]
+    churn_data = fetch_churn_data()
+    churn = [c for c in churn_data if in_range(parse_date(c.get('end_date')), start, end)]
 
     convos = fetch_conversations()
     calls = [c for c in convos if in_range(parse_date(c.get('dateAdded')), start, end)]
@@ -291,18 +321,17 @@ def get_sales():
 @app.route('/api/churn')
 def get_churn():
     start, end = get_date_range()
-    lost = fetch_opportunities('lost')
-    filtered = [o for o in lost if in_range(parse_date(o.get('lastStatusChangeAt')), start, end)]
-    filtered.sort(key=lambda o: o.get('lastStatusChangeAt', ''), reverse=True)
+    churn_data = fetch_churn_data()
+    filtered = [c for c in churn_data if in_range(parse_date(c.get('end_date')), start, end)]
+    filtered.sort(key=lambda c: c.get('end_date', ''), reverse=True)
 
     rows = []
-    for o in filtered:
+    for c in filtered:
         rows.append({
-            'name': o.get('name', ''),
-            'source': o.get('source', ''),
-            'date': o.get('lastStatusChangeAt', ''),
-            'email': o.get('contact', {}).get('email', ''),
-            'phone': o.get('contact', {}).get('phone', '')
+            'name': c.get('name', ''),
+            'status': c.get('status', ''),
+            'start_date': c.get('start_date', ''),
+            'date': c.get('end_date', '')
         })
 
     return jsonify({'rows': rows, 'total': len(rows)})

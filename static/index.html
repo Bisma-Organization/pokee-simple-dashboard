@@ -329,7 +329,7 @@
                 <div class="kpi-card">
                     <div class="kpi-label">Churn (Lost)</div>
                     <div class="kpi-value">${formatNum(kpis.churn)}</div>
-                    <div class="kpi-sub">Lost opportunities</div>
+                    <div class="kpi-sub">Cancelled / Inactive clients</div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-label">Calls Made</div>
@@ -515,8 +515,8 @@
                 renderRow = r => `<td>${r.name}</td><td>${r.email||'-'}</td><td>${r.source||'-'}</td><td>${fmtDate(r.date)}</td>`;
                 break;
             case 'churn':
-                headers = '<th>Name</th><th>Email</th><th>Source</th><th>Lost Date</th>';
-                renderRow = r => `<td>${r.name}</td><td>${r.email||'-'}</td><td><span class="badge badge-red">${r.source||'-'}</span></td><td>${fmtDate(r.date)}</td>`;
+                headers = '<th>Business</th><th>Status</th><th>Start Date</th><th>Contract End Date</th>';
+                renderRow = r => `<td>${r.name}</td><td><span class="badge badge-red">${r.status||'Cancelled'}</span></td><td>${fmtDate(r.start_date)}</td><td>${fmtDate(r.date)}</td>`;
                 break;
             case 'calls':
                 headers = '<th>Name</th><th>Phone</th><th>Direction</th><th>Date</th><th>Last Message</th>';
