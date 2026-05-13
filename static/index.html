@@ -324,7 +324,7 @@
                 <div class="kpi-card">
                     <div class="kpi-label">Sales (Won)</div>
                     <div class="kpi-value">${formatNum(kpis.sales)}</div>
-                    <div class="kpi-sub">Closed deals</div>
+                    <div class="kpi-sub">Monday.com Closed Deals</div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-label">Churn (Lost)</div>
@@ -339,7 +339,7 @@
                 <div class="kpi-card">
                     <div class="kpi-label">Revenue</div>
                     <div class="kpi-value">${formatCurrency(kpis.revenue)}</div>
-                    <div class="kpi-sub">From Monday.com payments</div>
+                    <div class="kpi-sub">From Closed Deals fees</div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-label">Avg $ / Sale</div>
@@ -370,6 +370,7 @@
                     <button class="tab ${currentTab==='churn'?'active':''}" onclick="switchTab('churn')">Churn</button>
                     <button class="tab ${currentTab==='calls'?'active':''}" onclick="switchTab('calls')">Calls</button>
                     <button class="tab ${currentTab==='revenue'?'active':''}" onclick="switchTab('revenue')">Revenue</button>
+                    <button class="tab ${currentTab==='payments'?'active':''}" onclick="switchTab('payments')">Payments</button>
                 </div>
                 <div class="table-header">
                     <h3 id="tableTitle">Recent Leads</h3>
@@ -475,14 +476,14 @@
         currentTab = tab;
         tablePage = 1;
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelector(`.tab:nth-child(${['leads','sales','churn','calls','revenue'].indexOf(tab)+1})`).classList.add('active');
+        document.querySelector(`.tab:nth-child(${['leads','sales','churn','calls','revenue','payments'].indexOf(tab)+1})`).classList.add('active');
         document.getElementById('tableSearch').value = '';
         loadTable(tab);
     }
 
     async function loadTable(tab) {
         const params = getDateParams();
-        const titles = { leads: 'Recent Leads', sales: 'Won Deals', churn: 'Lost Opportunities', calls: 'Phone Conversations', revenue: 'Revenue Records' };
+        const titles = { leads: 'Recent Leads', sales: 'Closed Deals', churn: 'Cancelled / Inactive Clients', calls: 'Phone Conversations', revenue: 'Revenue Records', payments: 'Active Client Payments' };
         document.getElementById('tableTitle').textContent = titles[tab];
         document.getElementById('tableBody').innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
 
@@ -511,8 +512,8 @@
                 renderRow = r => `<td>${r.name}</td><td>${r.email||'-'}</td><td>${r.phone||'-'}</td><td>${fmtDate(r.date)}</td><td><span class="badge badge-blue">${r.source||'Direct'}</span></td>`;
                 break;
             case 'sales':
-                headers = '<th>Name</th><th>Email</th><th>Source</th><th>Won Date</th>';
-                renderRow = r => `<td>${r.name}</td><td>${r.email||'-'}</td><td>${r.source||'-'}</td><td>${fmtDate(r.date)}</td>`;
+                headers = '<th>Business</th><th>Contact</th><th>Email</th><th>Fee</th><th>Status</th><th>First Payment</th><th>Last Payment</th>';
+                renderRow = r => `<td>${r.name}</td><td>${r.contact||'-'}</td><td style="font-size:0.72rem">${r.email||'-'}</td><td style="font-weight:600;color:var(--green)">$${(r.fee||0).toLocaleString()}</td><td><span class="badge badge-green">${r.status||'-'}</span></td><td>${fmtDate(r.first_payment)}</td><td>${fmtDate(r.last_payment)}</td>`;
                 break;
             case 'churn':
                 headers = '<th>Business</th><th>Status</th><th>Start Date</th><th>Contract End Date</th>';
@@ -523,8 +524,12 @@
                 renderRow = r => `<td>${r.name}</td><td>${r.phone||'-'}</td><td><span class="badge ${r.direction==='inbound'?'badge-green':'badge-blue'}">${r.direction||'-'}</span></td><td>${fmtDate(r.date)}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.lastMessage||'-'}</td>`;
                 break;
             case 'revenue':
-                headers = '<th>Business</th><th>Subscription Fee</th><th>Last Payment</th><th>Status</th>';
-                renderRow = r => `<td>${r.name}</td><td style="font-weight:600;color:var(--green)">$${r.fee.toLocaleString()}</td><td>${r.date}</td><td><span class="badge ${r.status==='PAID'?'badge-green':r.status?'badge-yellow':'badge-blue'}">${r.status||'Active'}</span></td>`;
+                headers = '<th>Business</th><th>Fee</th><th>First Payment</th><th>Status</th>';
+                renderRow = r => `<td>${r.name}</td><td style="font-weight:600;color:var(--green)">$${(r.fee||0).toLocaleString()}</td><td>${fmtDate(r.date)}</td><td><span class="badge ${r.status==='PAID'?'badge-green':r.status?'badge-yellow':'badge-blue'}">${r.status||'-'}</span></td>`;
+                break;
+            case 'payments':
+                headers = '<th>Business</th><th>Payment Status</th><th>Start Date</th><th>Contract End</th><th>Due Date</th><th>AR Enterprise</th>';
+                renderRow = r => `<td>${r.name}</td><td><span class="badge ${r.status==='Active'?'badge-green':r.status==='Past Due'?'badge-red':r.status==='New'?'badge-blue':'badge-yellow'}">${r.status||'-'}</span></td><td>${fmtDate(r.start_date)}</td><td>${fmtDate(r.end_date)}</td><td>${r.due_date||'-'}</td><td>${r.ar||'-'}</td>`;
                 break;
         }
         const html = `<table><thead><tr>${headers}</tr></thead><tbody>${rows.map(r => `<tr>${renderRow(r)}</tr>`).join('')}</tbody></table>`;

@@ -144,38 +144,94 @@ def fetch_conversations():
     return cached('conversations', _fetch)
 
 
-def fetch_revenue_data():
+def fetch_sales_data():
     def _fetch():
-        query = '''{ boards(ids: [1944309746]) { items_page(limit: 500,
-            query_params: {order_by: [{column_id: "__last_updated__", direction: desc}]})
-            { items { id name column_values(ids: ["numbers_Mjivm65q", "date_Mjiv0T8Z", "status"])
-            { id text } } } } }'''
+        query = '''{ boards(ids: [1944309746]) {
+            groups(ids: ["new_group_mkkazbjx", "1733497160_usmd_master_06dec24_MjivTF2Y"]) {
+            items_page(limit: 500) { items { id name
+            column_values(ids: ["numbers_Mjivm65q", "date4", "date_Mjiv0T8Z", "status",
+            "text_MjivuCB8", "text_MjivTjDy"]) { id text column { title } } } } } } }'''
         resp = monday_query(query)
-        items = resp['data']['boards'][0]['items_page']['items']
         records = []
-        for item in items:
-            fee = 0
-            payment_date = None
-            status = ''
-            for cv in item['column_values']:
-                if cv['id'] == 'numbers_Mjivm65q':
-                    try:
-                        fee = float(cv['text']) if cv['text'] else 0
-                    except ValueError:
-                        fee = 0
-                elif cv['id'] == 'date_Mjiv0T8Z':
-                    payment_date = cv['text']
-                elif cv['id'] == 'status':
-                    status = cv['text'] or ''
-            if fee > 0 and payment_date:
+        for group in resp['data']['boards'][0]['groups']:
+            for item in group['items_page']['items']:
+                fee = 0
+                first_payment = ''
+                last_payment = ''
+                status = ''
+                contact = ''
+                email = ''
+                for cv in item['column_values']:
+                    cid = cv['id']
+                    text = cv.get('text', '') or ''
+                    if cid == 'numbers_Mjivm65q':
+                        try:
+                            fee = float(text) if text else 0
+                        except ValueError:
+                            fee = 0
+                    elif cid == 'date4':
+                        first_payment = text
+                    elif cid == 'date_Mjiv0T8Z':
+                        last_payment = text
+                    elif cid == 'status':
+                        status = text
+                    elif cid == 'text_MjivuCB8':
+                        contact = text
+                    elif cid == 'text_MjivTjDy':
+                        email = text
                 records.append({
                     'name': item['name'],
                     'fee': fee,
-                    'date': payment_date,
-                    'status': status
+                    'first_payment': first_payment,
+                    'last_payment': last_payment,
+                    'date': first_payment,
+                    'status': status,
+                    'contact': contact,
+                    'email': email
                 })
         return records
-    return cached('revenue', _fetch)
+    return cached('sales', _fetch)
+
+
+def fetch_payment_data():
+    def _fetch():
+        query = '''{ boards(ids: [1944525313]) {
+            groups(ids: ["1733660267_book1_usmd_dec_new_Mjj1XfHC"]) {
+            items_page(limit: 500) { items { id name
+            column_values(ids: ["status_Mjj1A9wh", "date_mks817p7", "date_mkmtbt5h",
+            "numeric_mkty8mvs", "text_mktzxv3k"]) { id text column { title } } } } } } }'''
+        resp = monday_query(query)
+        items = resp['data']['boards'][0]['groups'][0]['items_page']['items']
+        records = []
+        for item in items:
+            status = ''
+            start_date = ''
+            end_date = ''
+            due_date = ''
+            ar = ''
+            for cv in item['column_values']:
+                cid = cv['id']
+                text = cv.get('text', '') or ''
+                if cid == 'status_Mjj1A9wh':
+                    status = text
+                elif cid == 'date_mks817p7':
+                    start_date = text
+                elif cid == 'date_mkmtbt5h':
+                    end_date = text
+                elif cid == 'numeric_mkty8mvs':
+                    due_date = text
+                elif cid == 'text_mktzxv3k':
+                    ar = text
+            records.append({
+                'name': item['name'],
+                'status': status,
+                'start_date': start_date,
+                'end_date': end_date,
+                'due_date': due_date,
+                'ar': ar
+            })
+        return records
+    return cached('payments', _fetch)
 
 
 def fetch_churn_data():
@@ -237,8 +293,9 @@ def get_kpis():
     contacts = fetch_all_contacts()
     leads = [c for c in contacts if in_range(parse_date(c.get('dateAdded')), start, end)]
 
-    won = fetch_opportunities('won')
-    sales = [o for o in won if in_range(parse_date(o.get('lastStatusChangeAt')), start, end)]
+    sales_data = fetch_sales_data()
+    sales = [s for s in sales_data if in_range(parse_date(s.get('first_payment')), start, end)]
+    total_revenue = sum(s['fee'] for s in sales)
 
     churn_data = fetch_churn_data()
     churn = [c for c in churn_data if in_range(parse_date(c.get('end_date')), start, end)]
@@ -246,20 +303,20 @@ def get_kpis():
     convos = fetch_conversations()
     calls = [c for c in convos if in_range(parse_date(c.get('dateAdded')), start, end)]
 
-    rev_data = fetch_revenue_data()
-    revenue_items = [r for r in rev_data if in_range(parse_date(r['date']), start, end)]
-    total_revenue = sum(r['fee'] for r in revenue_items)
+    payment_data = fetch_payment_data()
+    active_clients = [p for p in payment_data if p.get('status') == 'Active']
 
-    sales_count = len(sales) if sales else len(revenue_items)
+    sales_count = len(sales)
     avg_per_sale = total_revenue / sales_count if sales_count > 0 else 0
 
     return jsonify({
         'leads': len(leads),
-        'sales': len(sales),
+        'sales': sales_count,
         'churn': len(churn),
         'calls': len(calls),
         'revenue': round(total_revenue, 2),
         'avg_per_sale': round(avg_per_sale, 2),
+        'active_clients': len(active_clients),
         'total_contacts': len(contacts),
         'total_conversations': len(convos)
     })
@@ -299,20 +356,21 @@ def get_leads():
 @app.route('/api/sales')
 def get_sales():
     start, end = get_date_range()
-    won = fetch_opportunities('won')
-    filtered = [o for o in won if in_range(parse_date(o.get('lastStatusChangeAt')), start, end)]
-    filtered.sort(key=lambda o: o.get('lastStatusChangeAt', ''), reverse=True)
+    sales_data = fetch_sales_data()
+    filtered = [s for s in sales_data if in_range(parse_date(s.get('first_payment')), start, end)]
+    filtered.sort(key=lambda s: s.get('first_payment', ''), reverse=True)
 
     rows = []
-    for o in filtered:
+    for s in filtered:
         rows.append({
-            'name': o.get('name', ''),
-            'value': o.get('monetaryValue', 0),
-            'source': o.get('source', ''),
-            'date': o.get('lastStatusChangeAt', ''),
-            'created': o.get('createdAt', ''),
-            'email': o.get('contact', {}).get('email', ''),
-            'phone': o.get('contact', {}).get('phone', '')
+            'name': s.get('name', ''),
+            'contact': s.get('contact', ''),
+            'email': s.get('email', ''),
+            'fee': s.get('fee', 0),
+            'status': s.get('status', ''),
+            'first_payment': s.get('first_payment', ''),
+            'last_payment': s.get('last_payment', ''),
+            'date': s.get('first_payment', '')
         })
 
     return jsonify({'rows': rows, 'total': len(rows)})
@@ -368,23 +426,45 @@ def get_calls():
 @app.route('/api/revenue')
 def get_revenue():
     start, end = get_date_range()
-    rev_data = fetch_revenue_data()
-    filtered = [r for r in rev_data if in_range(parse_date(r['date']), start, end)]
+    sales_data = fetch_sales_data()
+    filtered = [s for s in sales_data if in_range(parse_date(s.get('first_payment')), start, end)]
 
     monthly = {}
-    for r in filtered:
-        dt = parse_date(r['date'])
+    for s in filtered:
+        dt = parse_date(s['first_payment'])
         if dt:
             key = dt.strftime('%Y-%m')
-            monthly[key] = monthly.get(key, 0) + r['fee']
+            monthly[key] = monthly.get(key, 0) + s['fee']
 
     sorted_months = sorted(monthly.items())
 
     return jsonify({
-        'rows': filtered,
+        'rows': [{'name': s['name'], 'fee': s['fee'], 'date': s['first_payment'], 'status': s['status']} for s in filtered],
         'monthly': [{'month': m, 'revenue': round(v, 2)} for m, v in sorted_months],
-        'total': round(sum(r['fee'] for r in filtered), 2)
+        'total': round(sum(s['fee'] for s in filtered), 2)
     })
+
+
+@app.route('/api/payments')
+def get_payments():
+    payment_data = fetch_payment_data()
+    status_filter = request.args.get('status')
+    if status_filter:
+        payment_data = [p for p in payment_data if p.get('status', '').lower() == status_filter.lower()]
+
+    rows = []
+    for p in payment_data:
+        rows.append({
+            'name': p.get('name', ''),
+            'status': p.get('status', ''),
+            'start_date': p.get('start_date', ''),
+            'end_date': p.get('end_date', ''),
+            'due_date': p.get('due_date', ''),
+            'ar': p.get('ar', '')
+        })
+
+    status_counts = Counter(p.get('status', 'Unknown') for p in payment_data)
+    return jsonify({'rows': rows, 'total': len(rows), 'by_status': dict(status_counts)})
 
 
 @app.route('/api/pipeline')
