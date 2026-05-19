@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, send_from_directory, request
 from flask_cors import CORS
 import os
+import json
 import requests
 import time
 from datetime import datetime, timezone
@@ -12,9 +13,12 @@ CORS(app)
 GHL_TOKEN = os.environ.get('GHL_API_TOKEN', '')
 GHL_LOCATION = os.environ.get('GHL_LOCATION_ID', '')
 MONDAY_TOKEN = os.environ.get('MONDAY_API_TOKEN', '')
+WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', 'usmd-calls-2024')
 
 GHL_BASE = 'https://services.leadconnectorhq.com'
 MONDAY_BASE = 'https://api.monday.com/v2'
+
+CALLS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'calls_data.json')
 
 cache = {}
 CACHE_TTL = 300
@@ -82,6 +86,18 @@ def get_date_range():
     start = datetime.fromisoformat(start_str).replace(tzinfo=timezone.utc) if start_str else None
     end = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=timezone.utc) if end_str else None
     return start, end
+
+
+def load_calls():
+    if os.path.exists(CALLS_FILE):
+        with open(CALLS_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+
+def save_calls(calls):
+    with open(CALLS_FILE, 'w') as f:
+        json.dump(calls, f)
 
 
 def fetch_all_contacts():
@@ -281,6 +297,70 @@ def fetch_pipeline_data():
     return cached('pipeline', _fetch)
 
 
+@app.route('/api/webhook/calls', methods=['POST'])
+def webhook_calls():
+    token = request.headers.get('X-Webhook-Secret') or request.args.get('secret')
+    if token != WEBHOOK_SECRET:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.json or {}
+
+    call_record = {
+        'id': data.get('id', str(int(time.time() * 1000))),
+        'contactId': data.get('contactId', ''),
+        'contactName': data.get('contactName', data.get('contact_name', '')),
+        'phone': data.get('phone', data.get('to', '')),
+        'direction': data.get('direction', data.get('callDirection', 'outbound')),
+        'duration': data.get('duration', data.get('callDuration', 0)),
+        'status': data.get('status', data.get('callStatus', 'completed')),
+        'timestamp': data.get('timestamp', data.get('dateAdded', datetime.now(timezone.utc).isoformat())),
+        'userId': data.get('userId', data.get('assigned_to', '')),
+        'source': 'webhook'
+    }
+
+    calls = load_calls()
+    if not any(c.get('id') == call_record['id'] for c in calls):
+        calls.append(call_record)
+        save_calls(calls)
+
+    return jsonify({'status': 'ok', 'recorded': call_record['id']}), 200
+
+
+@app.route('/api/webhook/calls/bulk', methods=['POST'])
+def webhook_calls_bulk():
+    token = request.headers.get('X-Webhook-Secret') or request.args.get('secret')
+    if token != WEBHOOK_SECRET:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.json or {}
+    records = data.get('calls', [])
+
+    calls = load_calls()
+    existing_ids = {c.get('id') for c in calls}
+    added = 0
+
+    for record in records:
+        call_record = {
+            'id': record.get('id', str(int(time.time() * 1000) + added)),
+            'contactId': record.get('contactId', ''),
+            'contactName': record.get('contactName', record.get('contact_name', '')),
+            'phone': record.get('phone', record.get('to', '')),
+            'direction': record.get('direction', record.get('callDirection', 'outbound')),
+            'duration': record.get('duration', record.get('callDuration', 0)),
+            'status': record.get('status', record.get('callStatus', 'completed')),
+            'timestamp': record.get('timestamp', record.get('dateAdded', datetime.now(timezone.utc).isoformat())),
+            'userId': record.get('userId', record.get('assigned_to', '')),
+            'source': 'webhook'
+        }
+        if call_record['id'] not in existing_ids:
+            calls.append(call_record)
+            existing_ids.add(call_record['id'])
+            added += 1
+
+    save_calls(calls)
+    return jsonify({'status': 'ok', 'added': added, 'total': len(calls)}), 200
+
+
 @app.route('/')
 def index():
     return send_from_directory('static', 'index.html')
@@ -300,8 +380,16 @@ def get_kpis():
     churn_data = fetch_churn_data()
     churn = [c for c in churn_data if in_range(parse_date(c.get('end_date')), start, end)]
 
-    convos = fetch_conversations()
-    calls = [c for c in convos if in_range(parse_date(c.get('dateAdded')), start, end)]
+    webhook_calls = load_calls()
+    calls_source = 'webhook'
+    if webhook_calls:
+        calls = [c for c in webhook_calls if in_range(parse_date(c.get('timestamp')), start, end)]
+        outbound_calls = [c for c in calls if c.get('direction', '').lower() in ('outbound', 'outgoing')]
+    else:
+        convos = fetch_conversations()
+        calls = [c for c in convos if in_range(parse_date(c.get('dateAdded')), start, end)]
+        outbound_calls = calls
+        calls_source = 'conversations_api'
 
     payment_data = fetch_payment_data()
     active_clients = [p for p in payment_data if p.get('status') == 'Active']
@@ -314,11 +402,12 @@ def get_kpis():
         'sales': sales_count,
         'churn': len(churn),
         'calls': len(calls),
+        'outbound_calls': len(outbound_calls),
         'revenue': round(total_revenue, 2),
         'avg_per_sale': round(avg_per_sale, 2),
         'active_clients': len(active_clients),
         'total_contacts': len(contacts),
-        'total_conversations': len(convos)
+        'calls_source': calls_source
     })
 
 
@@ -400,6 +489,46 @@ def get_calls():
     start, end = get_date_range()
     page = int(request.args.get('page', 1))
     limit = int(request.args.get('limit', 50))
+    direction_filter = request.args.get('direction')
+
+    webhook_calls = load_calls()
+
+    if webhook_calls:
+        filtered = []
+        for c in webhook_calls:
+            dt = parse_date(c.get('timestamp'))
+            if not in_range(dt, start, end):
+                continue
+            if direction_filter and c.get('direction', '').lower() != direction_filter.lower():
+                continue
+            filtered.append(c)
+
+        filtered.sort(key=lambda c: c.get('timestamp', ''), reverse=True)
+
+        total = len(filtered)
+        start_idx = (page - 1) * limit
+        page_data = filtered[start_idx:start_idx + limit]
+
+        rows = []
+        for c in page_data:
+            rows.append({
+                'name': c.get('contactName', ''),
+                'phone': c.get('phone', ''),
+                'direction': c.get('direction', ''),
+                'duration': c.get('duration', 0),
+                'status': c.get('status', ''),
+                'date': c.get('timestamp', ''),
+                'source': 'webhook'
+            })
+
+        return jsonify({
+            'rows': rows,
+            'total': total,
+            'page': page,
+            'pages': (total + limit - 1) // limit,
+            'data_source': 'webhook',
+            'note': 'Call data from GHL workflow webhook'
+        })
 
     convos = fetch_conversations()
     filtered = [c for c in convos if in_range(parse_date(c.get('dateAdded')), start, end)]
@@ -420,7 +549,51 @@ def get_calls():
             'direction': c.get('lastMessageDirection', '')
         })
 
-    return jsonify({'rows': rows, 'total': total, 'page': page, 'pages': (total + limit - 1) // limit})
+    return jsonify({
+        'rows': rows,
+        'total': total,
+        'page': page,
+        'pages': (total + limit - 1) // limit,
+        'data_source': 'conversations_api',
+        'note': 'Fallback: showing conversation threads (not individual calls). Connect GHL Workflow to get actual call data.'
+    })
+
+
+@app.route('/api/calls/stats')
+def get_calls_stats():
+    start, end = get_date_range()
+    webhook_calls = load_calls()
+
+    if not webhook_calls:
+        convos = fetch_conversations()
+        calls = [c for c in convos if in_range(parse_date(c.get('dateAdded')), start, end)]
+        return jsonify({
+            'total': len(calls),
+            'data_source': 'conversations_api',
+            'note': 'No webhook data available. Showing conversation thread count.'
+        })
+
+    filtered = [c for c in webhook_calls if in_range(parse_date(c.get('timestamp')), start, end)]
+
+    direction_counts = Counter(c.get('direction', 'unknown').lower() for c in filtered)
+    status_counts = Counter(c.get('status', 'unknown').lower() for c in filtered)
+
+    monthly = {}
+    for c in filtered:
+        dt = parse_date(c.get('timestamp'))
+        if dt:
+            key = dt.strftime('%Y-%m')
+            monthly[key] = monthly.get(key, 0) + 1
+
+    sorted_months = sorted(monthly.items())
+
+    return jsonify({
+        'total': len(filtered),
+        'by_direction': dict(direction_counts),
+        'by_status': dict(status_counts),
+        'monthly': [{'month': m, 'count': v} for m, v in sorted_months],
+        'data_source': 'webhook'
+    })
 
 
 @app.route('/api/revenue')
