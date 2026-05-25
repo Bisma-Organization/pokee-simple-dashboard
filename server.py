@@ -71,10 +71,18 @@ def parse_date(d):
 
 
 def to_local_month(dt):
+    """Convert a GHL UTC timestamp to local timezone and return YYYY-MM."""
     if dt is None:
         return None
     local_dt = dt.astimezone(LOCAL_TZ)
     return local_dt.strftime('%Y-%m')
+
+
+def date_to_month(d):
+    """Extract YYYY-MM from a Monday.com date-only string (no timezone conversion)."""
+    if not d or len(d) < 7:
+        return None
+    return d[:7]
 
 
 def in_range(dt, start, end):
@@ -92,8 +100,8 @@ def in_range(dt, start, end):
 def get_date_range():
     start_str = request.args.get('start')
     end_str = request.args.get('end')
-    start = datetime.fromisoformat(start_str).replace(tzinfo=LOCAL_TZ) if start_str else None
-    end = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ) if end_str else None
+    start = datetime.fromisoformat(start_str).replace(tzinfo=timezone.utc) if start_str else None
+    end = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=timezone.utc) if end_str else None
     return start, end
 
 
@@ -613,8 +621,7 @@ def get_revenue():
 
     monthly = {}
     for s in filtered:
-        dt = parse_date(s['first_payment'])
-        key = to_local_month(dt)
+        key = date_to_month(s.get('first_payment'))
         if key:
             monthly[key] = monthly.get(key, 0) + s['fee']
 
@@ -713,8 +720,7 @@ def get_monthly_summary():
                 months_data[key]['calls'] += 1
 
     for s in sales_data:
-        dt = parse_date(s.get('first_payment'))
-        key = to_local_month(dt)
+        key = date_to_month(s.get('first_payment'))
         if key:
             if key not in months_data:
                 months_data[key] = {'leads': 0, 'calls': 0, 'opps': 0, 'contracts': 0, 'revenue': 0, 'churn': 0}
@@ -722,8 +728,7 @@ def get_monthly_summary():
             months_data[key]['revenue'] += s.get('fee', 0)
 
     for c in churn_data:
-        dt = parse_date(c.get('end_date'))
-        key = to_local_month(dt)
+        key = date_to_month(c.get('end_date'))
         if key:
             if key not in months_data:
                 months_data[key] = {'leads': 0, 'calls': 0, 'opps': 0, 'contracts': 0, 'revenue': 0, 'churn': 0}
