@@ -5,6 +5,7 @@ import json
 import requests
 import time
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from collections import Counter
 
 app = Flask(__name__, static_folder='static')
@@ -14,6 +15,7 @@ GHL_TOKEN = os.environ.get('GHL_API_TOKEN', '')
 GHL_LOCATION = os.environ.get('GHL_LOCATION_ID', '')
 MONDAY_TOKEN = os.environ.get('MONDAY_API_TOKEN', '')
 WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', 'usmd-calls-2024')
+LOCAL_TZ = ZoneInfo(os.environ.get('DASHBOARD_TIMEZONE', 'America/Los_Angeles'))
 
 GHL_BASE = 'https://services.leadconnectorhq.com'
 MONDAY_BASE = 'https://api.monday.com/v2'
@@ -68,6 +70,13 @@ def parse_date(d):
         return None
 
 
+def to_local_month(dt):
+    if dt is None:
+        return None
+    local_dt = dt.astimezone(LOCAL_TZ)
+    return local_dt.strftime('%Y-%m')
+
+
 def in_range(dt, start, end):
     if dt is None:
         return False
@@ -104,7 +113,7 @@ def fetch_all_contacts():
     def _fetch():
         all_contacts = []
         params = {'locationId': GHL_LOCATION, 'limit': 100, 'sortBy': 'date_added', 'order': 'desc'}
-        for _ in range(20):
+        for _ in range(50):
             resp = ghl_get('/contacts/', params)
             contacts = resp.get('contacts', [])
             if not contacts:
@@ -581,8 +590,8 @@ def get_calls_stats():
     monthly = {}
     for c in filtered:
         dt = parse_date(c.get('timestamp'))
-        if dt:
-            key = dt.strftime('%Y-%m')
+        key = to_local_month(dt)
+        if key:
             monthly[key] = monthly.get(key, 0) + 1
 
     sorted_months = sorted(monthly.items())
@@ -605,8 +614,8 @@ def get_revenue():
     monthly = {}
     for s in filtered:
         dt = parse_date(s['first_payment'])
-        if dt:
-            key = dt.strftime('%Y-%m')
+        key = to_local_month(dt)
+        if key:
             monthly[key] = monthly.get(key, 0) + s['fee']
 
     sorted_months = sorted(monthly.items())
@@ -655,8 +664,8 @@ def get_leads_monthly():
     monthly = {}
     for c in filtered:
         dt = parse_date(c.get('dateAdded'))
-        if dt:
-            key = dt.strftime('%Y-%m')
+        key = to_local_month(dt)
+        if key:
             monthly[key] = monthly.get(key, 0) + 1
 
     sorted_months = sorted(monthly.items())
@@ -680,8 +689,8 @@ def get_monthly_summary():
 
     for c in contacts:
         dt = parse_date(c.get('dateAdded'))
-        if dt:
-            key = dt.strftime('%Y-%m')
+        key = to_local_month(dt)
+        if key:
             if key not in months_data:
                 months_data[key] = {'leads': 0, 'calls': 0, 'opps': 0, 'contracts': 0, 'revenue': 0, 'churn': 0}
             months_data[key]['leads'] += 1
@@ -689,24 +698,24 @@ def get_monthly_summary():
     if use_webhook:
         for c in webhook_calls:
             dt = parse_date(c.get('timestamp'))
-            if dt:
-                key = dt.strftime('%Y-%m')
+            key = to_local_month(dt)
+            if key:
                 if key not in months_data:
                     months_data[key] = {'leads': 0, 'calls': 0, 'opps': 0, 'contracts': 0, 'revenue': 0, 'churn': 0}
                 months_data[key]['calls'] += 1
     else:
         for c in convos:
             dt = parse_date(c.get('dateAdded'))
-            if dt:
-                key = dt.strftime('%Y-%m')
+            key = to_local_month(dt)
+            if key:
                 if key not in months_data:
                     months_data[key] = {'leads': 0, 'calls': 0, 'opps': 0, 'contracts': 0, 'revenue': 0, 'churn': 0}
                 months_data[key]['calls'] += 1
 
     for s in sales_data:
         dt = parse_date(s.get('first_payment'))
-        if dt:
-            key = dt.strftime('%Y-%m')
+        key = to_local_month(dt)
+        if key:
             if key not in months_data:
                 months_data[key] = {'leads': 0, 'calls': 0, 'opps': 0, 'contracts': 0, 'revenue': 0, 'churn': 0}
             months_data[key]['contracts'] += 1
@@ -714,8 +723,8 @@ def get_monthly_summary():
 
     for c in churn_data:
         dt = parse_date(c.get('end_date'))
-        if dt:
-            key = dt.strftime('%Y-%m')
+        key = to_local_month(dt)
+        if key:
             if key not in months_data:
                 months_data[key] = {'leads': 0, 'calls': 0, 'opps': 0, 'contracts': 0, 'revenue': 0, 'churn': 0}
             months_data[key]['churn'] += 1
@@ -726,8 +735,8 @@ def get_monthly_summary():
         all_opps = opps_open + opps_won
         for opp in all_opps:
             dt = parse_date(opp.get('createdAt'))
-            if dt:
-                key = dt.strftime('%Y-%m')
+            key = to_local_month(dt)
+            if key:
                 if key not in months_data:
                     months_data[key] = {'leads': 0, 'calls': 0, 'opps': 0, 'contracts': 0, 'revenue': 0, 'churn': 0}
                 months_data[key]['opps'] += 1
