@@ -127,17 +127,6 @@
         .chart-container { position: relative; height: 280px; padding: 10px 0; }
         .full-width { grid-column: 1 / -1; }
 
-        .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-        .team-card {
-            padding: 16px;
-            border: 1px solid var(--gray-200);
-            border-radius: 8px;
-            background: #f8fafc;
-            border-left: 3px solid var(--navy-light);
-        }
-        .team-card .team-name { font-weight: 700; color: var(--navy-dark); font-size: 14px; }
-        .team-card .team-role { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
-        .team-card .team-email { font-size: 11px; color: var(--navy-light); margin-top: 4px; }
 
         .source-bar { display: flex; align-items: center; margin-bottom: 8px; gap: 10px; }
         .source-label { font-size: 12px; color: var(--gray-700); width: 120px; text-align: right; flex-shrink: 0; }
@@ -248,30 +237,14 @@
             </div>
         </div>
 
-        <!-- Bottom Row -->
-        <div class="grid-3">
-            <div class="widget">
-                <div class="widget-header">Team Members</div>
-                <div class="widget-body">
-                    <div class="team-grid" id="teamGrid">
-                        <div class="loading"><span class="spinner"></span>Loading...</div>
-                    </div>
-                </div>
-            </div>
-            <div class="widget">
-                <div class="widget-header">Monthly Revenue from SDR</div>
-                <div class="widget-body">
-                    <div class="chart-container"><canvas id="revenueChart"></canvas></div>
-                </div>
-            </div>
-            <div class="widget">
-                <div class="widget-header">GHL Pipeline</div>
-                <div class="widget-body" style="padding:0;overflow-x:auto;">
-                    <table class="data-table" id="pipelineTable">
-                        <thead><tr><th>Stage</th><th>Count</th><th>%</th></tr></thead>
-                        <tbody id="pipelineBody"><tr><td colspan="3" class="loading"><span class="spinner"></span>Loading...</td></tr></tbody>
-                    </table>
-                </div>
+        <!-- Team Members -->
+        <div class="widget full-width" style="margin-bottom: 24px;">
+            <div class="widget-header">Team Members (from Deal Owner)</div>
+            <div class="widget-body" style="padding:0;overflow-x:auto;">
+                <table class="data-table" id="teamTable">
+                    <thead><tr><th>Name</th><th>Total Deals</th><th>Contracts Signed</th><th>Paid</th><th>Revenue</th></tr></thead>
+                    <tbody id="teamBody"><tr><td colspan="5" class="loading"><span class="spinner"></span>Loading...</td></tr></tbody>
+                </table>
             </div>
         </div>
 
@@ -293,7 +266,6 @@
         let allData = null;
         let filteredDeals = null;
         let monthlyChart = null;
-        let revenueChart = null;
 
         async function fetchData() {
             const resp = await fetch('/api/sdr');
@@ -407,7 +379,6 @@
                 reps: repList,
                 recent_deals: deals,
                 source_breakdown: sources,
-                pipeline: allData.pipeline,
                 team: allData.team,
                 kpis: {
                     total_leads: deals.filter(d => d.payment_status !== 'PAID').length,
@@ -416,8 +387,7 @@
                     total_paid: totalPaid,
                     total_revenue: totalRevenue,
                     avg_deal_value: totalPaid > 0 ? Math.round(totalRevenue / totalPaid) : 0,
-                    sign_rate: deals.length > 0 ? +(totalSigned / deals.length * 100).toFixed(1) : 0,
-                    pipeline_total: allData.kpis.pipeline_total
+                    sign_rate: deals.length > 0 ? +(totalSigned / deals.length * 100).toFixed(1) : 0
                 }
             };
         }
@@ -448,8 +418,6 @@
             renderMonthlyChart(data);
             renderSources(data);
             renderTeam(data);
-            renderRevenueChart(data);
-            renderPipeline(data);
             renderRecentDeals(data);
         }
 
@@ -549,60 +517,20 @@
 
         function renderTeam(data) {
             const team = data.team;
-            const container = document.getElementById('teamGrid');
-            container.innerHTML = team.map(t => `
-                <div class="team-card">
-                    <div class="team-name">${t.name}</div>
-                    <div class="team-role">${t.role}</div>
-                    <div class="team-email">${t.email}</div>
-                </div>
-            `).join('');
-        }
-
-        function renderRevenueChart(data) {
-            const monthly = data.monthly;
-            const ctx = document.getElementById('revenueChart').getContext('2d');
-            if (revenueChart) revenueChart.destroy();
-            revenueChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: monthly.map(m => formatMonth(m.month)),
-                    datasets: [{
-                        label: 'Revenue',
-                        data: monthly.map(m => m.revenue),
-                        borderColor: '#1C3557',
-                        backgroundColor: 'rgba(28, 53, 87, 0.08)',
-                        borderWidth: 2.5,
-                        pointBackgroundColor: '#1C3557',
-                        pointRadius: 4,
-                        tension: 0.1,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { display: false } },
-                        y: { beginAtZero: true, ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k' } }
-                    }
-                }
-            });
-        }
-
-        function renderPipeline(data) {
-            const pipeline = data.pipeline;
-            const tbody = document.getElementById('pipelineBody');
-            if (!pipeline || Object.keys(pipeline).length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--gray-500)">No data</td></tr>';
+            const tbody = document.getElementById('teamBody');
+            if (!team || team.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--gray-500)">No team data</td></tr>';
                 return;
             }
-            const entries = Object.entries(pipeline).sort((a, b) => b[1] - a[1]);
-            const total = entries.reduce((s, e) => s + e[1], 0);
-            let html = entries.map(([stage, count]) =>
-                `<tr><td>${stage}</td><td>${count.toLocaleString()}</td><td>${((count/total)*100).toFixed(1)}%</td></tr>`
-            ).join('');
-            html += `<tr class="total-row"><td><strong>Total</strong></td><td><strong>${total.toLocaleString()}</strong></td><td><strong>100%</strong></td></tr>`;
+            let html = team.map(t => `<tr>
+                <td style="font-weight:600;color:var(--navy-dark)">${t.name}</td>
+                <td>${t.deals}</td>
+                <td><span class="badge badge-green">${t.signed}</span></td>
+                <td><span class="badge badge-green">${t.paid}</span></td>
+                <td style="font-weight:600;color:var(--green)">${formatCurrency(t.revenue)}</td>
+            </tr>`).join('');
+            const totals = team.reduce((acc, t) => ({ deals: acc.deals + t.deals, signed: acc.signed + t.signed, paid: acc.paid + t.paid, revenue: acc.revenue + t.revenue }), { deals: 0, signed: 0, paid: 0, revenue: 0 });
+            html += `<tr class="total-row"><td><strong>TOTAL</strong></td><td><strong>${totals.deals}</strong></td><td><strong>${totals.signed}</strong></td><td><strong>${totals.paid}</strong></td><td><strong>${formatCurrency(totals.revenue)}</strong></td></tr>`;
             tbody.innerHTML = html;
         }
 

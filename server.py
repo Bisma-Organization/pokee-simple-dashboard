@@ -812,7 +812,6 @@ def get_sdr_data():
     sales_data = fetch_sales_data()
     contacts = fetch_all_contacts()
     churn_data = fetch_churn_data()
-    pipeline_data = fetch_pipeline_data()
 
     query = '''{ boards(ids: [1944309746]) {
         groups(ids: ["1733734937_book1_usmd_dec_new_Mjj2w4It", "new_group_mkkazbjx"]) {
@@ -930,12 +929,16 @@ def get_sdr_data():
     total_signed = sum(r['signed'] for r in reps)
     total_paid = sum(r['paid'] for r in reps)
 
-    team_members = [
-        {'name': 'Shannon Hamilton', 'email': 'Shamilton@usmedicaldirectors.com', 'role': 'SDR Lead', 'slack_user': 'shamilton'},
-        {'name': 'Olivia de Guzman', 'email': 'odeguzman@usmedicaldirectors.com', 'role': 'Operations', 'slack_user': 'odeguzman'},
-        {'name': 'Saimon', 'email': 'concierge@usmedicaldirectors.com', 'role': 'Concierge', 'slack_user': 'concierge'},
-        {'name': 'Aloysius Fobi', 'email': 'afobi@usmedicaldirectors.com', 'role': 'Director', 'slack_user': 'afobi'}
-    ]
+    team_members = []
+    for owner, stats in sorted(rep_stats.items(), key=lambda x: x[1]['total_deals'], reverse=True):
+        if owner and owner != 'Unassigned':
+            team_members.append({
+                'name': owner,
+                'deals': stats['total_deals'],
+                'signed': stats['signed'],
+                'paid': stats['paid'],
+                'revenue': round(stats['revenue'], 2)
+            })
 
     return jsonify({
         'reps': reps,
@@ -951,11 +954,9 @@ def get_sdr_data():
             'total_paid': total_paid,
             'total_revenue': round(total_revenue, 2),
             'avg_deal_value': round(total_revenue / total_paid, 2) if total_paid > 0 else 0,
-            'sign_rate': round(total_signed / (total_leads + total_closed) * 100, 1) if (total_leads + total_closed) > 0 else 0,
-            'pipeline_total': sum(pipeline_data.values()) if pipeline_data else 0
+            'sign_rate': round(total_signed / (total_leads + total_closed) * 100, 1) if (total_leads + total_closed) > 0 else 0
         },
-        'team': team_members,
-        'pipeline': pipeline_data
+        'team': team_members
     })
 
 
