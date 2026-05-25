@@ -663,6 +663,120 @@ def get_leads_monthly():
     return jsonify({'monthly': [{'month': m, 'count': v} for m, v in sorted_months]})
 
 
+@app.route('/api/monthly-summary')
+def get_monthly_summary():
+    contacts = fetch_all_contacts()
+    sales_data = fetch_sales_data()
+    churn_data = fetch_churn_data()
+    webhook_calls = load_calls()
+    payment_data = fetch_payment_data()
+    pipeline_data = fetch_pipeline_data()
+
+    use_webhook = bool(webhook_calls)
+    if not use_webhook:
+        convos = fetch_conversations()
+
+    months_data = {}
+
+    for c in contacts:
+        dt = parse_date(c.get('dateAdded'))
+        if dt:
+            key = dt.strftime('%Y-%m')
+            if key not in months_data:
+                months_data[key] = {'leads': 0, 'calls': 0, 'opps': 0, 'contracts': 0, 'revenue': 0, 'churn': 0}
+            months_data[key]['leads'] += 1
+
+    if use_webhook:
+        for c in webhook_calls:
+            dt = parse_date(c.get('timestamp'))
+            if dt:
+                key = dt.strftime('%Y-%m')
+                if key not in months_data:
+                    months_data[key] = {'leads': 0, 'calls': 0, 'opps': 0, 'contracts': 0, 'revenue': 0, 'churn': 0}
+                months_data[key]['calls'] += 1
+    else:
+        for c in convos:
+            dt = parse_date(c.get('dateAdded'))
+            if dt:
+                key = dt.strftime('%Y-%m')
+                if key not in months_data:
+                    months_data[key] = {'leads': 0, 'calls': 0, 'opps': 0, 'contracts': 0, 'revenue': 0, 'churn': 0}
+                months_data[key]['calls'] += 1
+
+    for s in sales_data:
+        dt = parse_date(s.get('first_payment'))
+        if dt:
+            key = dt.strftime('%Y-%m')
+            if key not in months_data:
+                months_data[key] = {'leads': 0, 'calls': 0, 'opps': 0, 'contracts': 0, 'revenue': 0, 'churn': 0}
+            months_data[key]['contracts'] += 1
+            months_data[key]['revenue'] += s.get('fee', 0)
+
+    for c in churn_data:
+        dt = parse_date(c.get('end_date'))
+        if dt:
+            key = dt.strftime('%Y-%m')
+            if key not in months_data:
+                months_data[key] = {'leads': 0, 'calls': 0, 'opps': 0, 'contracts': 0, 'revenue': 0, 'churn': 0}
+            months_data[key]['churn'] += 1
+
+    try:
+        opps_open = fetch_opportunities('open')
+        opps_won = fetch_opportunities('won')
+        all_opps = opps_open + opps_won
+        for opp in all_opps:
+            dt = parse_date(opp.get('createdAt'))
+            if dt:
+                key = dt.strftime('%Y-%m')
+                if key not in months_data:
+                    months_data[key] = {'leads': 0, 'calls': 0, 'opps': 0, 'contracts': 0, 'revenue': 0, 'churn': 0}
+                months_data[key]['opps'] += 1
+    except Exception:
+        pass
+
+    sorted_months = sorted(months_data.items())
+
+    active_clients = len([p for p in payment_data if p.get('status') == 'Active'])
+    total_inactive = len(churn_data)
+    total_contracts = sum(m['contracts'] for m in months_data.values())
+    total_revenue = sum(m['revenue'] for m in months_data.values())
+    total_leads = sum(m['leads'] for m in months_data.values())
+    total_churn = sum(m['churn'] for m in months_data.values())
+
+    avg_revenue = total_revenue / total_contracts if total_contracts > 0 else 0
+    conversion = (total_contracts / total_leads * 100) if total_leads > 0 else 0
+    net_growth = total_contracts - total_churn
+
+    return jsonify({
+        'monthly': [{
+            'month': m,
+            'leads': d['leads'],
+            'calls': d['calls'],
+            'opps': d['opps'],
+            'contracts': d['contracts'],
+            'revenue': round(d['revenue'], 2),
+            'churn': d['churn']
+        } for m, d in sorted_months],
+        'kpis': {
+            'avg_revenue_per_contract': round(avg_revenue, 2),
+            'active_clients': active_clients,
+            'total_inactive': total_inactive,
+            'net_growth': net_growth,
+            'total_contracts': total_contracts,
+            'total_churn': total_churn,
+            'lead_to_contract': round(conversion, 1),
+            'total_revenue': round(total_revenue, 2)
+        },
+        'pipeline': pipeline_data,
+        'calls_source': 'webhook' if use_webhook else 'conversations_api'
+    })
+
+
+@app.route('/monthly-summary')
+def monthly_summary():
+    return send_from_directory('static', 'monthly-summary.html')
+
+
 @app.route('/api/refresh', methods=['POST'])
 def refresh_cache():
     cache.clear()

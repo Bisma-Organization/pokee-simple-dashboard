@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USMD Monthly Summary</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --navy-dark: #1a2332;
+            --navy: #1C3557;
+            --navy-light: #2C4A7C;
+            --cream: #F0EDE6;
+            --white: #ffffff;
+            --gray-100: #f8f9fa;
+            --gray-200: #e9ecef;
+            --gray-300: #dee2e6;
+            --gray-500: #6c757d;
+            --gray-700: #495057;
+            --gray-900: #212529;
+            --accent: #2C4A7C;
+            --accent-light: #3d6098;
+            --churn-color: #1a2332;
+            --contracts-color: #2C4A7C;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-900);
+            line-height: 1.6;
+        }
+
+        .header {
+            background: var(--navy-dark);
+            color: var(--cream);
+            padding: 24px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 3px solid var(--navy-light);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header h1 {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header .subtitle {
+            font-size: 13px;
+            color: #8a9bb5;
+            margin-top: 2px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .nav-link {
+            color: #8a9bb5;
+            text-decoration: none;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--cream);
+            background: rgba(255,255,255,0.08);
+        }
+
+        .filter-bar {
+            background: var(--white);
+            padding: 16px 40px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid var(--gray-200);
+            flex-wrap: wrap;
+        }
+
+        .filter-bar label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-bar select, .filter-bar input {
+            padding: 8px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 14px;
+            background: var(--white);
+            color: var(--gray-900);
+            cursor: pointer;
+        }
+
+        .filter-bar select:focus, .filter-bar input:focus {
+            outline: none;
+            border-color: var(--navy-light);
+            box-shadow: 0 0 0 3px rgba(44, 74, 124, 0.1);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: var(--navy);
+            color: var(--white);
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover { background: var(--navy-dark); }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--navy);
+            border: 1px solid var(--navy);
+        }
+
+        .btn-outline:hover {
+            background: var(--navy);
+            color: var(--white);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px 40px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 24px;
+        }
+
+        .widget {
+            background: var(--white);
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .widget-header {
+            background: var(--navy-dark);
+            color: var(--cream);
+            padding: 14px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: Georgia, 'Times New Roman', serif;
+            border-bottom: 2px solid var(--navy-light);
+        }
+
+        .widget-body {
+            padding: 20px;
+        }
+
+        .full-width { grid-column: 1 / -1; }
+
+        /* Table styles matching PDF */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
+        }
+
+        .data-table thead th {
+            background: var(--navy);
+            color: var(--white);
+            padding: 12px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .data-table tbody tr {
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .data-table tbody tr:nth-child(even) {
+            background: #f4f6f9;
+        }
+
+        .data-table tbody tr:hover {
+            background: #edf1f7;
+        }
+
+        .data-table tbody td {
+            padding: 10px 14px;
+            color: var(--gray-900);
+        }
+
+        .data-table .total-row {
+            font-weight: 700;
+            background: var(--gray-200) !important;
+            border-top: 2px solid var(--navy-light);
+        }
+
+        .data-table .month-cell {
+            font-weight: 500;
+            color: var(--navy);
+        }
+
+        /* KPI cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .kpi-item {
+            padding: 14px 16px;
+            border-left: 3px solid var(--navy-light);
+            background: #f8fafc;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .kpi-item .kpi-label {
+            font-size: 12px;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 4px;
+        }
+
+        .kpi-item .kpi-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--navy-dark);
+            font-family: Georgia, 'Times New Roman', serif;
+        }
+
+        /* Pipeline */
+        .pipeline-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 12px;
+        }
+
+        .pipeline-label {
+            font-size: 13px;
+            color: var(--gray-700);
+            width: 180px;
+            flex-shrink: 0;
+            text-align: right;
+        }
+
+        .pipeline-track {
+            flex: 1;
+            height: 24px;
+            background: var(--gray-200);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .pipeline-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--navy), var(--navy-light));
+            border-radius: 4px;
+            transition: width 0.6s ease;
+        }
+
+        .pipeline-count {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--navy-dark);
+            width: 40px;
+        }
+
+        /* Data sources */
+        .source-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .source-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--gray-200);
+            font-size: 14px;
+            color: var(--gray-700);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .source-list li:last-child { border-bottom: none; }
+
+        .source-list .source-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--navy-light);
+            border-radius: 50%;
+            margin-top: 7px;
+            flex-shrink: 0;
+        }
+
+        .source-list strong {
+            color: var(--navy-dark);
+        }
+
+        /* Chart container */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            padding: 10px 0;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            color: var(--gray-500);
+            font-size: 14px;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--gray-300);
+            border-top-color: var(--navy);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .grid-3 { grid-template-columns: 1fr; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .container { padding: 20px; }
+            .header { padding: 16px 20px; }
+            .filter-bar { padding: 12px 20px; }
+        }
+
+        @media (max-width: 640px) {
+            .kpi-grid { grid-template-columns: 1fr; }
+            .header h1 { font-size: 22px; }
+            .data-table { font-size: 12px; }
+            .data-table thead th, .data-table tbody td { padding: 8px 8px; }
+        }
+
+        .section-title {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 20px;
+            color: var(--navy-dark);
+            margin-bottom: 20px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--navy-light);
+        }
+
+        .callout {
+            background: #f0f4f8;
+            border-left: 4px solid var(--navy-light);
+            padding: 14px 18px;
+            border-radius: 0 6px 6px 0;
+            font-size: 14px;
+            color: var(--gray-700);
+            margin-top: 16px;
+            line-height: 1.5;
+        }
+
+        .active-month {
+            background: rgba(44, 74, 124, 0.08) !important;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <div>
+                <h1>USMD Deal Flow Report</h1>
+                <div class="subtitle">US Medical Directors &mdash; Monthly Summary Dashboard</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <a href="/" class="nav-link">Main Dashboard</a>
+            <a href="/monthly-summary" class="nav-link" style="color: var(--cream);">Monthly Summary</a>
+        </div>
+    </div>
+
+    <div class="filter-bar">
+        <label for="monthFilter">Filter by Month:</label>
+        <select id="monthFilter">
+            <option value="all">All Months (12 mo)</option>
+        </select>
+        <label for="startMonth" style="margin-left: 16px;">Range:</label>
+        <input type="month" id="startMonth" />
+        <span style="color: var(--gray-500);">to</span>
+        <input type="month" id="endMonth" />
+        <button class="btn" onclick="applyFilter()">Apply</button>
+        <button class="btn btn-outline" onclick="resetFilter()">Reset</button>
+        <span id="dataSourceBadge" style="margin-left: auto; font-size: 12px; padding: 4px 10px; background: #e8f0fe; color: var(--navy); border-radius: 12px; font-weight: 500;"></span>
+    </div>
+
+    <div class="container">
+        <!-- Widget 1: Deal Flow Summary Table -->
+        <div class="widget full-width" style="margin-bottom: 24px;">
+            <div class="widget-header">Monthly Deal Flow Summary</div>
+            <div class="widget-body" style="padding: 0; overflow-x: auto;">
+                <table class="data-table" id="dealFlowTable">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Leads</th>
+                            <th>Calls</th>
+                            <th>Opps Created</th>
+                            <th>New Contracts</th>
+                            <th>Revenue</th>
+                            <th>Churn</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dealFlowBody">
+                        <tr><td colspan="7" class="loading"><span class="spinner"></span>Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid-2" style="margin-bottom: 24px;">
+            <!-- Widget 2: New Contracts & Churn Chart -->
+            <div class="widget">
+                <div class="widget-header">New Contracts & Churn (Monthly)</div>
+                <div class="widget-body">
+                    <div class="chart-container">
+                        <canvas id="contractsChurnChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Widget 3: Revenue Chart -->
+            <div class="widget">
+                <div class="widget-header">Monthly Revenue</div>
+                <div class="widget-body">
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Row -->
+        <div class="grid-3" style="margin-bottom: 24px;">
+            <!-- Widget 4: Data Sources -->
+            <div class="widget">
+                <div class="widget-header">Data Sources</div>
+                <div class="widget-body">
+                    <ul class="source-list">
+                        <li><span class="source-dot"></span><span><strong>Leads:</strong> GHL Contacts (filtered by dateAdded)</span></li>
+                        <li><span class="source-dot"></span><span><strong>Calls:</strong> <span id="callsSourceText">GHL Conversations TYPE_PHONE</span></span></li>
+                        <li><span class="source-dot"></span><span><strong>Opportunities:</strong> GHL Opportunities (open + won, by createdAt)</span></li>
+                        <li><span class="source-dot"></span><span><strong>New Contracts & Revenue:</strong> Monday.com &rarr; New Leads board &rarr; Closed Deals</span></li>
+                        <li><span class="source-dot"></span><span><strong>Churn:</strong> Monday.com &rarr; Client Master &rarr; Inactive group (by end date)</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Widget 5: Key Performance Metrics -->
+            <div class="widget">
+                <div class="widget-header">Key Performance Metrics</div>
+                <div class="widget-body">
+                    <div class="kpi-grid" id="kpiGrid">
+                        <div class="kpi-item"><div class="kpi-label">Avg Revenue / Contract</div><div class="kpi-value" id="kpiAvgRevenue">-</div></div>
+                        <div class="kpi-item"><div class="kpi-label">Active Clients</div><div class="kpi-value" id="kpiActiveClients">-</div></div>
+                        <div class="kpi-item"><div class="kpi-label">Total Inactive</div><div class="kpi-value" id="kpiInactive">-</div></div>
+                        <div class="kpi-item"><div class="kpi-label">Net Client Growth</div><div class="kpi-value" id="kpiNetGrowth">-</div></div>
+                        <div class="kpi-item"><div class="kpi-label">Lead-to-Contract</div><div class="kpi-value" id="kpiConversion">-</div></div>
+                        <div class="kpi-item"><div class="kpi-label">Total Revenue</div><div class="kpi-value" id="kpiTotalRevenue">-</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Widget 6: Current Pipeline -->
+            <div class="widget">
+                <div class="widget-header">Current Pipeline &mdash; Open Opportunities</div>
+                <div class="widget-body" id="pipelineBody">
+                    <div class="loading"><span class="spinner"></span>Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Callout -->
+        <div class="callout" id="calloutBox">
+            Loading summary...
+        </div>
+    </div>
+
+    <script>
+        let allData = null;
+        let contractsChurnChart = null;
+        let revenueChart = null;
+
+        async function fetchData() {
+            const resp = await fetch('/api/monthly-summary');
+            allData = await resp.json();
+            populateFilter();
+            renderAll(allData.monthly);
+        }
+
+        function populateFilter() {
+            const sel = document.getElementById('monthFilter');
+            sel.innerHTML = '<option value="all">All Months</option>';
+            allData.monthly.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.month;
+                opt.textContent = formatMonth(m.month);
+                sel.appendChild(opt);
+            });
+
+            if (allData.monthly.length > 0) {
+                document.getElementById('startMonth').value = allData.monthly[0].month;
+                document.getElementById('endMonth').value = allData.monthly[allData.monthly.length - 1].month;
+            }
+        }
+
+        function formatMonth(m) {
+            const [y, mo] = m.split('-');
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            return months[parseInt(mo) - 1] + ' ' + y;
+        }
+
+        function formatCurrency(n) {
+            return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
+
+        function applyFilter() {
+            if (!allData) return;
+            const singleMonth = document.getElementById('monthFilter').value;
+            const startMonth = document.getElementById('startMonth').value;
+            const endMonth = document.getElementById('endMonth').value;
+
+            let filtered;
+            if (singleMonth !== 'all') {
+                filtered = allData.monthly.filter(m => m.month === singleMonth);
+            } else if (startMonth && endMonth) {
+                filtered = allData.monthly.filter(m => m.month >= startMonth && m.month <= endMonth);
+            } else {
+                filtered = allData.monthly;
+            }
+
+            renderAll(filtered);
+        }
+
+        function resetFilter() {
+            document.getElementById('monthFilter').value = 'all';
+            if (allData && allData.monthly.length > 0) {
+                document.getElementById('startMonth').value = allData.monthly[0].month;
+                document.getElementById('endMonth').value = allData.monthly[allData.monthly.length - 1].month;
+            }
+            renderAll(allData.monthly);
+        }
+
+        document.getElementById('monthFilter').addEventListener('change', function() {
+            if (this.value !== 'all') {
+                document.getElementById('startMonth').value = this.value;
+                document.getElementById('endMonth').value = this.value;
+            }
+            applyFilter();
+        });
+
+        function renderAll(monthly) {
+            renderTable(monthly);
+            renderCharts(monthly);
+            renderKPIs(monthly);
+            renderPipeline();
+            renderCallout(monthly);
+            updateDataSourceBadge();
+        }
+
+        function renderTable(monthly) {
+            const tbody = document.getElementById('dealFlowBody');
+            if (!monthly || monthly.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#6c757d;">No data for selected period</td></tr>';
+                return;
+            }
+
+            let html = '';
+            let totals = { leads: 0, calls: 0, opps: 0, contracts: 0, revenue: 0, churn: 0 };
+
+            monthly.forEach(m => {
+                totals.leads += m.leads;
+                totals.calls += m.calls;
+                totals.opps += m.opps;
+                totals.contracts += m.contracts;
+                totals.revenue += m.revenue;
+                totals.churn += m.churn;
+
+                html += `<tr>
+                    <td class="month-cell">${formatMonth(m.month)}</td>
+                    <td>${m.leads.toLocaleString()}</td>
+                    <td>${m.calls.toLocaleString()}</td>
+                    <td>${m.opps.toLocaleString()}</td>
+                    <td>${m.contracts.toLocaleString()}</td>
+                    <td>${formatCurrency(m.revenue)}</td>
+                    <td>${m.churn.toLocaleString()}</td>
+                </tr>`;
+            });
+
+            html += `<tr class="total-row">
+                <td><strong>TOTAL</strong></td>
+                <td><strong>${totals.leads.toLocaleString()}</strong></td>
+                <td><strong>${totals.calls.toLocaleString()}</strong></td>
+                <td><strong>${totals.opps.toLocaleString()}</strong></td>
+                <td><strong>${totals.contracts.toLocaleString()}</strong></td>
+                <td><strong>${formatCurrency(totals.revenue)}</strong></td>
+                <td><strong>${totals.churn.toLocaleString()}</strong></td>
+            </tr>`;
+
+            tbody.innerHTML = html;
+        }
+
+        function renderCharts(monthly) {
+            const labels = monthly.map(m => formatMonth(m.month));
+            const contracts = monthly.map(m => m.contracts);
+            const churn = monthly.map(m => m.churn);
+            const revenue = monthly.map(m => m.revenue);
+
+            // Contracts & Churn Bar Chart
+            const ctx1 = document.getElementById('contractsChurnChart').getContext('2d');
+            if (contractsChurnChart) contractsChurnChart.destroy();
+            contractsChurnChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'New Contracts',
+                            data: contracts,
+                            backgroundColor: '#2C4A7C',
+                            borderRadius: 3
+                        },
+                        {
+                            label: 'Churn',
+                            data: churn,
+                            backgroundColor: '#1a2332',
+                            borderRadius: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { size: 12 } } }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, title: { display: true, text: 'Count', font: { size: 12 } } }
+                    }
+                }
+            });
+
+            // Revenue Line Chart
+            const ctx2 = document.getElementById('revenueChart').getContext('2d');
+            if (revenueChart) revenueChart.destroy();
+            revenueChart = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Revenue ($)',
+                        data: revenue,
+                        borderColor: '#1C3557',
+                        backgroundColor: 'rgba(28, 53, 87, 0.08)',
+                        borderWidth: 2.5,
+                        pointBackgroundColor: '#1C3557',
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Revenue ($)', font: { size: 12 } },
+                            ticks: {
+                                callback: v => '$' + (v / 1000).toFixed(0) + 'k'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderKPIs(monthly) {
+            const totals = monthly.reduce((acc, m) => {
+                acc.leads += m.leads;
+                acc.contracts += m.contracts;
+                acc.revenue += m.revenue;
+                acc.churn += m.churn;
+                return acc;
+            }, { leads: 0, contracts: 0, revenue: 0, churn: 0 });
+
+            const avgRev = totals.contracts > 0 ? totals.revenue / totals.contracts : 0;
+            const conversion = totals.leads > 0 ? (totals.contracts / totals.leads * 100) : 0;
+            const netGrowth = totals.contracts - totals.churn;
+
+            document.getElementById('kpiAvgRevenue').textContent = formatCurrency(avgRev);
+            document.getElementById('kpiActiveClients').textContent = allData.kpis.active_clients;
+            document.getElementById('kpiInactive').textContent = allData.kpis.total_inactive.toLocaleString();
+            document.getElementById('kpiNetGrowth').textContent = (netGrowth >= 0 ? '+' : '') + netGrowth;
+            document.getElementById('kpiConversion').textContent = conversion.toFixed(1) + '%';
+            document.getElementById('kpiTotalRevenue').textContent = formatCurrency(totals.revenue);
+        }
+
+        function renderPipeline() {
+            const pipeline = allData.pipeline;
+            const container = document.getElementById('pipelineBody');
+
+            if (!pipeline || Object.keys(pipeline).length === 0) {
+                container.innerHTML = '<p style="color:#6c757d;font-size:14px;">No pipeline data available</p>';
+                return;
+            }
+
+            const entries = Object.entries(pipeline).sort((a, b) => b[1] - a[1]);
+            const max = entries[0][1];
+            const total = entries.reduce((s, e) => s + e[1], 0);
+
+            let html = '';
+            entries.forEach(([stage, count]) => {
+                const pct = (count / max * 100).toFixed(0);
+                html += `<div class="pipeline-bar">
+                    <span class="pipeline-label">${stage}</span>
+                    <div class="pipeline-track">
+                        <div class="pipeline-fill" style="width: ${pct}%"></div>
+                    </div>
+                    <span class="pipeline-count">${count}</span>
+                </div>`;
+            });
+
+            html += `<div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--gray-200); font-size: 13px; font-weight: 600; color: var(--navy-dark); text-align: right;">
+                Total: ${total.toLocaleString()}
+            </div>`;
+
+            container.innerHTML = html;
+        }
+
+        function renderCallout(monthly) {
+            const totals = monthly.reduce((acc, m) => {
+                acc.contracts += m.contracts;
+                acc.churn += m.churn;
+                acc.revenue += m.revenue;
+                acc.leads += m.leads;
+                return acc;
+            }, { contracts: 0, churn: 0, revenue: 0, leads: 0 });
+
+            const net = totals.contracts - totals.churn;
+            const period = monthly.length === 1 ? formatMonth(monthly[0].month) : `${monthly.length} months`;
+
+            document.getElementById('calloutBox').innerHTML = `
+                <strong>Summary (${period}):</strong> Net position is ${net >= 0 ? 'positive' : 'negative'}:
+                ${totals.contracts} new contracts vs ${totals.churn} churned =
+                <strong>${net >= 0 ? '+' : ''}${net} net growth</strong>.
+                Total revenue: <strong>${formatCurrency(totals.revenue)}</strong> from
+                ${totals.leads.toLocaleString()} leads (${(totals.leads > 0 ? (totals.contracts / totals.leads * 100).toFixed(1) : 0)}% conversion).
+            `;
+        }
+
+        function updateDataSourceBadge() {
+            const badge = document.getElementById('dataSourceBadge');
+            const src = allData.calls_source;
+            if (src === 'webhook') {
+                badge.textContent = 'Calls: Live Webhook Data';
+                badge.style.background = '#d4edda';
+                badge.style.color = '#155724';
+                document.getElementById('callsSourceText').textContent = 'GHL Workflow Webhook (real call events)';
+            } else {
+                badge.textContent = 'Calls: Conversation Threads (limited)';
+                badge.style.background = '#fff3cd';
+                badge.style.color = '#856404';
+                document.getElementById('callsSourceText').textContent = 'GHL Conversations TYPE_PHONE (thread count, not individual calls)';
+            }
+        }
+
+        fetchData();
+    </script>
+</body>
+</html>
