@@ -148,6 +148,32 @@
         .loading { display: flex; align-items: center; justify-content: center; padding: 60px; color: var(--gray-500); }
         .spinner { width: 20px; height: 20px; border: 2px solid var(--gray-300); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 10px; }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        .filter-bar {
+            background: var(--white);
+            padding: 14px 40px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border-bottom: 1px solid var(--gray-200);
+            flex-wrap: wrap;
+        }
+        .filter-bar label { font-size: 12px; font-weight: 600; color: var(--gray-700); text-transform: uppercase; letter-spacing: 0.5px; }
+        .filter-bar select, .filter-bar input {
+            padding: 7px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 13px;
+            background: var(--white);
+            color: var(--gray-900);
+            cursor: pointer;
+        }
+        .filter-bar select:focus, .filter-bar input:focus { outline: none; border-color: var(--navy-light); box-shadow: 0 0 0 3px rgba(44,74,124,0.1); }
+        .btn { padding: 7px 14px; background: var(--navy); color: var(--white); border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .btn:hover { background: var(--navy-dark); }
+        .btn-outline { background: transparent; color: var(--navy); border: 1px solid var(--navy); }
+        .btn-outline:hover { background: var(--navy); color: var(--white); }
+        .filter-badge { margin-left: auto; font-size: 11px; padding: 4px 10px; background: #e8f0fe; color: var(--navy); border-radius: 12px; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -167,6 +193,20 @@
             <a href="/monthly-summary" class="nav-link">Monthly Summary</a>
             <a href="/sdr" class="nav-link active">SDR Performance</a>
         </div>
+    </div>
+
+    <div class="filter-bar">
+        <label for="monthFilter">Month:</label>
+        <select id="monthFilter">
+            <option value="all">All Months</option>
+        </select>
+        <label for="startDate" style="margin-left:12px;">Range:</label>
+        <input type="date" id="startDate" />
+        <span style="color:var(--gray-500);">to</span>
+        <input type="date" id="endDate" />
+        <button class="btn" onclick="applyFilter()">Apply</button>
+        <button class="btn btn-outline" onclick="resetFilter()">Reset</button>
+        <span class="filter-badge" id="filterBadge">Showing: All Data</span>
     </div>
 
     <div class="container">
@@ -251,13 +291,139 @@
 
     <script>
         let allData = null;
+        let filteredDeals = null;
         let monthlyChart = null;
         let revenueChart = null;
 
         async function fetchData() {
             const resp = await fetch('/api/sdr');
             allData = await resp.json();
-            renderAll();
+            populateFilter();
+            filteredDeals = allData.recent_deals;
+            renderAll(allData);
+        }
+
+        function populateFilter() {
+            const sel = document.getElementById('monthFilter');
+            const months = allData.monthly.map(m => m.month);
+            sel.innerHTML = '<option value="all">All Months</option>';
+            months.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = formatMonthFull(m);
+                sel.appendChild(opt);
+            });
+            if (months.length > 0) {
+                document.getElementById('startDate').value = months[0] + '-01';
+                const last = months[months.length - 1];
+                const [y, mo] = last.split('-');
+                const lastDay = new Date(+y, +mo, 0).getDate();
+                document.getElementById('endDate').value = last + '-' + lastDay;
+            }
+        }
+
+        function applyFilter() {
+            if (!allData) return;
+            const singleMonth = document.getElementById('monthFilter').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            let startMonth, endMonth;
+            if (singleMonth !== 'all') {
+                startMonth = singleMonth;
+                endMonth = singleMonth;
+            } else if (startDate && endDate) {
+                startMonth = startDate.slice(0, 7);
+                endMonth = endDate.slice(0, 7);
+            } else {
+                renderAll(allData);
+                updateBadge('All Data');
+                return;
+            }
+
+            const filtered = filterData(startMonth, endMonth, startDate, endDate);
+            renderAll(filtered);
+
+            if (singleMonth !== 'all') {
+                updateBadge(formatMonthFull(singleMonth));
+            } else {
+                updateBadge(formatMonthFull(startMonth) + ' \u2013 ' + formatMonthFull(endMonth));
+            }
+        }
+
+        function resetFilter() {
+            document.getElementById('monthFilter').value = 'all';
+            if (allData && allData.monthly.length > 0) {
+                const months = allData.monthly.map(m => m.month);
+                document.getElementById('startDate').value = months[0] + '-01';
+                const last = months[months.length - 1];
+                const [y, mo] = last.split('-');
+                document.getElementById('endDate').value = last + '-' + new Date(+y, +mo, 0).getDate();
+            }
+            renderAll(allData);
+            updateBadge('All Data');
+        }
+
+        document.getElementById('monthFilter').addEventListener('change', function() {
+            if (this.value !== 'all') {
+                const [y, mo] = this.value.split('-');
+                document.getElementById('startDate').value = this.value + '-01';
+                document.getElementById('endDate').value = this.value + '-' + new Date(+y, +mo, 0).getDate();
+            }
+            applyFilter();
+        });
+
+        function filterData(startMonth, endMonth, startDate, endDate) {
+            const monthly = allData.monthly.filter(m => m.month >= startMonth && m.month <= endMonth);
+
+            const deals = allData.recent_deals.filter(d => {
+                if (!d.date_sent) return false;
+                if (startDate && d.date_sent < startDate) return false;
+                if (endDate && d.date_sent > endDate) return false;
+                return true;
+            });
+
+            const reps = {};
+            deals.forEach(d => {
+                const owner = d.owner || 'Unassigned';
+                if (!reps[owner]) reps[owner] = { name: owner, total_deals: 0, signed: 0, sent: 0, paid: 0, revenue: 0 };
+                reps[owner].total_deals++;
+                if (d.contract_status === 'Signed') reps[owner].signed++;
+                if (d.contract_status === 'Sent') reps[owner].sent++;
+                if (d.payment_status === 'PAID') reps[owner].paid++;
+            });
+            const repList = Object.values(reps).sort((a, b) => b.total_deals - a.total_deals);
+            repList.forEach(r => { r.conversion = r.total_deals > 0 ? +(r.signed / r.total_deals * 100).toFixed(1) : 0; });
+
+            const sources = {};
+            deals.forEach(d => { const s = d.source || 'Unknown'; sources[s] = (sources[s] || 0) + 1; });
+
+            const totalPaid = deals.filter(d => d.payment_status === 'PAID').length;
+            const totalSigned = deals.filter(d => d.contract_status === 'Signed').length;
+            const totalRevenue = monthly.reduce((s, m) => s + m.revenue, 0);
+
+            return {
+                monthly: monthly,
+                reps: repList,
+                recent_deals: deals,
+                source_breakdown: sources,
+                pipeline: allData.pipeline,
+                team: allData.team,
+                kpis: {
+                    total_leads: deals.filter(d => d.payment_status !== 'PAID').length,
+                    total_closed: totalSigned,
+                    total_signed: totalSigned,
+                    total_paid: totalPaid,
+                    total_revenue: totalRevenue,
+                    avg_deal_value: totalPaid > 0 ? Math.round(totalRevenue / totalPaid) : 0,
+                    sign_rate: deals.length > 0 ? +(totalSigned / deals.length * 100).toFixed(1) : 0,
+                    pipeline_total: allData.kpis.pipeline_total
+                }
+            };
+        }
+
+        function updateBadge(text) {
+            document.getElementById('filterBadge').textContent = 'Showing: ' + text;
         }
 
         function formatCurrency(n) {
@@ -270,19 +436,25 @@
             return months[parseInt(mo) - 1] + ' ' + y.slice(2);
         }
 
-        function renderAll() {
-            renderKPIs();
-            renderRepTable();
-            renderMonthlyChart();
-            renderSources();
-            renderTeam();
-            renderRevenueChart();
-            renderPipeline();
-            renderRecentDeals();
+        function formatMonthFull(m) {
+            const [y, mo] = m.split('-');
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            return months[parseInt(mo) - 1] + ' ' + y;
         }
 
-        function renderKPIs() {
-            const k = allData.kpis;
+        function renderAll(data) {
+            renderKPIs(data);
+            renderRepTable(data);
+            renderMonthlyChart(data);
+            renderSources(data);
+            renderTeam(data);
+            renderRevenueChart(data);
+            renderPipeline(data);
+            renderRecentDeals(data);
+        }
+
+        function renderKPIs(data) {
+            const k = data.kpis;
             document.getElementById('kpiLeads').textContent = k.total_leads.toLocaleString();
             document.getElementById('kpiClosed').textContent = k.total_closed.toLocaleString();
             document.getElementById('kpiPaid').textContent = k.total_paid.toLocaleString();
@@ -291,12 +463,16 @@
             document.getElementById('kpiSignRate').textContent = k.sign_rate + '%';
         }
 
-        function renderRepTable() {
+        function renderRepTable(data) {
             const tbody = document.getElementById('repBody');
+            if (!data.reps || data.reps.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--gray-500)">No deals in selected period</td></tr>';
+                return;
+            }
             let html = '';
             let totals = { deals: 0, signed: 0, sent: 0, paid: 0, revenue: 0 };
 
-            allData.reps.forEach(r => {
+            data.reps.forEach(r => {
                 totals.deals += r.total_deals;
                 totals.signed += r.signed;
                 totals.sent += r.sent;
@@ -328,8 +504,8 @@
             tbody.innerHTML = html;
         }
 
-        function renderMonthlyChart() {
-            const monthly = allData.monthly;
+        function renderMonthlyChart(data) {
+            const monthly = data.monthly;
             const ctx = document.getElementById('monthlyChart').getContext('2d');
             if (monthlyChart) monthlyChart.destroy();
             monthlyChart = new Chart(ctx, {
@@ -349,11 +525,15 @@
             });
         }
 
-        function renderSources() {
-            const sources = allData.source_breakdown;
+        function renderSources(data) {
+            const sources = data.source_breakdown;
             const container = document.getElementById('sourceBody');
             const entries = Object.entries(sources).sort((a, b) => b[1] - a[1]);
-            const max = entries.length > 0 ? entries[0][1] : 1;
+            if (entries.length === 0) {
+                container.innerHTML = '<p style="color:var(--gray-500);text-align:center;padding:20px;">No data for selected period</p>';
+                return;
+            }
+            const max = entries[0][1];
 
             let html = '';
             entries.forEach(([name, count]) => {
@@ -367,8 +547,8 @@
             container.innerHTML = html;
         }
 
-        function renderTeam() {
-            const team = allData.team;
+        function renderTeam(data) {
+            const team = data.team;
             const container = document.getElementById('teamGrid');
             container.innerHTML = team.map(t => `
                 <div class="team-card">
@@ -379,8 +559,8 @@
             `).join('');
         }
 
-        function renderRevenueChart() {
-            const monthly = allData.monthly;
+        function renderRevenueChart(data) {
+            const monthly = data.monthly;
             const ctx = document.getElementById('revenueChart').getContext('2d');
             if (revenueChart) revenueChart.destroy();
             revenueChart = new Chart(ctx, {
@@ -410,8 +590,8 @@
             });
         }
 
-        function renderPipeline() {
-            const pipeline = allData.pipeline;
+        function renderPipeline(data) {
+            const pipeline = data.pipeline;
             const tbody = document.getElementById('pipelineBody');
             if (!pipeline || Object.keys(pipeline).length === 0) {
                 tbody.innerHTML = '<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--gray-500)">No data</td></tr>';
@@ -426,10 +606,14 @@
             tbody.innerHTML = html;
         }
 
-        function renderRecentDeals() {
-            const deals = allData.recent_deals;
+        function renderRecentDeals(data) {
+            const deals = data.recent_deals;
             const tbody = document.getElementById('dealsBody');
-            tbody.innerHTML = deals.map(d => {
+            if (!deals || deals.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--gray-500)">No deals in selected period</td></tr>';
+                return;
+            }
+            tbody.innerHTML = deals.slice(0, 20).map(d => {
                 const contractBadge = d.contract_status === 'Signed' ? 'badge-green' : d.contract_status === 'Sent' ? 'badge-blue' : 'badge-gray';
                 const paymentBadge = d.payment_status === 'PAID' ? 'badge-green' : d.payment_status === 'Pending' ? 'badge-orange' : 'badge-gray';
                 const owner = d.owner.includes('@') ? d.owner.split('@')[0] : d.owner;
