@@ -229,72 +229,7 @@
             color: var(--navy);
         }
 
-        /* KPI cards */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-        }
-
-        .kpi-item {
-            padding: 14px 16px;
-            border-left: 3px solid var(--navy-light);
-            background: #f8fafc;
-            border-radius: 0 6px 6px 0;
-        }
-
-        .kpi-item .kpi-label {
-            font-size: 12px;
-            color: var(--gray-500);
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            margin-bottom: 4px;
-        }
-
-        .kpi-item .kpi-value {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--navy-dark);
-            font-family: Georgia, 'Times New Roman', serif;
-        }
-
-        /* Pipeline */
-        .pipeline-bar {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-            gap: 12px;
-        }
-
-        .pipeline-label {
-            font-size: 13px;
-            color: var(--gray-700);
-            width: 180px;
-            flex-shrink: 0;
-            text-align: right;
-        }
-
-        .pipeline-track {
-            flex: 1;
-            height: 24px;
-            background: var(--gray-200);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .pipeline-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--navy), var(--navy-light));
-            border-radius: 4px;
-            transition: width 0.6s ease;
-        }
-
-        .pipeline-count {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--navy-dark);
-            width: 40px;
-        }
+        /* Pipeline and KPI tables inherit from .data-table */
 
         /* Data sources */
         .source-list {
@@ -507,28 +442,43 @@
             <!-- Widget 5: Key Performance Metrics -->
             <div class="widget">
                 <div class="widget-header">Key Performance Metrics</div>
-                <div class="widget-body">
-                    <div class="kpi-grid" id="kpiGrid">
-                        <div class="kpi-item"><div class="kpi-label">Avg Revenue / Contract</div><div class="kpi-value" id="kpiAvgRevenue">-</div></div>
-                        <div class="kpi-item"><div class="kpi-label">Active Clients</div><div class="kpi-value" id="kpiActiveClients">-</div></div>
-                        <div class="kpi-item"><div class="kpi-label">Total Inactive</div><div class="kpi-value" id="kpiInactive">-</div></div>
-                        <div class="kpi-item"><div class="kpi-label">Net Client Growth</div><div class="kpi-value" id="kpiNetGrowth">-</div></div>
-                        <div class="kpi-item"><div class="kpi-label">Lead-to-Contract</div><div class="kpi-value" id="kpiConversion">-</div></div>
-                        <div class="kpi-item"><div class="kpi-label">Total Revenue</div><div class="kpi-value" id="kpiTotalRevenue">-</div></div>
-                    </div>
+                <div class="widget-body" style="padding: 0; overflow-x: auto;">
+                    <table class="data-table" id="kpiTable">
+                        <thead>
+                            <tr><th>Metric</th><th>Value</th></tr>
+                        </thead>
+                        <tbody id="kpiBody">
+                            <tr><td colspan="2" class="loading"><span class="spinner"></span>Loading...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
             <!-- Widget 6: Current Pipeline -->
             <div class="widget">
-                <div class="widget-header">Current Pipeline &mdash; Open Opportunities</div>
-                <div class="widget-body" id="pipelineBody">
-                    <div class="loading"><span class="spinner"></span>Loading...</div>
+                <div class="widget-header">Current Pipeline &mdash; Open Opportunities by Stage</div>
+                <div class="widget-body" style="padding: 0; overflow-x: auto;">
+                    <table class="data-table" id="pipelineTable">
+                        <thead>
+                            <tr><th>Stage</th><th>Count</th><th>% of Total</th></tr>
+                        </thead>
+                        <tbody id="pipelineBody">
+                            <tr><td colspan="3" class="loading"><span class="spinner"></span>Loading...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- Callout -->
+        <!-- Key Observations -->
+        <div class="widget full-width" style="margin-bottom: 24px;">
+            <div class="widget-header">Key Observations</div>
+            <div class="widget-body" id="observationsBody">
+                <div class="loading"><span class="spinner"></span>Loading...</div>
+            </div>
+        </div>
+
+        <!-- Net Summary Callout -->
         <div class="callout" id="calloutBox">
             Loading summary...
         </div>
@@ -612,6 +562,7 @@
             renderCharts(monthly);
             renderKPIs(monthly);
             renderPipeline();
+            renderObservations(monthly);
             renderCallout(monthly);
             updateDataSourceBadge();
         }
@@ -751,13 +702,21 @@
             const avgRev = totals.contracts > 0 ? totals.revenue / totals.contracts : 0;
             const conversion = totals.leads > 0 ? (totals.contracts / totals.leads * 100) : 0;
             const netGrowth = totals.contracts - totals.churn;
+            const period = monthly.length + ' months';
 
-            document.getElementById('kpiAvgRevenue').textContent = formatCurrency(avgRev);
-            document.getElementById('kpiActiveClients').textContent = allData.kpis.active_clients;
-            document.getElementById('kpiInactive').textContent = allData.kpis.total_inactive.toLocaleString();
-            document.getElementById('kpiNetGrowth').textContent = (netGrowth >= 0 ? '+' : '') + netGrowth;
-            document.getElementById('kpiConversion').textContent = conversion.toFixed(1) + '%';
-            document.getElementById('kpiTotalRevenue').textContent = formatCurrency(totals.revenue);
+            const metrics = [
+                ['Avg Revenue per New Contract', formatCurrency(avgRev)],
+                ['Current Active Clients', allData.kpis.active_clients.toLocaleString()],
+                ['Total Inactive/Cancelled (All Time)', allData.kpis.total_inactive.toLocaleString()],
+                ['Net Client Growth (' + period + ')', (netGrowth >= 0 ? '+' : '') + netGrowth + ' (' + totals.contracts + ' new \u2212 ' + totals.churn + ' churned)'],
+                ['Lead-to-Contract Conversion', conversion.toFixed(1) + '%'],
+                [period.charAt(0).toUpperCase() + period.slice(1) + ' Total Revenue', formatCurrency(totals.revenue)]
+            ];
+
+            const tbody = document.getElementById('kpiBody');
+            tbody.innerHTML = metrics.map(([label, value]) =>
+                `<tr><td>${label}</td><td style="font-weight:700;color:var(--navy-dark);">${value}</td></tr>`
+            ).join('');
         }
 
         function renderPipeline() {
@@ -765,31 +724,69 @@
             const container = document.getElementById('pipelineBody');
 
             if (!pipeline || Object.keys(pipeline).length === 0) {
-                container.innerHTML = '<p style="color:#6c757d;font-size:14px;">No pipeline data available</p>';
+                container.innerHTML = '<tr><td colspan="3" style="padding:20px;text-align:center;color:#6c757d;">No pipeline data available</td></tr>';
                 return;
             }
 
             const entries = Object.entries(pipeline).sort((a, b) => b[1] - a[1]);
-            const max = entries[0][1];
             const total = entries.reduce((s, e) => s + e[1], 0);
 
             let html = '';
             entries.forEach(([stage, count]) => {
-                const pct = (count / max * 100).toFixed(0);
-                html += `<div class="pipeline-bar">
-                    <span class="pipeline-label">${stage}</span>
-                    <div class="pipeline-track">
-                        <div class="pipeline-fill" style="width: ${pct}%"></div>
-                    </div>
-                    <span class="pipeline-count">${count}</span>
-                </div>`;
+                const pct = ((count / total) * 100).toFixed(1);
+                html += `<tr>
+                    <td>${stage}</td>
+                    <td>${count.toLocaleString()}</td>
+                    <td>${pct}%</td>
+                </tr>`;
             });
 
-            html += `<div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--gray-200); font-size: 13px; font-weight: 600; color: var(--navy-dark); text-align: right;">
-                Total: ${total.toLocaleString()}
-            </div>`;
+            html += `<tr class="total-row">
+                <td><strong>Total</strong></td>
+                <td><strong>${total.toLocaleString()}</strong></td>
+                <td><strong>100%</strong></td>
+            </tr>`;
 
             container.innerHTML = html;
+        }
+
+        function renderObservations(monthly) {
+            const container = document.getElementById('observationsBody');
+            const totals = monthly.reduce((acc, m) => {
+                acc.leads += m.leads;
+                acc.contracts += m.contracts;
+                acc.revenue += m.revenue;
+                acc.churn += m.churn;
+                acc.calls += m.calls;
+                return acc;
+            }, { leads: 0, contracts: 0, revenue: 0, churn: 0, calls: 0 });
+
+            const conversion = totals.leads > 0 ? (totals.contracts / totals.leads * 100).toFixed(1) : '0';
+
+            const highestRevMonth = monthly.reduce((best, m) => m.revenue > best.revenue ? m : best, { revenue: 0, month: '-' });
+
+            const months2026 = monthly.filter(m => m.month >= '2026-01');
+            const months2025 = monthly.filter(m => m.month < '2026-01');
+            const avgChurn2026 = months2026.length > 0 ? (months2026.reduce((s, m) => s + m.churn, 0) / months2026.length).toFixed(1) : '-';
+            const avgChurn2025 = months2025.length > 0 ? (months2025.reduce((s, m) => s + m.churn, 0) / months2025.length).toFixed(1) : '-';
+
+            const callSpike = monthly.filter(m => m.calls > 30).map(m => formatMonth(m.month));
+
+            const observations = [
+                `Lead-to-Contract conversion is ~${conversion}% (${totals.contracts} contracts from ${totals.leads.toLocaleString()} leads)`,
+                callSpike.length > 0 ? `Call activity spikes in: ${callSpike.join(', ')}` : 'Call activity is relatively steady across months',
+                'Pipeline tracking in GHL only has data from Dec 2025 onwards (Opps Created column)',
+                `Highest revenue month: ${formatMonth(highestRevMonth.month)} (${formatCurrency(highestRevMonth.revenue)})`,
+                months2026.length > 0 && months2025.length > 0 ? `Churn has improved in 2026 (avg ${avgChurn2026}/mo vs ${avgChurn2025}/mo in 2025)` : '',
+                monthly.length > 0 && monthly[monthly.length - 1].month === new Date().toISOString().slice(0, 7) ? `${formatMonth(monthly[monthly.length - 1].month)} is partial data (month in progress)` : ''
+            ].filter(Boolean);
+
+            container.innerHTML = `<ul style="list-style:none;padding:0;margin:0;">
+                ${observations.map(obs => `<li style="padding:10px 0;border-bottom:1px solid var(--gray-200);font-size:14px;color:var(--gray-700);display:flex;align-items:flex-start;gap:10px;">
+                    <span style="color:var(--navy-light);font-size:16px;flex-shrink:0;">&#8226;</span>
+                    <span>${obs}</span>
+                </li>`).join('')}
+            </ul>`;
         }
 
         function renderCallout(monthly) {

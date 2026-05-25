@@ -734,14 +734,14 @@ def get_monthly_summary():
     except Exception:
         pass
 
-    sorted_months = sorted(months_data.items())
+    sorted_months = sorted((k, v) for k, v in months_data.items() if k >= '2025-06')
 
     active_clients = len([p for p in payment_data if p.get('status') == 'Active'])
     total_inactive = len(churn_data)
-    total_contracts = sum(m['contracts'] for m in months_data.values())
-    total_revenue = sum(m['revenue'] for m in months_data.values())
-    total_leads = sum(m['leads'] for m in months_data.values())
-    total_churn = sum(m['churn'] for m in months_data.values())
+    total_contracts = sum(m['contracts'] for _, m in sorted_months)
+    total_revenue = sum(m['revenue'] for _, m in sorted_months)
+    total_leads = sum(m['leads'] for _, m in sorted_months)
+    total_churn = sum(m['churn'] for _, m in sorted_months)
 
     avg_revenue = total_revenue / total_contracts if total_contracts > 0 else 0
     conversion = (total_contracts / total_leads * 100) if total_leads > 0 else 0
