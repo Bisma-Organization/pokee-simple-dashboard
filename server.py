@@ -809,9 +809,6 @@ def sdr_page():
 
 @app.route('/api/sdr')
 def get_sdr_data():
-    sales_data = fetch_sales_data()
-    contacts = fetch_all_contacts()
-    churn_data = fetch_churn_data()
 
     query = '''{ boards(ids: [1944309746]) {
         groups(ids: ["1733734937_book1_usmd_dec_new_Mjj2w4It", "new_group_mkkazbjx"]) {
@@ -923,40 +920,13 @@ def get_sdr_data():
         'owner': d.get('person', '')
     } for d in recent_deals]
 
-    total_leads = len(leads_group)
-    total_closed = len(closed_group)
-    total_revenue = sum(r['revenue'] for r in reps)
-    total_signed = sum(r['signed'] for r in reps)
-    total_paid = sum(r['paid'] for r in reps)
-
-    team_members = []
-    for owner, stats in sorted(rep_stats.items(), key=lambda x: x[1]['total_deals'], reverse=True):
-        if owner and owner != 'Unassigned':
-            team_members.append({
-                'name': owner,
-                'deals': stats['total_deals'],
-                'signed': stats['signed'],
-                'paid': stats['paid'],
-                'revenue': round(stats['revenue'], 2)
-            })
-
     return jsonify({
         'reps': reps,
         'monthly': [{'month': m, **d} for m, d in sorted_monthly],
         'source_breakdown': dict(source_breakdown.most_common(10)),
         'tier_breakdown': dict(tier_breakdown.most_common(10)),
         'sub_type_breakdown': dict(sub_type_breakdown.most_common(10)),
-        'recent_deals': recent_list,
-        'kpis': {
-            'total_leads': total_leads,
-            'total_closed': total_closed,
-            'total_signed': total_signed,
-            'total_paid': total_paid,
-            'total_revenue': round(total_revenue, 2),
-            'avg_deal_value': round(total_revenue / total_paid, 2) if total_paid > 0 else 0,
-            'sign_rate': round(total_signed / (total_leads + total_closed) * 100, 1) if (total_leads + total_closed) > 0 else 0
-        },
-        'team': team_members
+        'recent_deals': recent_list
     })
 
 

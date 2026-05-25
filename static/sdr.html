@@ -63,22 +63,6 @@
         .nav-link.active { color: var(--cream); background: rgba(255,255,255,0.12); }
         .container { max-width: 1400px; margin: 0 auto; padding: 32px 40px; }
 
-        .kpi-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 16px;
-            margin-bottom: 28px;
-        }
-        .kpi-card {
-            background: var(--white);
-            border: 1px solid var(--gray-200);
-            border-radius: 10px;
-            padding: 18px 20px;
-            border-top: 3px solid var(--navy-light);
-        }
-        .kpi-card .kpi-label { font-size: 11px; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
-        .kpi-card .kpi-value { font-size: 26px; font-weight: 800; color: var(--navy-dark); margin: 6px 0 2px; font-family: Georgia, serif; }
-        .kpi-card .kpi-sub { font-size: 12px; color: var(--gray-500); }
 
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 24px; }
@@ -199,14 +183,6 @@
     </div>
 
     <div class="container">
-        <div class="kpi-row" id="kpiRow">
-            <div class="kpi-card"><div class="kpi-label">Active Leads</div><div class="kpi-value" id="kpiLeads">-</div><div class="kpi-sub">In pipeline</div></div>
-            <div class="kpi-card"><div class="kpi-label">Closed Deals</div><div class="kpi-value" id="kpiClosed">-</div><div class="kpi-sub">Contracts signed</div></div>
-            <div class="kpi-card"><div class="kpi-label">Paid Clients</div><div class="kpi-value" id="kpiPaid">-</div><div class="kpi-sub">Payment received</div></div>
-            <div class="kpi-card"><div class="kpi-label">Total Revenue</div><div class="kpi-value" id="kpiRevenue">-</div><div class="kpi-sub">From closed deals</div></div>
-            <div class="kpi-card"><div class="kpi-label">Avg Deal Value</div><div class="kpi-value" id="kpiAvgDeal">-</div><div class="kpi-sub">Revenue / paid</div></div>
-            <div class="kpi-card"><div class="kpi-label">Sign Rate</div><div class="kpi-value" id="kpiSignRate">-</div><div class="kpi-sub">Signed / total</div></div>
-        </div>
 
         <!-- Rep Performance Table -->
         <div class="widget full-width" style="margin-bottom: 24px;">
@@ -237,16 +213,6 @@
             </div>
         </div>
 
-        <!-- Team Members -->
-        <div class="widget full-width" style="margin-bottom: 24px;">
-            <div class="widget-header">Team Members (from Deal Owner)</div>
-            <div class="widget-body" style="padding:0;overflow-x:auto;">
-                <table class="data-table" id="teamTable">
-                    <thead><tr><th>Name</th><th>Total Deals</th><th>Contracts Signed</th><th>Paid</th><th>Revenue</th></tr></thead>
-                    <tbody id="teamBody"><tr><td colspan="5" class="loading"><span class="spinner"></span>Loading...</td></tr></tbody>
-                </table>
-            </div>
-        </div>
 
         <!-- Recent Deals -->
         <div class="widget full-width">
@@ -370,25 +336,12 @@
             const sources = {};
             deals.forEach(d => { const s = d.source || 'Unknown'; sources[s] = (sources[s] || 0) + 1; });
 
-            const totalPaid = deals.filter(d => d.payment_status === 'PAID').length;
-            const totalSigned = deals.filter(d => d.contract_status === 'Signed').length;
-            const totalRevenue = monthly.reduce((s, m) => s + m.revenue, 0);
 
             return {
                 monthly: monthly,
                 reps: repList,
                 recent_deals: deals,
-                source_breakdown: sources,
-                team: allData.team,
-                kpis: {
-                    total_leads: deals.filter(d => d.payment_status !== 'PAID').length,
-                    total_closed: totalSigned,
-                    total_signed: totalSigned,
-                    total_paid: totalPaid,
-                    total_revenue: totalRevenue,
-                    avg_deal_value: totalPaid > 0 ? Math.round(totalRevenue / totalPaid) : 0,
-                    sign_rate: deals.length > 0 ? +(totalSigned / deals.length * 100).toFixed(1) : 0
-                }
+                source_breakdown: sources
             };
         }
 
@@ -413,23 +366,12 @@
         }
 
         function renderAll(data) {
-            renderKPIs(data);
             renderRepTable(data);
             renderMonthlyChart(data);
             renderSources(data);
-            renderTeam(data);
             renderRecentDeals(data);
         }
 
-        function renderKPIs(data) {
-            const k = data.kpis;
-            document.getElementById('kpiLeads').textContent = k.total_leads.toLocaleString();
-            document.getElementById('kpiClosed').textContent = k.total_closed.toLocaleString();
-            document.getElementById('kpiPaid').textContent = k.total_paid.toLocaleString();
-            document.getElementById('kpiRevenue').textContent = formatCurrency(k.total_revenue);
-            document.getElementById('kpiAvgDeal').textContent = formatCurrency(k.avg_deal_value);
-            document.getElementById('kpiSignRate').textContent = k.sign_rate + '%';
-        }
 
         function renderRepTable(data) {
             const tbody = document.getElementById('repBody');
@@ -515,24 +457,6 @@
             container.innerHTML = html;
         }
 
-        function renderTeam(data) {
-            const team = data.team;
-            const tbody = document.getElementById('teamBody');
-            if (!team || team.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--gray-500)">No team data</td></tr>';
-                return;
-            }
-            let html = team.map(t => `<tr>
-                <td style="font-weight:600;color:var(--navy-dark)">${t.name}</td>
-                <td>${t.deals}</td>
-                <td><span class="badge badge-green">${t.signed}</span></td>
-                <td><span class="badge badge-green">${t.paid}</span></td>
-                <td style="font-weight:600;color:var(--green)">${formatCurrency(t.revenue)}</td>
-            </tr>`).join('');
-            const totals = team.reduce((acc, t) => ({ deals: acc.deals + t.deals, signed: acc.signed + t.signed, paid: acc.paid + t.paid, revenue: acc.revenue + t.revenue }), { deals: 0, signed: 0, paid: 0, revenue: 0 });
-            html += `<tr class="total-row"><td><strong>TOTAL</strong></td><td><strong>${totals.deals}</strong></td><td><strong>${totals.signed}</strong></td><td><strong>${totals.paid}</strong></td><td><strong>${formatCurrency(totals.revenue)}</strong></td></tr>`;
-            tbody.innerHTML = html;
-        }
 
         function renderRecentDeals(data) {
             const deals = data.recent_deals;
