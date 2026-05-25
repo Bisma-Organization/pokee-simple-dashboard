@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USMD SDR Performance</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%231C3557'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Georgia' font-size='24' font-weight='bold' fill='%23F0EDE6'>US</text></svg>">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --navy-dark: #1a2332;
+            --navy: #1C3557;
+            --navy-light: #2C4A7C;
+            --cream: #F0EDE6;
+            --white: #ffffff;
+            --gray-100: #f8f9fa;
+            --gray-200: #e9ecef;
+            --gray-300: #dee2e6;
+            --gray-500: #6c757d;
+            --gray-700: #495057;
+            --gray-900: #212529;
+            --green: #198754;
+            --green-light: #d1e7dd;
+            --blue: #0d6efd;
+            --blue-light: #cfe2ff;
+            --orange: #fd7e14;
+            --orange-light: #ffe5d0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-900);
+            line-height: 1.6;
+        }
+        .header {
+            background: var(--navy-dark);
+            color: var(--cream);
+            padding: 24px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 3px solid var(--navy-light);
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .header h1 {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        .header .subtitle { font-size: 13px; color: #8a9bb5; margin-top: 2px; }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .nav-link {
+            color: #8a9bb5;
+            text-decoration: none;
+            font-size: 13px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .nav-link:hover { color: var(--cream); background: rgba(255,255,255,0.08); }
+        .nav-link.active { color: var(--cream); background: rgba(255,255,255,0.12); }
+        .container { max-width: 1400px; margin: 0 auto; padding: 32px 40px; }
+
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .kpi-card {
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            padding: 18px 20px;
+            border-top: 3px solid var(--navy-light);
+        }
+        .kpi-card .kpi-label { font-size: 11px; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+        .kpi-card .kpi-value { font-size: 26px; font-weight: 800; color: var(--navy-dark); margin: 6px 0 2px; font-family: Georgia, serif; }
+        .kpi-card .kpi-sub { font-size: 12px; color: var(--gray-500); }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+        @media (max-width: 1024px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+        .widget {
+            background: var(--white);
+            border-radius: 10px;
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .widget-header {
+            background: var(--navy-dark);
+            color: var(--cream);
+            padding: 14px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: Georgia, 'Times New Roman', serif;
+            border-bottom: 2px solid var(--navy-light);
+        }
+        .widget-body { padding: 20px; }
+
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table thead th {
+            background: var(--navy);
+            color: var(--white);
+            padding: 11px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .data-table tbody tr { border-bottom: 1px solid var(--gray-200); }
+        .data-table tbody tr:nth-child(even) { background: #f4f6f9; }
+        .data-table tbody tr:hover { background: #edf1f7; }
+        .data-table tbody td { padding: 10px 12px; }
+        .data-table .total-row { font-weight: 700; background: var(--gray-200) !important; border-top: 2px solid var(--navy-light); }
+
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .badge-green { background: var(--green-light); color: var(--green); }
+        .badge-blue { background: var(--blue-light); color: var(--blue); }
+        .badge-orange { background: var(--orange-light); color: var(--orange); }
+        .badge-gray { background: var(--gray-200); color: var(--gray-700); }
+
+        .chart-container { position: relative; height: 280px; padding: 10px 0; }
+        .full-width { grid-column: 1 / -1; }
+
+        .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+        .team-card {
+            padding: 16px;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            background: #f8fafc;
+            border-left: 3px solid var(--navy-light);
+        }
+        .team-card .team-name { font-weight: 700; color: var(--navy-dark); font-size: 14px; }
+        .team-card .team-role { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+        .team-card .team-email { font-size: 11px; color: var(--navy-light); margin-top: 4px; }
+
+        .source-bar { display: flex; align-items: center; margin-bottom: 8px; gap: 10px; }
+        .source-label { font-size: 12px; color: var(--gray-700); width: 120px; text-align: right; flex-shrink: 0; }
+        .source-track { flex: 1; height: 20px; background: var(--gray-200); border-radius: 4px; overflow: hidden; }
+        .source-fill { height: 100%; background: linear-gradient(90deg, var(--navy), var(--navy-light)); border-radius: 4px; }
+        .source-count { font-size: 12px; font-weight: 600; color: var(--navy-dark); width: 40px; }
+
+        .loading { display: flex; align-items: center; justify-content: center; padding: 60px; color: var(--gray-500); }
+        .spinner { width: 20px; height: 20px; border: 2px solid var(--gray-300); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <svg width="42" height="42" viewBox="0 0 64 64" style="flex-shrink:0;">
+                <rect width="64" height="64" rx="12" fill="#1C3557"/>
+                <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-family="Georgia" font-size="24" font-weight="bold" fill="#F0EDE6">US</text>
+            </svg>
+            <div>
+                <h1>SDR Performance</h1>
+                <div class="subtitle">US Medical Directors &mdash; Sales Development Representative Metrics</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <a href="/" class="nav-link">Main Dashboard</a>
+            <a href="/monthly-summary" class="nav-link">Monthly Summary</a>
+            <a href="/sdr" class="nav-link active">SDR Performance</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="kpi-row" id="kpiRow">
+            <div class="kpi-card"><div class="kpi-label">Active Leads</div><div class="kpi-value" id="kpiLeads">-</div><div class="kpi-sub">In pipeline</div></div>
+            <div class="kpi-card"><div class="kpi-label">Closed Deals</div><div class="kpi-value" id="kpiClosed">-</div><div class="kpi-sub">Contracts signed</div></div>
+            <div class="kpi-card"><div class="kpi-label">Paid Clients</div><div class="kpi-value" id="kpiPaid">-</div><div class="kpi-sub">Payment received</div></div>
+            <div class="kpi-card"><div class="kpi-label">Total Revenue</div><div class="kpi-value" id="kpiRevenue">-</div><div class="kpi-sub">From closed deals</div></div>
+            <div class="kpi-card"><div class="kpi-label">Avg Deal Value</div><div class="kpi-value" id="kpiAvgDeal">-</div><div class="kpi-sub">Revenue / paid</div></div>
+            <div class="kpi-card"><div class="kpi-label">Sign Rate</div><div class="kpi-value" id="kpiSignRate">-</div><div class="kpi-sub">Signed / total</div></div>
+        </div>
+
+        <!-- Rep Performance Table -->
+        <div class="widget full-width" style="margin-bottom: 24px;">
+            <div class="widget-header">SDR Rep Performance</div>
+            <div class="widget-body" style="padding:0;overflow-x:auto;">
+                <table class="data-table" id="repTable">
+                    <thead>
+                        <tr><th>Rep</th><th>Total Deals</th><th>Contracts Signed</th><th>Contracts Sent</th><th>Paid</th><th>Revenue</th><th>Conversion</th></tr>
+                    </thead>
+                    <tbody id="repBody"><tr><td colspan="7" class="loading"><span class="spinner"></span>Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid-2">
+            <div class="widget">
+                <div class="widget-header">Monthly SDR Activity (Contracts Sent vs Signed)</div>
+                <div class="widget-body">
+                    <div class="chart-container"><canvas id="monthlyChart"></canvas></div>
+                </div>
+            </div>
+            <div class="widget">
+                <div class="widget-header">Lead Sources Breakdown</div>
+                <div class="widget-body" id="sourceBody">
+                    <div class="loading"><span class="spinner"></span>Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Row -->
+        <div class="grid-3">
+            <div class="widget">
+                <div class="widget-header">Team Members</div>
+                <div class="widget-body">
+                    <div class="team-grid" id="teamGrid">
+                        <div class="loading"><span class="spinner"></span>Loading...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="widget">
+                <div class="widget-header">Monthly Revenue from SDR</div>
+                <div class="widget-body">
+                    <div class="chart-container"><canvas id="revenueChart"></canvas></div>
+                </div>
+            </div>
+            <div class="widget">
+                <div class="widget-header">GHL Pipeline</div>
+                <div class="widget-body" style="padding:0;overflow-x:auto;">
+                    <table class="data-table" id="pipelineTable">
+                        <thead><tr><th>Stage</th><th>Count</th><th>%</th></tr></thead>
+                        <tbody id="pipelineBody"><tr><td colspan="3" class="loading"><span class="spinner"></span>Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Deals -->
+        <div class="widget full-width">
+            <div class="widget-header">Recent Deals (Last 20)</div>
+            <div class="widget-body" style="padding:0;overflow-x:auto;">
+                <table class="data-table" id="dealsTable">
+                    <thead>
+                        <tr><th>Business</th><th>Contact</th><th>Source</th><th>Contract</th><th>Payment</th><th>Date Sent</th><th>Owner</th></tr>
+                    </thead>
+                    <tbody id="dealsBody"><tr><td colspan="7" class="loading"><span class="spinner"></span>Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allData = null;
+        let monthlyChart = null;
+        let revenueChart = null;
+
+        async function fetchData() {
+            const resp = await fetch('/api/sdr');
+            allData = await resp.json();
+            renderAll();
+        }
+
+        function formatCurrency(n) {
+            return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
+
+        function formatMonth(m) {
+            const [y, mo] = m.split('-');
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            return months[parseInt(mo) - 1] + ' ' + y.slice(2);
+        }
+
+        function renderAll() {
+            renderKPIs();
+            renderRepTable();
+            renderMonthlyChart();
+            renderSources();
+            renderTeam();
+            renderRevenueChart();
+            renderPipeline();
+            renderRecentDeals();
+        }
+
+        function renderKPIs() {
+            const k = allData.kpis;
+            document.getElementById('kpiLeads').textContent = k.total_leads.toLocaleString();
+            document.getElementById('kpiClosed').textContent = k.total_closed.toLocaleString();
+            document.getElementById('kpiPaid').textContent = k.total_paid.toLocaleString();
+            document.getElementById('kpiRevenue').textContent = formatCurrency(k.total_revenue);
+            document.getElementById('kpiAvgDeal').textContent = formatCurrency(k.avg_deal_value);
+            document.getElementById('kpiSignRate').textContent = k.sign_rate + '%';
+        }
+
+        function renderRepTable() {
+            const tbody = document.getElementById('repBody');
+            let html = '';
+            let totals = { deals: 0, signed: 0, sent: 0, paid: 0, revenue: 0 };
+
+            allData.reps.forEach(r => {
+                totals.deals += r.total_deals;
+                totals.signed += r.signed;
+                totals.sent += r.sent;
+                totals.paid += r.paid;
+                totals.revenue += r.revenue;
+
+                const name = r.name.includes('@') ? r.name.split('@')[0] : r.name;
+                html += `<tr>
+                    <td style="font-weight:600;color:var(--navy-dark)">${name}</td>
+                    <td>${r.total_deals}</td>
+                    <td><span class="badge badge-green">${r.signed}</span></td>
+                    <td><span class="badge badge-blue">${r.sent}</span></td>
+                    <td><span class="badge badge-green">${r.paid}</span></td>
+                    <td style="font-weight:600;color:var(--green)">${formatCurrency(r.revenue)}</td>
+                    <td>${r.conversion}%</td>
+                </tr>`;
+            });
+
+            const totalConv = totals.deals > 0 ? (totals.signed / totals.deals * 100).toFixed(1) : 0;
+            html += `<tr class="total-row">
+                <td><strong>TOTAL</strong></td>
+                <td><strong>${totals.deals}</strong></td>
+                <td><strong>${totals.signed}</strong></td>
+                <td><strong>${totals.sent}</strong></td>
+                <td><strong>${totals.paid}</strong></td>
+                <td><strong>${formatCurrency(totals.revenue)}</strong></td>
+                <td><strong>${totalConv}%</strong></td>
+            </tr>`;
+            tbody.innerHTML = html;
+        }
+
+        function renderMonthlyChart() {
+            const monthly = allData.monthly;
+            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            if (monthlyChart) monthlyChart.destroy();
+            monthlyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: monthly.map(m => formatMonth(m.month)),
+                    datasets: [
+                        { label: 'Contracts Sent', data: monthly.map(m => m.contracts_sent), backgroundColor: '#2C4A7C', borderRadius: 3 },
+                        { label: 'Signed', data: monthly.map(m => m.signed), backgroundColor: '#198754', borderRadius: 3 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
+                    scales: { x: { grid: { display: false } }, y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        function renderSources() {
+            const sources = allData.source_breakdown;
+            const container = document.getElementById('sourceBody');
+            const entries = Object.entries(sources).sort((a, b) => b[1] - a[1]);
+            const max = entries.length > 0 ? entries[0][1] : 1;
+
+            let html = '';
+            entries.forEach(([name, count]) => {
+                const pct = (count / max * 100).toFixed(0);
+                html += `<div class="source-bar">
+                    <span class="source-label">${name}</span>
+                    <div class="source-track"><div class="source-fill" style="width:${pct}%"></div></div>
+                    <span class="source-count">${count}</span>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderTeam() {
+            const team = allData.team;
+            const container = document.getElementById('teamGrid');
+            container.innerHTML = team.map(t => `
+                <div class="team-card">
+                    <div class="team-name">${t.name}</div>
+                    <div class="team-role">${t.role}</div>
+                    <div class="team-email">${t.email}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderRevenueChart() {
+            const monthly = allData.monthly;
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            if (revenueChart) revenueChart.destroy();
+            revenueChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: monthly.map(m => formatMonth(m.month)),
+                    datasets: [{
+                        label: 'Revenue',
+                        data: monthly.map(m => m.revenue),
+                        borderColor: '#1C3557',
+                        backgroundColor: 'rgba(28, 53, 87, 0.08)',
+                        borderWidth: 2.5,
+                        pointBackgroundColor: '#1C3557',
+                        pointRadius: 4,
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k' } }
+                    }
+                }
+            });
+        }
+
+        function renderPipeline() {
+            const pipeline = allData.pipeline;
+            const tbody = document.getElementById('pipelineBody');
+            if (!pipeline || Object.keys(pipeline).length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--gray-500)">No data</td></tr>';
+                return;
+            }
+            const entries = Object.entries(pipeline).sort((a, b) => b[1] - a[1]);
+            const total = entries.reduce((s, e) => s + e[1], 0);
+            let html = entries.map(([stage, count]) =>
+                `<tr><td>${stage}</td><td>${count.toLocaleString()}</td><td>${((count/total)*100).toFixed(1)}%</td></tr>`
+            ).join('');
+            html += `<tr class="total-row"><td><strong>Total</strong></td><td><strong>${total.toLocaleString()}</strong></td><td><strong>100%</strong></td></tr>`;
+            tbody.innerHTML = html;
+        }
+
+        function renderRecentDeals() {
+            const deals = allData.recent_deals;
+            const tbody = document.getElementById('dealsBody');
+            tbody.innerHTML = deals.map(d => {
+                const contractBadge = d.contract_status === 'Signed' ? 'badge-green' : d.contract_status === 'Sent' ? 'badge-blue' : 'badge-gray';
+                const paymentBadge = d.payment_status === 'PAID' ? 'badge-green' : d.payment_status === 'Pending' ? 'badge-orange' : 'badge-gray';
+                const owner = d.owner.includes('@') ? d.owner.split('@')[0] : d.owner;
+                return `<tr>
+                    <td style="font-weight:500">${d.business}</td>
+                    <td>${d.contact || '-'}</td>
+                    <td><span class="badge badge-blue">${d.source || '-'}</span></td>
+                    <td><span class="badge ${contractBadge}">${d.contract_status || '-'}</span></td>
+                    <td><span class="badge ${paymentBadge}">${d.payment_status || '-'}</span></td>
+                    <td>${d.date_sent || '-'}</td>
+                    <td>${owner || '-'}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        fetchData();
+    </script>
+</body>
+</html>

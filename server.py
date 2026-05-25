@@ -802,6 +802,163 @@ def monthly_summary():
     return send_from_directory('static', 'monthly-summary.html')
 
 
+@app.route('/sdr')
+def sdr_page():
+    return send_from_directory('static', 'sdr.html')
+
+
+@app.route('/api/sdr')
+def get_sdr_data():
+    sales_data = fetch_sales_data()
+    contacts = fetch_all_contacts()
+    churn_data = fetch_churn_data()
+    pipeline_data = fetch_pipeline_data()
+
+    query = '''{ boards(ids: [1944309746]) {
+        groups(ids: ["1733734937_book1_usmd_dec_new_Mjj2w4It", "new_group_mkkazbjx"]) {
+        id title items_page(limit: 500) { items { id name
+        column_values(ids: ["person", "status_Mjj2SLPt", "status", "status_1_Mjj1LR31",
+        "date4", "date_mkm1w0x", "numbers_Mjivm65q", "text_MjivuCB8", "text_MjivTjDy",
+        "text_MjivvUIB", "color_mm1q89vw", "color_mm1gq51r"]) { id text } } } } } }'''
+    resp = monday_query(query)
+
+    leads_group = []
+    closed_group = []
+    for group in resp['data']['boards'][0]['groups']:
+        for item in group['items_page']['items']:
+            rec = {'name': item['name'], 'group': group['title']}
+            for cv in item['column_values']:
+                rec[cv['id']] = cv.get('text', '') or ''
+            if group['id'] == '1733734937_book1_usmd_dec_new_Mjj2w4It':
+                leads_group.append(rec)
+            else:
+                closed_group.append(rec)
+
+    all_deals = leads_group + closed_group
+
+    rep_stats = {}
+    for deal in all_deals:
+        owner = deal.get('person', '') or 'Unassigned'
+        if owner not in rep_stats:
+            rep_stats[owner] = {'total_deals': 0, 'signed': 0, 'sent': 0, 'pending_payment': 0,
+                                'paid': 0, 'revenue': 0, 'sources': Counter()}
+        rep_stats[owner]['total_deals'] += 1
+        contract = deal.get('status_1_Mjj1LR31', '')
+        if contract == 'Signed':
+            rep_stats[owner]['signed'] += 1
+        elif contract == 'Sent':
+            rep_stats[owner]['sent'] += 1
+        payment = deal.get('status', '')
+        if payment == 'PAID':
+            rep_stats[owner]['paid'] += 1
+        elif payment == 'Pending':
+            rep_stats[owner]['pending_payment'] += 1
+        fee = 0
+        try:
+            fee = float(deal.get('numbers_Mjivm65q', '') or 0)
+        except ValueError:
+            pass
+        if payment == 'PAID':
+            rep_stats[owner]['revenue'] += fee
+        source = deal.get('status_Mjj2SLPt', '') or 'Unknown'
+        rep_stats[owner]['sources'][source] += 1
+
+    reps = []
+    for owner, stats in sorted(rep_stats.items(), key=lambda x: x[1]['total_deals'], reverse=True):
+        reps.append({
+            'name': owner,
+            'total_deals': stats['total_deals'],
+            'signed': stats['signed'],
+            'sent': stats['sent'],
+            'paid': stats['paid'],
+            'pending_payment': stats['pending_payment'],
+            'revenue': round(stats['revenue'], 2),
+            'conversion': round(stats['signed'] / stats['total_deals'] * 100, 1) if stats['total_deals'] > 0 else 0,
+            'sources': dict(stats['sources'].most_common(10))
+        })
+
+    monthly = {}
+    for deal in all_deals:
+        date_sent = deal.get('date_mkm1w0x', '')
+        key = date_to_month(date_sent)
+        if key and key >= '2025-06':
+            if key not in monthly:
+                monthly[key] = {'contracts_sent': 0, 'signed': 0, 'paid': 0, 'revenue': 0}
+            monthly[key]['contracts_sent'] += 1
+            if deal.get('status_1_Mjj1LR31', '') == 'Signed':
+                monthly[key]['signed'] += 1
+            if deal.get('status', '') == 'PAID':
+                monthly[key]['paid'] += 1
+                try:
+                    monthly[key]['revenue'] += float(deal.get('numbers_Mjivm65q', '') or 0)
+                except ValueError:
+                    pass
+
+    sorted_monthly = sorted(monthly.items())
+
+    source_breakdown = Counter()
+    for deal in all_deals:
+        source = deal.get('status_Mjj2SLPt', '') or 'Unknown'
+        source_breakdown[source] += 1
+
+    tier_breakdown = Counter()
+    for deal in all_deals:
+        tier = deal.get('color_mm1q89vw', '') or 'Not Set'
+        tier_breakdown[tier] += 1
+
+    sub_type_breakdown = Counter()
+    for deal in all_deals:
+        sub_type = deal.get('color_mm1gq51r', '') or 'Not Set'
+        sub_type_breakdown[sub_type] += 1
+
+    recent_deals = sorted(all_deals, key=lambda d: d.get('date_mkm1w0x', '') or '', reverse=True)[:20]
+    recent_list = [{
+        'business': d['name'],
+        'contact': d.get('text_MjivuCB8', ''),
+        'email': d.get('text_MjivTjDy', ''),
+        'phone': d.get('text_MjivvUIB', ''),
+        'contract_status': d.get('status_1_Mjj1LR31', ''),
+        'payment_status': d.get('status', ''),
+        'date_sent': d.get('date_mkm1w0x', ''),
+        'source': d.get('status_Mjj2SLPt', ''),
+        'owner': d.get('person', '')
+    } for d in recent_deals]
+
+    total_leads = len(leads_group)
+    total_closed = len(closed_group)
+    total_revenue = sum(r['revenue'] for r in reps)
+    total_signed = sum(r['signed'] for r in reps)
+    total_paid = sum(r['paid'] for r in reps)
+
+    team_members = [
+        {'name': 'Shannon Hamilton', 'email': 'Shamilton@usmedicaldirectors.com', 'role': 'SDR Lead', 'slack_user': 'shamilton'},
+        {'name': 'Olivia de Guzman', 'email': 'odeguzman@usmedicaldirectors.com', 'role': 'Operations', 'slack_user': 'odeguzman'},
+        {'name': 'Saimon', 'email': 'concierge@usmedicaldirectors.com', 'role': 'Concierge', 'slack_user': 'concierge'},
+        {'name': 'Aloysius Fobi', 'email': 'afobi@usmedicaldirectors.com', 'role': 'Director', 'slack_user': 'afobi'}
+    ]
+
+    return jsonify({
+        'reps': reps,
+        'monthly': [{'month': m, **d} for m, d in sorted_monthly],
+        'source_breakdown': dict(source_breakdown.most_common(10)),
+        'tier_breakdown': dict(tier_breakdown.most_common(10)),
+        'sub_type_breakdown': dict(sub_type_breakdown.most_common(10)),
+        'recent_deals': recent_list,
+        'kpis': {
+            'total_leads': total_leads,
+            'total_closed': total_closed,
+            'total_signed': total_signed,
+            'total_paid': total_paid,
+            'total_revenue': round(total_revenue, 2),
+            'avg_deal_value': round(total_revenue / total_paid, 2) if total_paid > 0 else 0,
+            'sign_rate': round(total_signed / (total_leads + total_closed) * 100, 1) if (total_leads + total_closed) > 0 else 0,
+            'pipeline_total': sum(pipeline_data.values()) if pipeline_data else 0
+        },
+        'team': team_members,
+        'pipeline': pipeline_data
+    })
+
+
 @app.route('/api/refresh', methods=['POST'])
 def refresh_cache():
     cache.clear()
