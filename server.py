@@ -98,10 +98,20 @@ def in_range(dt, start, end):
 
 
 def get_date_range():
+    """UTC boundaries — use for Monday.com date-only fields."""
     start_str = request.args.get('start')
     end_str = request.args.get('end')
     start = datetime.fromisoformat(start_str).replace(tzinfo=timezone.utc) if start_str else None
     end = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=timezone.utc) if end_str else None
+    return start, end
+
+
+def get_date_range_local():
+    """Pacific time boundaries — use for GHL UTC timestamps."""
+    start_str = request.args.get('start')
+    end_str = request.args.get('end')
+    start = datetime.fromisoformat(start_str).replace(tzinfo=LOCAL_TZ) if start_str else None
+    end = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ) if end_str else None
     return start, end
 
 
@@ -386,9 +396,10 @@ def index():
 @app.route('/api/kpis')
 def get_kpis():
     start, end = get_date_range()
+    start_local, end_local = get_date_range_local()
 
     contacts = fetch_all_contacts()
-    leads = [c for c in contacts if in_range(parse_date(c.get('dateAdded')), start, end)]
+    leads = [c for c in contacts if in_range(parse_date(c.get('dateAdded')), start_local, end_local)]
 
     sales_data = fetch_sales_data()
     sales = [s for s in sales_data if in_range(parse_date(s.get('first_payment')), start, end)]
@@ -400,11 +411,11 @@ def get_kpis():
     webhook_calls = load_calls()
     calls_source = 'webhook'
     if webhook_calls:
-        calls = [c for c in webhook_calls if in_range(parse_date(c.get('timestamp')), start, end)]
+        calls = [c for c in webhook_calls if in_range(parse_date(c.get('timestamp')), start_local, end_local)]
         outbound_calls = [c for c in calls if c.get('direction', '').lower() in ('outbound', 'outgoing')]
     else:
         convos = fetch_conversations()
-        calls = [c for c in convos if in_range(parse_date(c.get('dateAdded')), start, end)]
+        calls = [c for c in convos if in_range(parse_date(c.get('dateAdded')), start_local, end_local)]
         outbound_calls = calls
         calls_source = 'conversations_api'
 
@@ -430,12 +441,12 @@ def get_kpis():
 
 @app.route('/api/leads')
 def get_leads():
-    start, end = get_date_range()
+    start_local, end_local = get_date_range_local()
     page = int(request.args.get('page', 1))
     limit = int(request.args.get('limit', 50))
 
     contacts = fetch_all_contacts()
-    filtered = [c for c in contacts if in_range(parse_date(c.get('dateAdded')), start, end)]
+    filtered = [c for c in contacts if in_range(parse_date(c.get('dateAdded')), start_local, end_local)]
     filtered.sort(key=lambda c: c.get('dateAdded', ''), reverse=True)
 
     total = len(filtered)
@@ -503,7 +514,7 @@ def get_churn():
 
 @app.route('/api/calls')
 def get_calls():
-    start, end = get_date_range()
+    start_local, end_local = get_date_range_local()
     page = int(request.args.get('page', 1))
     limit = int(request.args.get('limit', 50))
     direction_filter = request.args.get('direction')
@@ -514,7 +525,7 @@ def get_calls():
         filtered = []
         for c in webhook_calls:
             dt = parse_date(c.get('timestamp'))
-            if not in_range(dt, start, end):
+            if not in_range(dt, start_local, end_local):
                 continue
             if direction_filter and c.get('direction', '').lower() != direction_filter.lower():
                 continue
@@ -548,7 +559,7 @@ def get_calls():
         })
 
     convos = fetch_conversations()
-    filtered = [c for c in convos if in_range(parse_date(c.get('dateAdded')), start, end)]
+    filtered = [c for c in convos if in_range(parse_date(c.get('dateAdded')), start_local, end_local)]
     filtered.sort(key=lambda c: c.get('dateAdded', 0), reverse=True)
 
     total = len(filtered)
@@ -578,19 +589,19 @@ def get_calls():
 
 @app.route('/api/calls/stats')
 def get_calls_stats():
-    start, end = get_date_range()
+    start_local, end_local = get_date_range_local()
     webhook_calls = load_calls()
 
     if not webhook_calls:
         convos = fetch_conversations()
-        calls = [c for c in convos if in_range(parse_date(c.get('dateAdded')), start, end)]
+        calls = [c for c in convos if in_range(parse_date(c.get('dateAdded')), start_local, end_local)]
         return jsonify({
             'total': len(calls),
             'data_source': 'conversations_api',
             'note': 'No webhook data available. Showing conversation thread count.'
         })
 
-    filtered = [c for c in webhook_calls if in_range(parse_date(c.get('timestamp')), start, end)]
+    filtered = [c for c in webhook_calls if in_range(parse_date(c.get('timestamp')), start_local, end_local)]
 
     direction_counts = Counter(c.get('direction', 'unknown').lower() for c in filtered)
     status_counts = Counter(c.get('status', 'unknown').lower() for c in filtered)
@@ -664,9 +675,9 @@ def get_pipeline():
 
 @app.route('/api/leads-monthly')
 def get_leads_monthly():
-    start, end = get_date_range()
+    start_local, end_local = get_date_range_local()
     contacts = fetch_all_contacts()
-    filtered = [c for c in contacts if in_range(parse_date(c.get('dateAdded')), start, end)]
+    filtered = [c for c in contacts if in_range(parse_date(c.get('dateAdded')), start_local, end_local)]
 
     monthly = {}
     for c in filtered:
