@@ -42,6 +42,10 @@
             flex-wrap: wrap;
             gap: 16px;
         }
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
         .header-left h1 {
             font-size: 1.6rem;
             font-weight: 700;
@@ -233,10 +237,17 @@
 <body>
     <div class="header">
         <div class="header-left">
-            <h1>US Medical Directors</h1>
-            <p>Analytics Dashboard — GoHighLevel + Monday.com</p>
+            <svg width="38" height="38" viewBox="0 0 64 64" style="flex-shrink:0;margin-right:12px;">
+                <rect width="64" height="64" rx="12" fill="#6366f1"/>
+                <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="white">US</text>
+            </svg>
+            <div>
+                <h1>US Medical Directors</h1>
+                <p>Analytics Dashboard — GoHighLevel + Monday.com</p>
+            </div>
         </div>
         <div class="controls">
+            <a href="/monthly-summary" style="color:var(--text-secondary);text-decoration:none;font-size:0.82rem;padding:8px 14px;border:1px solid var(--border);border-radius:8px;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text-primary)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'">Monthly Summary</a>
             <input type="date" class="date-input" id="startDate">
             <span style="color:var(--text-muted)">to</span>
             <input type="date" class="date-input" id="endDate">

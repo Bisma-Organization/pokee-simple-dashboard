@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>USMD Monthly Summary</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%231C3557'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Georgia' font-size='24' font-weight='bold' fill='%23F0EDE6'>US</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -326,6 +327,15 @@
             color: var(--navy-dark);
         }
 
+        .source-list code {
+            background: #e8edf3;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 11.5px;
+            color: var(--navy-dark);
+            font-family: 'SF Mono', Consolas, monospace;
+        }
+
         /* Chart container */
         .chart-container {
             position: relative;
@@ -401,6 +411,10 @@
 <body>
     <div class="header">
         <div class="header-left">
+            <svg width="42" height="42" viewBox="0 0 64 64" style="flex-shrink:0;">
+                <rect width="64" height="64" rx="12" fill="#1C3557"/>
+                <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-family="Georgia" font-size="24" font-weight="bold" fill="#F0EDE6">US</text>
+            </svg>
             <div>
                 <h1>USMD Deal Flow Report</h1>
                 <div class="subtitle">US Medical Directors &mdash; Monthly Summary Dashboard</div>
@@ -480,11 +494,12 @@
                 <div class="widget-header">Data Sources</div>
                 <div class="widget-body">
                     <ul class="source-list">
-                        <li><span class="source-dot"></span><span><strong>Leads:</strong> GHL Contacts (filtered by dateAdded)</span></li>
-                        <li><span class="source-dot"></span><span><strong>Calls:</strong> <span id="callsSourceText">GHL Conversations TYPE_PHONE</span></span></li>
-                        <li><span class="source-dot"></span><span><strong>Opportunities:</strong> GHL Opportunities (open + won, by createdAt)</span></li>
-                        <li><span class="source-dot"></span><span><strong>New Contracts & Revenue:</strong> Monday.com &rarr; New Leads board &rarr; Closed Deals</span></li>
-                        <li><span class="source-dot"></span><span><strong>Churn:</strong> Monday.com &rarr; Client Master &rarr; Inactive group (by end date)</span></li>
+                        <li><span class="source-dot"></span><span><strong>Leads:</strong> GHL <code>/contacts/</code> endpoint<br><small style="color:var(--gray-500)">Filter: <code>locationId</code>, sorted by <code>date_added</code> desc, paginated (100/page, up to 20 pages). Client-side filter by <code>dateAdded</code> timestamp.</small></span></li>
+                        <li><span class="source-dot"></span><span><strong>Calls:</strong> <span id="callsSourceText">GHL Conversations TYPE_PHONE</span><br><small style="color:var(--gray-500)">Endpoint: <code>/conversations/search?type=TYPE_PHONE&locationId=...</code>. Paginated by <code>startAfterDate</code>. Filtered by <code>dateAdded</code> epoch ms.</small></span></li>
+                        <li><span class="source-dot"></span><span><strong>Opportunities:</strong> GHL <code>/opportunities/search</code><br><small style="color:var(--gray-500)">Filter: <code>status=open</code> and <code>status=won</code>. Pipeline stages via <code>/opportunities/pipelines</code>. Filtered by <code>createdAt</code>.</small></span></li>
+                        <li><span class="source-dot"></span><span><strong>New Contracts & Revenue:</strong> Monday.com<br><small style="color:var(--gray-500)">Board ID: <code>1944309746</code> (New Leads)<br>Group: <code>new_group_mkkazbjx</code> (Closed Deals)<br>Columns: <code>numbers_Mjivm65q</code> (Subscription Fee), <code>date4</code> (First Payment), <code>date_Mjiv0T8Z</code> (Last Payment), <code>status</code>, <code>text_MjivuCB8</code> (Contact), <code>text_MjivTjDy</code> (Email)</small></span></li>
+                        <li><span class="source-dot"></span><span><strong>Churn:</strong> Monday.com<br><small style="color:var(--gray-500)">Board ID: <code>1944525313</code> (Client Master)<br>Group: <code>group_title</code> (Inactive/Cancelled)<br>Columns: <code>date_mkmtbt5h</code> (Contract End), <code>date_mks817p7</code> (Start Date), <code>status_Mjj1A9wh</code> (Status)</small></span></li>
+                        <li><span class="source-dot"></span><span><strong>Payments:</strong> Monday.com<br><small style="color:var(--gray-500)">Board ID: <code>1944525313</code> (Client Master)<br>Group: <code>1733660267_book1_usmd_dec_new_Mjj1XfHC</code> (Active)<br>Columns: <code>status_Mjj1A9wh</code>, <code>date_mks817p7</code>, <code>date_mkmtbt5h</code>, <code>numeric_mkty8mvs</code>, <code>text_mktzxv3k</code></small></span></li>
                     </ul>
                 </div>
             </div>
