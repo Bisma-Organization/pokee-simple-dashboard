@@ -92,8 +92,8 @@ def in_range(dt, start, end):
 def get_date_range():
     start_str = request.args.get('start')
     end_str = request.args.get('end')
-    start = datetime.fromisoformat(start_str).replace(tzinfo=timezone.utc) if start_str else None
-    end = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=timezone.utc) if end_str else None
+    start = datetime.fromisoformat(start_str).replace(tzinfo=LOCAL_TZ) if start_str else None
+    end = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ) if end_str else None
     return start, end
 
 
