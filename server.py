@@ -238,66 +238,43 @@ def fetch_sales_data():
 
 def fetch_payment_data():
     def _fetch():
-        import calendar
         query = '''{ boards(ids: [1944525313]) {
             groups(ids: ["1733660267_book1_usmd_dec_new_Mjj1XfHC"]) {
             items_page(limit: 500) { items { id name
-            column_values(ids: ["mirror_Mjj1ZRum", "numeric_mkty8mvs", "lookup_mkq2tmcq"]) { id text
+            column_values(ids: ["mirror_Mjj1ZRum", "numeric_mkty8mvs", "lookup_mkq2tmcq",
+            "lookup_mm2cybv2", "status_Mjj1A9wh"]) { id text
             ... on MirrorValue { display_value } } } } } } }'''
         resp = monday_query(query)
         items = resp['data']['boards'][0]['groups'][0]['items_page']['items']
 
-        today = datetime.now(LOCAL_TZ).date()
         records = []
         for item in items:
-            last_payment_str = ''
-            due_day_str = ''
+            last_payment = ''
+            due_date = ''
             fee = ''
+            sub_type = ''
+            status = ''
             for cv in item['column_values']:
                 cid = cv['id']
+                val = cv.get('display_value') or cv.get('text') or ''
                 if cid == 'mirror_Mjj1ZRum':
-                    last_payment_str = cv.get('display_value') or cv.get('text') or ''
+                    last_payment = val[:10] if val else ''
                 elif cid == 'numeric_mkty8mvs':
-                    due_day_str = cv.get('text') or ''
+                    due_date = val
                 elif cid == 'lookup_mkq2tmcq':
-                    fee = cv.get('display_value') or cv.get('text') or ''
-
-            due_date = ''
-            days_overdue = 0
-            is_late = False
-            sub_type = ''
-
-            if last_payment_str and due_day_str:
-                try:
-                    last_pay_date = datetime.strptime(last_payment_str[:10], '%Y-%m-%d').date()
-                    due_day = int(float(due_day_str))
-                    sub_type = '28d' if due_day <= 28 else 'Monthly'
-
-                    next_month = last_pay_date.month + 1
-                    next_year = last_pay_date.year
-                    if next_month > 12:
-                        next_month = 1
-                        next_year += 1
-                    max_day = calendar.monthrange(next_year, next_month)[1]
-                    actual_due_day = min(due_day, max_day)
-                    next_due = datetime(next_year, next_month, actual_due_day).date()
-                    due_date = next_due.isoformat()
-
-                    if today > next_due:
-                        is_late = True
-                        days_overdue = (today - next_due).days
-                except (ValueError, TypeError):
-                    pass
+                    fee = val
+                elif cid == 'lookup_mm2cybv2':
+                    sub_type = val
+                elif cid == 'status_Mjj1A9wh':
+                    status = val
 
             records.append({
                 'name': item['name'],
-                'last_payment': last_payment_str[:10] if last_payment_str else '',
-                'subscription_type': sub_type,
-                'subscription_fee': fee,
+                'last_payment': last_payment,
                 'due_date': due_date,
-                'due_day': due_day_str,
-                'is_late': is_late,
-                'days_overdue': days_overdue
+                'subscription_fee': fee,
+                'subscription_type': sub_type,
+                'status': status
             })
         return records
     return cached('payments', _fetch)
@@ -674,7 +651,6 @@ def get_revenue():
 @app.route('/api/payments')
 def get_payments():
     payment_data = fetch_payment_data()
-    show = request.args.get('show', 'late')
 
     rows = []
     for p in payment_data:
@@ -683,21 +659,11 @@ def get_payments():
             'subscription_type': p.get('subscription_type', ''),
             'last_payment': p.get('last_payment', ''),
             'due_date': p.get('due_date', ''),
-            'due_day': p.get('due_day', ''),
             'subscription_fee': p.get('subscription_fee', ''),
-            'is_late': p.get('is_late', False),
-            'days_overdue': p.get('days_overdue', 0)
+            'status': p.get('status', '')
         })
 
-    if show == 'late':
-        rows = [r for r in rows if r['is_late']]
-    elif show == 'all_tracked':
-        rows = [r for r in rows if r['due_date']]
-
-    rows.sort(key=lambda r: r['days_overdue'], reverse=True)
-    late_count = sum(1 for r in payment_data if r.get('is_late'))
-    total_tracked = sum(1 for r in payment_data if r.get('due_date'))
-    return jsonify({'rows': rows, 'total': len(rows), 'late_count': late_count, 'total_tracked': total_tracked})
+    return jsonify({'rows': rows, 'total': len(rows)})
 
 
 @app.route('/api/pipeline')
