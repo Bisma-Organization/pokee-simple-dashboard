@@ -4,7 +4,7 @@ import os
 import json
 import requests
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 from collections import Counter
 
@@ -241,52 +241,60 @@ def fetch_payment_data():
         query = '''{ boards(ids: [1944525313]) {
             groups(ids: ["1733660267_book1_usmd_dec_new_Mjj1XfHC"]) {
             items_page(limit: 500) { items { id name
-            column_values(ids: ["status_Mjj1A9wh", "date_mks817p7", "date_mkmtbt5h",
-            "numeric_mkty8mvs", "text_mktzxv3k"]) { id text column { title } } } } } } }'''
+            column_values(ids: ["mirror_Mjj1ZRum"]) { id text
+            ... on MirrorValue { display_value } } } } } } }'''
         resp = monday_query(query)
         items = resp['data']['boards'][0]['groups'][0]['items_page']['items']
 
-        sub_type_query = '''{ boards(ids: [1944309746]) {
+        sub_query = '''{ boards(ids: [1944309746]) {
             groups(ids: ["1733734937_book1_usmd_dec_new_Mjj2w4It"]) {
             items_page(limit: 500) { items { name
-            column_values(ids: ["color_mm1gq51r"]) { text } } } } } }'''
-        sub_resp = monday_query(sub_type_query)
+            column_values(ids: ["color_mm1gq51r", "numbers_Mjivm65q"]) { id text } } } } } }'''
+        sub_resp = monday_query(sub_query)
         sub_items = sub_resp['data']['boards'][0]['groups'][0]['items_page']['items']
-        sub_type_map = {}
+        sub_map = {}
         for si in sub_items:
-            val = si['column_values'][0]['text'] if si['column_values'] else ''
-            if val:
-                sub_type_map[si['name'].strip().lower()] = val
+            cols = {cv['id']: cv.get('text') or '' for cv in si['column_values']}
+            sub_map[si['name'].strip().lower()] = {
+                'subscription_type': cols.get('color_mm1gq51r', ''),
+                'subscription_fee': cols.get('numbers_Mjivm65q', '')
+            }
 
+        today = datetime.now(LOCAL_TZ).date()
         records = []
         for item in items:
-            status = ''
-            start_date = ''
-            end_date = ''
-            due_date = ''
-            ar = ''
+            last_payment_str = ''
             for cv in item['column_values']:
-                cid = cv['id']
-                text = cv.get('text', '') or ''
-                if cid == 'status_Mjj1A9wh':
-                    status = text
-                elif cid == 'date_mks817p7':
-                    start_date = text
-                elif cid == 'date_mkmtbt5h':
-                    end_date = text
-                elif cid == 'numeric_mkty8mvs':
-                    due_date = text
-                elif cid == 'text_mktzxv3k':
-                    ar = text
-            sub_type = sub_type_map.get(item['name'].strip().lower(), '')
+                if cv['id'] == 'mirror_Mjj1ZRum':
+                    last_payment_str = cv.get('display_value') or cv.get('text') or ''
+
+            lookup = sub_map.get(item['name'].strip().lower(), {})
+            sub_type = lookup.get('subscription_type', '')
+            sub_fee = lookup.get('subscription_fee', '')
+
+            due_date = ''
+            days_overdue = 0
+            is_late = False
+            if last_payment_str and sub_type:
+                try:
+                    last_pay_date = datetime.strptime(last_payment_str[:10], '%Y-%m-%d').date()
+                    cycle_days = 28 if sub_type == '28d' else 30
+                    due = last_pay_date + timedelta(days=cycle_days)
+                    due_date = due.isoformat()
+                    if today > due:
+                        is_late = True
+                        days_overdue = (today - due).days
+                except (ValueError, TypeError):
+                    pass
+
             records.append({
                 'name': item['name'],
-                'status': status,
-                'start_date': start_date,
-                'end_date': end_date,
+                'last_payment': last_payment_str[:10] if last_payment_str else '',
+                'subscription_type': sub_type,
+                'subscription_fee': sub_fee,
                 'due_date': due_date,
-                'ar': ar,
-                'subscription_type': sub_type
+                'is_late': is_late,
+                'days_overdue': days_overdue
             })
         return records
     return cached('payments', _fetch)
@@ -663,24 +671,29 @@ def get_revenue():
 @app.route('/api/payments')
 def get_payments():
     payment_data = fetch_payment_data()
-    status_filter = request.args.get('status')
-    if status_filter:
-        payment_data = [p for p in payment_data if p.get('status', '').lower() == status_filter.lower()]
+    show = request.args.get('show', 'late')
 
     rows = []
     for p in payment_data:
         rows.append({
             'name': p.get('name', ''),
-            'status': p.get('status', ''),
-            'start_date': p.get('start_date', ''),
-            'end_date': p.get('end_date', ''),
+            'subscription_type': p.get('subscription_type', ''),
+            'last_payment': p.get('last_payment', ''),
             'due_date': p.get('due_date', ''),
-            'ar': p.get('ar', ''),
-            'subscription_type': p.get('subscription_type', '')
+            'subscription_fee': p.get('subscription_fee', ''),
+            'is_late': p.get('is_late', False),
+            'days_overdue': p.get('days_overdue', 0)
         })
 
-    status_counts = Counter(p.get('status', 'Unknown') for p in payment_data)
-    return jsonify({'rows': rows, 'total': len(rows), 'by_status': dict(status_counts)})
+    if show == 'late':
+        rows = [r for r in rows if r['is_late']]
+    elif show == 'all_tracked':
+        rows = [r for r in rows if r['subscription_type']]
+
+    rows.sort(key=lambda r: r['days_overdue'], reverse=True)
+    late_count = sum(1 for r in payment_data if r.get('is_late'))
+    total_tracked = sum(1 for r in payment_data if r.get('subscription_type'))
+    return jsonify({'rows': rows, 'total': len(rows), 'late_count': late_count, 'total_tracked': total_tracked})
 
 
 @app.route('/api/pipeline')

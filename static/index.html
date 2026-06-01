@@ -382,7 +382,7 @@
                     <button class="tab ${currentTab==='churn'?'active':''}" onclick="switchTab('churn')">Churn</button>
                     <button class="tab ${currentTab==='calls'?'active':''}" onclick="switchTab('calls')">Calls</button>
                     <button class="tab ${currentTab==='revenue'?'active':''}" onclick="switchTab('revenue')">Revenue</button>
-                    <button class="tab ${currentTab==='payments'?'active':''}" onclick="switchTab('payments')">Payments</button>
+                    <button class="tab ${currentTab==='payments'?'active':''}" onclick="switchTab('payments')">Late Payments</button>
                 </div>
                 <div class="table-header">
                     <h3 id="tableTitle">Recent Leads</h3>
@@ -495,7 +495,7 @@
 
     async function loadTable(tab) {
         const params = getDateParams();
-        const titles = { leads: 'Recent Leads', sales: 'Closed Deals', churn: 'Cancelled / Inactive Clients', calls: 'Phone Conversations', revenue: 'Revenue Records', payments: 'Active Client Payments' };
+        const titles = { leads: 'Recent Leads', sales: 'Closed Deals', churn: 'Cancelled / Inactive Clients', calls: 'Phone Conversations', revenue: 'Revenue Records', payments: 'Late Payments' };
         document.getElementById('tableTitle').textContent = titles[tab];
         document.getElementById('tableBody').innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
 
@@ -540,8 +540,8 @@
                 renderRow = r => `<td>${r.name}</td><td style="font-weight:600;color:var(--green)">$${(r.fee||0).toLocaleString()}</td><td>${fmtDate(r.date)}</td><td><span class="badge ${r.status==='PAID'?'badge-green':r.status?'badge-yellow':'badge-blue'}">${r.status||'-'}</span></td>`;
                 break;
             case 'payments':
-                headers = '<th>Business</th><th>Payment Status</th><th>Subscription Type</th><th>Start Date</th><th>Contract End</th><th>Due Date</th><th>AR Enterprise</th>';
-                renderRow = r => `<td>${r.name}</td><td><span class="badge ${r.status==='Active'?'badge-green':r.status==='Past Due'?'badge-red':r.status==='New'?'badge-blue':'badge-yellow'}">${r.status||'-'}</span></td><td><span class="badge ${r.subscription_type==='28d'?'badge-blue':r.subscription_type==='Monthly'?'badge-green':'badge-gray'}">${r.subscription_type||'-'}</span></td><td>${fmtDate(r.start_date)}</td><td>${fmtDate(r.end_date)}</td><td>${r.due_date||'-'}</td><td>${r.ar||'-'}</td>`;
+                headers = '<th>Business</th><th>Subscription Type</th><th>Last Payment</th><th>Due Date</th><th>Days Overdue</th><th>Subscription Fee</th><th>Status</th>';
+                renderRow = r => `<td>${r.name}</td><td><span class="badge ${r.subscription_type==='28d'?'badge-blue':'badge-green'}">${r.subscription_type||'-'}</span></td><td>${fmtDate(r.last_payment)}</td><td>${fmtDate(r.due_date)}</td><td style="font-weight:700;color:${r.days_overdue>7?'var(--red)':'var(--orange)'}">${r.days_overdue}d</td><td style="font-weight:600">$${r.subscription_fee||'0'}</td><td><span class="badge badge-red">Late</span></td>`;
                 break;
         }
         const html = `<table><thead><tr>${headers}</tr></thead><tbody>${rows.map(r => `<tr>${renderRow(r)}</tr>`).join('')}</tbody></table>`;
