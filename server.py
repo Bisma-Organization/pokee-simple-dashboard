@@ -245,6 +245,19 @@ def fetch_payment_data():
             "numeric_mkty8mvs", "text_mktzxv3k"]) { id text column { title } } } } } } }'''
         resp = monday_query(query)
         items = resp['data']['boards'][0]['groups'][0]['items_page']['items']
+
+        sub_type_query = '''{ boards(ids: [1944309746]) {
+            groups(ids: ["1733734937_book1_usmd_dec_new_Mjj2w4It"]) {
+            items_page(limit: 500) { items { name
+            column_values(ids: ["color_mm1gq51r"]) { text } } } } } }'''
+        sub_resp = monday_query(sub_type_query)
+        sub_items = sub_resp['data']['boards'][0]['groups'][0]['items_page']['items']
+        sub_type_map = {}
+        for si in sub_items:
+            val = si['column_values'][0]['text'] if si['column_values'] else ''
+            if val:
+                sub_type_map[si['name'].strip().lower()] = val
+
         records = []
         for item in items:
             status = ''
@@ -265,13 +278,15 @@ def fetch_payment_data():
                     due_date = text
                 elif cid == 'text_mktzxv3k':
                     ar = text
+            sub_type = sub_type_map.get(item['name'].strip().lower(), '')
             records.append({
                 'name': item['name'],
                 'status': status,
                 'start_date': start_date,
                 'end_date': end_date,
                 'due_date': due_date,
-                'ar': ar
+                'ar': ar,
+                'subscription_type': sub_type
             })
         return records
     return cached('payments', _fetch)
@@ -660,7 +675,8 @@ def get_payments():
             'start_date': p.get('start_date', ''),
             'end_date': p.get('end_date', ''),
             'due_date': p.get('due_date', ''),
-            'ar': p.get('ar', '')
+            'ar': p.get('ar', ''),
+            'subscription_type': p.get('subscription_type', '')
         })
 
     status_counts = Counter(p.get('status', 'Unknown') for p in payment_data)
