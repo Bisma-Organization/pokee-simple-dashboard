@@ -540,8 +540,8 @@
                 renderRow = r => `<td>${r.name}</td><td style="font-weight:600;color:var(--green)">$${(r.fee||0).toLocaleString()}</td><td>${fmtDate(r.date)}</td><td><span class="badge ${r.status==='PAID'?'badge-green':r.status?'badge-yellow':'badge-blue'}">${r.status||'-'}</span></td>`;
                 break;
             case 'payments':
-                headers = '<th>Business</th><th>Subscription Type</th><th>Last Payment</th><th>Due Date</th><th>Days Overdue</th><th>Subscription Fee</th><th>Status</th>';
-                renderRow = r => `<td>${r.name}</td><td><span class="badge ${r.subscription_type==='28d'?'badge-blue':'badge-green'}">${r.subscription_type||'-'}</span></td><td>${fmtDate(r.last_payment)}</td><td>${fmtDate(r.due_date)}</td><td style="font-weight:700;color:${r.days_overdue>7?'var(--red)':'var(--orange)'}">${r.days_overdue}d</td><td style="font-weight:600">$${r.subscription_fee||'0'}</td><td><span class="badge badge-red">Late</span></td>`;
+                headers = '<th>Business</th><th>Cycle (Due Day)</th><th>Last Payment</th><th>Due Date</th><th>Days Overdue</th><th>Subscription Fee</th>';
+                renderRow = r => `<td>${r.name}</td><td><span class="badge badge-blue">${r.subscription_type} (Day ${r.due_day})</span></td><td>${fmtDate(r.last_payment)}</td><td>${fmtDate(r.due_date)}</td><td style="font-weight:700;color:${r.days_overdue>7?'#dc3545':'#fd7e14'}">${r.days_overdue}d</td><td style="font-weight:600">\$${r.subscription_fee||'0'}</td>`;
                 break;
         }
         const html = `<table><thead><tr>${headers}</tr></thead><tbody>${rows.map(r => `<tr>${renderRow(r)}</tr>`).join('')}</tbody></table>`;

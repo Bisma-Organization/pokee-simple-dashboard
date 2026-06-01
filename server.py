@@ -238,52 +238,54 @@ def fetch_sales_data():
 
 def fetch_payment_data():
     def _fetch():
+        import calendar
         query = '''{ boards(ids: [1944525313]) {
             groups(ids: ["1733660267_book1_usmd_dec_new_Mjj1XfHC"]) {
             items_page(limit: 500) { items { id name
-            column_values(ids: ["mirror_Mjj1ZRum"]) { id text
+            column_values(ids: ["mirror_Mjj1ZRum", "numeric_mkty8mvs", "lookup_mkq2tmcq"]) { id text
             ... on MirrorValue { display_value } } } } } } }'''
         resp = monday_query(query)
         items = resp['data']['boards'][0]['groups'][0]['items_page']['items']
-
-        sub_query = '''{ boards(ids: [1944309746]) {
-            groups(ids: ["1733734937_book1_usmd_dec_new_Mjj2w4It"]) {
-            items_page(limit: 500) { items { name
-            column_values(ids: ["color_mm1gq51r", "numbers_Mjivm65q"]) { id text } } } } } }'''
-        sub_resp = monday_query(sub_query)
-        sub_items = sub_resp['data']['boards'][0]['groups'][0]['items_page']['items']
-        sub_map = {}
-        for si in sub_items:
-            cols = {cv['id']: cv.get('text') or '' for cv in si['column_values']}
-            sub_map[si['name'].strip().lower()] = {
-                'subscription_type': cols.get('color_mm1gq51r', ''),
-                'subscription_fee': cols.get('numbers_Mjivm65q', '')
-            }
 
         today = datetime.now(LOCAL_TZ).date()
         records = []
         for item in items:
             last_payment_str = ''
+            due_day_str = ''
+            fee = ''
             for cv in item['column_values']:
-                if cv['id'] == 'mirror_Mjj1ZRum':
+                cid = cv['id']
+                if cid == 'mirror_Mjj1ZRum':
                     last_payment_str = cv.get('display_value') or cv.get('text') or ''
-
-            lookup = sub_map.get(item['name'].strip().lower(), {})
-            sub_type = lookup.get('subscription_type', '')
-            sub_fee = lookup.get('subscription_fee', '')
+                elif cid == 'numeric_mkty8mvs':
+                    due_day_str = cv.get('text') or ''
+                elif cid == 'lookup_mkq2tmcq':
+                    fee = cv.get('display_value') or cv.get('text') or ''
 
             due_date = ''
             days_overdue = 0
             is_late = False
-            if last_payment_str and sub_type:
+            sub_type = ''
+
+            if last_payment_str and due_day_str:
                 try:
                     last_pay_date = datetime.strptime(last_payment_str[:10], '%Y-%m-%d').date()
-                    cycle_days = 28 if sub_type == '28d' else 30
-                    due = last_pay_date + timedelta(days=cycle_days)
-                    due_date = due.isoformat()
-                    if today > due:
+                    due_day = int(float(due_day_str))
+                    sub_type = '28d' if due_day <= 28 else 'Monthly'
+
+                    next_month = last_pay_date.month + 1
+                    next_year = last_pay_date.year
+                    if next_month > 12:
+                        next_month = 1
+                        next_year += 1
+                    max_day = calendar.monthrange(next_year, next_month)[1]
+                    actual_due_day = min(due_day, max_day)
+                    next_due = datetime(next_year, next_month, actual_due_day).date()
+                    due_date = next_due.isoformat()
+
+                    if today > next_due:
                         is_late = True
-                        days_overdue = (today - due).days
+                        days_overdue = (today - next_due).days
                 except (ValueError, TypeError):
                     pass
 
@@ -291,8 +293,9 @@ def fetch_payment_data():
                 'name': item['name'],
                 'last_payment': last_payment_str[:10] if last_payment_str else '',
                 'subscription_type': sub_type,
-                'subscription_fee': sub_fee,
+                'subscription_fee': fee,
                 'due_date': due_date,
+                'due_day': due_day_str,
                 'is_late': is_late,
                 'days_overdue': days_overdue
             })
@@ -680,6 +683,7 @@ def get_payments():
             'subscription_type': p.get('subscription_type', ''),
             'last_payment': p.get('last_payment', ''),
             'due_date': p.get('due_date', ''),
+            'due_day': p.get('due_day', ''),
             'subscription_fee': p.get('subscription_fee', ''),
             'is_late': p.get('is_late', False),
             'days_overdue': p.get('days_overdue', 0)
@@ -688,11 +692,11 @@ def get_payments():
     if show == 'late':
         rows = [r for r in rows if r['is_late']]
     elif show == 'all_tracked':
-        rows = [r for r in rows if r['subscription_type']]
+        rows = [r for r in rows if r['due_date']]
 
     rows.sort(key=lambda r: r['days_overdue'], reverse=True)
     late_count = sum(1 for r in payment_data if r.get('is_late'))
-    total_tracked = sum(1 for r in payment_data if r.get('subscription_type'))
+    total_tracked = sum(1 for r in payment_data if r.get('due_date'))
     return jsonify({'rows': rows, 'total': len(rows), 'late_count': late_count, 'total_tracked': total_tracked})
 
 
