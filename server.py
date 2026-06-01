@@ -238,6 +238,7 @@ def fetch_sales_data():
 
 def fetch_payment_data():
     def _fetch():
+        import calendar
         query = '''{ boards(ids: [1944525313]) {
             groups(ids: ["1733660267_book1_usmd_dec_new_Mjj1XfHC"]) {
             items_page(limit: 500) { items { id name
@@ -247,6 +248,7 @@ def fetch_payment_data():
         resp = monday_query(query)
         items = resp['data']['boards'][0]['groups'][0]['items_page']['items']
 
+        today = datetime.now(LOCAL_TZ).date()
         records = []
         for item in items:
             last_payment = ''
@@ -268,13 +270,33 @@ def fetch_payment_data():
                 elif cid == 'status_Mjj1A9wh':
                     status = val
 
+            late_days = None
+            if last_payment and sub_type:
+                try:
+                    last_pay_date = datetime.strptime(last_payment, '%Y-%m-%d').date()
+                    if sub_type == '28d':
+                        next_due = last_pay_date + timedelta(days=28)
+                    else:
+                        next_month = last_pay_date.month + 1
+                        next_year = last_pay_date.year
+                        if next_month > 12:
+                            next_month = 1
+                            next_year += 1
+                        max_day = calendar.monthrange(next_year, next_month)[1]
+                        next_due = last_pay_date.replace(year=next_year, month=next_month, day=min(last_pay_date.day, max_day))
+                    if today > next_due:
+                        late_days = (today - next_due).days
+                except (ValueError, TypeError):
+                    pass
+
             records.append({
                 'name': item['name'],
                 'last_payment': last_payment,
                 'due_date': due_date,
                 'subscription_fee': fee,
                 'subscription_type': sub_type,
-                'status': status
+                'status': status,
+                'late_days': late_days
             })
         return records
     return cached('payments', _fetch)
@@ -660,7 +682,8 @@ def get_payments():
             'last_payment': p.get('last_payment', ''),
             'due_date': p.get('due_date', ''),
             'subscription_fee': p.get('subscription_fee', ''),
-            'status': p.get('status', '')
+            'status': p.get('status', ''),
+            'late_days': p.get('late_days')
         })
 
     return jsonify({'rows': rows, 'total': len(rows)})

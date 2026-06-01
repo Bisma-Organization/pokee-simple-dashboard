@@ -540,8 +540,8 @@
                 renderRow = r => `<td>${r.name}</td><td style="font-weight:600;color:var(--green)">$${(r.fee||0).toLocaleString()}</td><td>${fmtDate(r.date)}</td><td><span class="badge ${r.status==='PAID'?'badge-green':r.status?'badge-yellow':'badge-blue'}">${r.status||'-'}</span></td>`;
                 break;
             case 'payments':
-                headers = '<th>Business</th><th>Subscription Type</th><th>Last Payment</th><th>Due Date</th><th>Subscription Fee</th><th>Status</th>';
-                renderRow = r => `<td>${r.name}</td><td>${r.subscription_type ? '<span class="badge badge-blue">'+r.subscription_type+'</span>' : '-'}</td><td>${fmtDate(r.last_payment)}</td><td>${r.due_date||'-'}</td><td style="font-weight:600">${r.subscription_fee ? '$'+r.subscription_fee : '-'}</td><td><span class="badge ${r.status==='Active'?'badge-green':r.status==='Past Due'?'badge-red':'badge-yellow'}">${r.status||'-'}</span></td>`;
+                headers = '<th>Business</th><th>Subscription Type</th><th>Last Payment</th><th>Due Date</th><th>Subscription Fee</th><th>Status</th><th>Late Payment Days</th>';
+                renderRow = r => `<td>${r.name}</td><td>${r.subscription_type ? '<span class="badge badge-blue">'+r.subscription_type+'</span>' : '-'}</td><td>${fmtDate(r.last_payment)}</td><td>${r.due_date||'-'}</td><td style="font-weight:600">${r.subscription_fee ? '$'+r.subscription_fee : '-'}</td><td><span class="badge ${r.status==='Active'?'badge-green':r.status==='Past Due'?'badge-red':'badge-yellow'}">${r.status||'-'}</span></td><td style="font-weight:700;color:${r.late_days>0?'#dc3545':''}">${r.late_days!=null ? r.late_days+'d' : '-'}</td>`;
                 break;
         }
         const html = `<table><thead><tr>${headers}</tr></thead><tbody>${rows.map(r => `<tr>${renderRow(r)}</tr>`).join('')}</tbody></table>`;
