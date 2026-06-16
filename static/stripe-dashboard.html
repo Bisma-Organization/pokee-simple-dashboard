@@ -6,6 +6,9 @@
     <title>Stripe Dashboard - USMD</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%233b82f6'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='32' font-weight='bold' fill='white'>US</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
         :root {
             --bg-primary: #0f0f1a;
@@ -166,23 +169,21 @@
         }
         .preset-btns .btn { padding: 6px 12px; font-size: 0.75rem; }
 
-        .date-range-picker {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 4px 12px;
+        .date-range-input {
+            min-width: 220px;
+            cursor: pointer;
         }
-        .date-range-picker .date-input {
-            border: none;
-            background: transparent;
-            padding: 6px 4px;
+        .flatpickr-calendar {
+            background: var(--bg-card) !important;
+            border-color: var(--border) !important;
         }
-        .date-separator {
-            color: var(--text-muted);
-            font-size: 0.8rem;
+        .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
+            background: var(--accent) !important;
+            border-color: var(--accent) !important;
+        }
+        .flatpickr-day.inRange {
+            background: var(--accent-glow) !important;
+            border-color: var(--accent-glow) !important;
         }
 
         @media (max-width: 768px) {
@@ -213,11 +214,7 @@
                 <button class="btn btn-ghost" onclick="setPreset('last6m')">Last 6m</button>
                 <button class="btn btn-ghost" onclick="setPreset('all')">All Time</button>
             </div>
-            <div class="date-range-picker">
-                <input type="date" id="startDate" class="date-input">
-                <span class="date-separator">to</span>
-                <input type="date" id="endDate" class="date-input">
-            </div>
+            <input type="text" id="dateRange" class="date-input date-range-input" placeholder="Select date range" readonly>
             <button class="btn btn-primary" onclick="loadData()">Apply</button>
         </div>
     </div>
@@ -240,6 +237,23 @@
     <script>
         let revenueChart = null;
         let churnChart = null;
+        let datePicker = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            datePicker = flatpickr('#dateRange', {
+                mode: 'range',
+                dateFormat: 'Y-m-d',
+                theme: 'dark',
+                maxDate: 'today',
+                defaultDate: [
+                    new Date(new Date().getFullYear(), new Date().getMonth() - 6, 1).toISOString().split('T')[0],
+                    new Date().toISOString().split('T')[0]
+                ],
+                onReady: function() {
+                    loadData();
+                }
+            });
+        });
 
         function setPreset(preset) {
             const now = new Date();
@@ -261,8 +275,7 @@
                     break;
             }
 
-            document.getElementById('startDate').value = start;
-            document.getElementById('endDate').value = end;
+            datePicker.setDate([start, end], true);
             loadData();
         }
 
@@ -275,8 +288,9 @@
         }
 
         async function loadData() {
-            const start = document.getElementById('startDate').value;
-            const end = document.getElementById('endDate').value;
+            const dates = datePicker ? datePicker.selectedDates : [];
+            const start = dates.length > 0 ? dates[0].toISOString().split('T')[0] : '';
+            const end = dates.length > 1 ? dates[1].toISOString().split('T')[0] : (dates.length > 0 ? dates[0].toISOString().split('T')[0] : '');
 
             let params = new URLSearchParams();
             if (start) params.set('start', start);
@@ -310,7 +324,7 @@
                     <div class="kpi-card yellow">
                         <div class="label">Churn Revenue</div>
                         <div class="value">${formatCurrency(data.lost_mrr)}</div>
-                        <div class="sub">${data.churn_count} cancellations${data.churn_source === 'subscriptions_api' ? ' (excl. downgrades)' : ''}</div>
+                        <div class="sub">${data.churn_count} cancellations</div>
                     </div>
                     <div class="kpi-card green">
                         <div class="label">Net Revenue</div>
@@ -405,8 +419,7 @@
             });
         }
 
-        // Default: last 6 months
-        setPreset('last6m');
+        // Default: loaded via flatpickr onReady callback
     </script>
 </body>
 </html>
