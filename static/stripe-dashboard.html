@@ -308,6 +308,11 @@
                         <div class="value">${formatCurrency(data.lost_mrr)}</div>
                         <div class="sub">Lost MRR from cancellations</div>
                     </div>
+                    <div class="kpi-card green">
+                        <div class="label">Net Revenue</div>
+                        <div class="value">${formatCurrency(data.revenue - data.lost_mrr)}</div>
+                        <div class="sub">Revenue minus churn</div>
+                    </div>
                     <div class="kpi-card purple">
                         <div class="label">Past Due</div>
                         <div class="value">${data.past_due}</div>
