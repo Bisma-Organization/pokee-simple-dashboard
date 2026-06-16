@@ -166,6 +166,25 @@
         }
         .preset-btns .btn { padding: 6px 12px; font-size: 0.75rem; }
 
+        .date-range-picker {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 4px 12px;
+        }
+        .date-range-picker .date-input {
+            border: none;
+            background: transparent;
+            padding: 6px 4px;
+        }
+        .date-separator {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
         @media (max-width: 768px) {
             .charts-grid { grid-template-columns: 1fr; }
             .kpi-grid { grid-template-columns: repeat(2, 1fr); }
@@ -189,15 +208,16 @@
         </div>
         <div class="controls">
             <div class="preset-btns">
-                <button class="btn btn-ghost" onclick="setPreset('mtd')">MTD</button>
                 <button class="btn btn-ghost" onclick="setPreset('last30')">Last 30d</button>
                 <button class="btn btn-ghost" onclick="setPreset('last3m')">Last 3m</button>
                 <button class="btn btn-ghost" onclick="setPreset('last6m')">Last 6m</button>
-                <button class="btn btn-ghost" onclick="setPreset('ytd')">YTD</button>
                 <button class="btn btn-ghost" onclick="setPreset('all')">All Time</button>
             </div>
-            <input type="date" id="startDate" class="date-input">
-            <input type="date" id="endDate" class="date-input">
+            <div class="date-range-picker">
+                <input type="date" id="startDate" class="date-input">
+                <span class="date-separator">to</span>
+                <input type="date" id="endDate" class="date-input">
+            </div>
             <button class="btn btn-primary" onclick="loadData()">Apply</button>
         </div>
     </div>
@@ -227,9 +247,6 @@
             end = now.toISOString().split('T')[0];
 
             switch (preset) {
-                case 'mtd':
-                    start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-                    break;
                 case 'last30':
                     start = new Date(now - 30 * 86400000).toISOString().split('T')[0];
                     break;
@@ -238,9 +255,6 @@
                     break;
                 case 'last6m':
                     start = new Date(now.getFullYear(), now.getMonth() - 6, 1).toISOString().split('T')[0];
-                    break;
-                case 'ytd':
-                    start = `${now.getFullYear()}-01-01`;
                     break;
                 case 'all':
                     start = '2022-01-01';
@@ -296,12 +310,12 @@
                     <div class="kpi-card yellow">
                         <div class="label">Churn Revenue</div>
                         <div class="value">${formatCurrency(data.lost_mrr)}</div>
-                        <div class="sub">Lost MRR from cancellations</div>
+                        <div class="sub">${data.churn_count} cancellations${data.churn_source === 'subscriptions_api' ? ' (excl. downgrades)' : ''}</div>
                     </div>
                     <div class="kpi-card green">
                         <div class="label">Net Revenue</div>
                         <div class="value">${formatCurrency(data.net_revenue)}</div>
-                        <div class="sub">Gross - fees - refunds</div>
+                        <div class="sub">Gross - fees - refunds + adjustments</div>
                     </div>
                 `;
 

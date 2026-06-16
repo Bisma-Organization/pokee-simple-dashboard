@@ -1082,7 +1082,7 @@ def fetch_stripe_balance_txns(start_ts, end_ts):
 
     def _fetch():
         all_txns = []
-        for txn_type in ['charge', 'payment', 'refund', 'payment_refund']:
+        for txn_type in ['charge', 'payment', 'refund', 'payment_refund', 'adjustment']:
             params = {'limit': 100, 'type': txn_type}
             if start_ts:
                 params['created[gte]'] = start_ts
@@ -1100,21 +1100,25 @@ def fetch_stripe_balance_txns(start_ts, end_ts):
 
 
 def calc_net_revenue(balance_txns):
-    """Net revenue = gross charges - fees - refunds (what lands in your account)."""
+    """Net revenue = gross charges - fees - refunds + adjustments."""
     gross = 0
     fees = 0
     refunds = 0
+    adjustments = 0
     for t in balance_txns:
         if t['type'] in ('charge', 'payment'):
             gross += t['amount']
             fees += t['fee']
         elif t['type'] in ('refund', 'payment_refund'):
             refunds += abs(t['amount'])
+        elif t['type'] == 'adjustment':
+            adjustments += t['amount']
     return {
         'gross': round(gross / 100, 2),
         'fees': round(fees / 100, 2),
         'refunds': round(refunds / 100, 2),
-        'net': round((gross - fees - refunds) / 100, 2)
+        'adjustments': round(adjustments / 100, 2),
+        'net': round((gross - fees - refunds + adjustments) / 100, 2)
     }
 
 
@@ -1157,6 +1161,24 @@ def fetch_stripe_canceled_via_events(start_ts, end_ts):
             params['starting_after'] = events[-1]['id']
         return all_subs
     return cached(cache_key, _fetch)
+
+
+def fetch_stripe_paused_subs():
+    """Fetch all currently paused subscriptions."""
+    def _fetch():
+        all_subs = []
+        params = {'limit': 100, 'status': 'active'}
+        while True:
+            data = stripe_get('/subscriptions', params)
+            subs = data.get('data', [])
+            for sub in subs:
+                if sub.get('pause_collection'):
+                    all_subs.append(sub)
+            if not data.get('has_more'):
+                break
+            params['starting_after'] = subs[-1]['id']
+        return all_subs
+    return cached('stripe_paused_subs', _fetch)
 
 
 def fetch_stripe_canceled(start_ts, end_ts):
@@ -1367,6 +1389,10 @@ def _stripe_summary_impl():
     bal_txns = fetch_stripe_balance_txns(start_ts, end_ts)
     rev_data = calc_net_revenue(bal_txns)
 
+    now_ts = int(time.time())
+    events_cutoff = now_ts - 25 * 86400
+    churn_source = 'events_api' if (start_ts and start_ts >= events_cutoff) else 'subscriptions_api'
+
     canceled = fetch_stripe_canceled(start_ts, end_ts)
     churn_count = 0
     lost_mrr = 0
@@ -1405,6 +1431,10 @@ def _stripe_summary_impl():
             dt = datetime.fromtimestamp(t['created'], tz=LOCAL_TZ)
             key = dt.strftime('%Y-%m')
             revenue_monthly[key] = revenue_monthly.get(key, 0) + t['amount'] / 100
+        elif t['type'] == 'adjustment':
+            dt = datetime.fromtimestamp(t['created'], tz=LOCAL_TZ)
+            key = dt.strftime('%Y-%m')
+            revenue_monthly[key] = revenue_monthly.get(key, 0) + t['amount'] / 100
 
     all_months = sorted(set(list(revenue_monthly.keys()) + list(churn_monthly.keys())))
     monthly_data = []
@@ -1429,9 +1459,11 @@ def _stripe_summary_impl():
         'gross_revenue': rev_data['gross'],
         'fees': rev_data['fees'],
         'refunds': rev_data['refunds'],
+        'adjustments': rev_data['adjustments'],
         'churn_count': churn_count,
         'lost_mrr': round(lost_mrr / 100, 2),
         'churn_rate': churn_rate,
+        'churn_source': churn_source,
         'active': active_count,
         'past_due': past_due_count,
         'paused': paused_count,
