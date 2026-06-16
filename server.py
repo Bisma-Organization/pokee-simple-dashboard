@@ -1484,6 +1484,101 @@ def refresh_cache():
     return jsonify({'status': 'ok', 'message': 'Cache cleared'})
 
 
+@app.route('/api/stripe/test-invoice-contraction')
+def test_invoice_contraction():
+    """Detect contraction by comparing invoice amounts for the same subscription
+    across consecutive months. If a sub billed $X in month N-1 and $Y in month N
+    where Y < X, the difference is contraction MRR."""
+    start_str = request.args.get('start', '2026-04-01')
+    end_str = request.args.get('end', '2026-04-30')
+    start_dt = datetime.fromisoformat(start_str).replace(tzinfo=LOCAL_TZ)
+    end_dt = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ)
+    start_ts = int(start_dt.timestamp())
+    end_ts = int(end_dt.timestamp())
+
+    # Get previous month boundaries
+    prev_month_end = start_dt - timedelta(days=1)
+    prev_month_start = prev_month_end.replace(day=1, hour=0, minute=0, second=0)
+    prev_start_ts = int(prev_month_start.timestamp())
+    prev_end_ts = int(prev_month_end.replace(hour=23, minute=59, second=59).timestamp())
+
+    # Fetch invoices for both months
+    def fetch_invoices(s_ts, e_ts):
+        all_invoices = []
+        params = {'limit': 100, 'created[gte]': s_ts, 'created[lte]': e_ts, 'status': 'paid'}
+        while True:
+            data = stripe_get('/invoices', params)
+            invoices = data.get('data', [])
+            all_invoices.extend(invoices)
+            if not data.get('has_more'):
+                break
+            params['starting_after'] = invoices[-1]['id']
+        return all_invoices
+
+    prev_invoices = fetch_invoices(prev_start_ts, prev_end_ts)
+    curr_invoices = fetch_invoices(start_ts, end_ts)
+
+    # Group by subscription, get the total amount per sub per month
+    def group_by_sub(invoices):
+        sub_amounts = {}
+        for inv in invoices:
+            sub_id = inv.get('subscription')
+            if not sub_id:
+                continue
+            amount = inv.get('amount_paid', 0)
+            if sub_id not in sub_amounts:
+                sub_amounts[sub_id] = 0
+            sub_amounts[sub_id] += amount
+        return sub_amounts
+
+    prev_amounts = group_by_sub(prev_invoices)
+    curr_amounts = group_by_sub(curr_invoices)
+
+    # Find contractions: subs that existed in both months but decreased
+    contractions = []
+    contraction_total = 0
+    for sub_id, prev_amt in prev_amounts.items():
+        curr_amt = curr_amounts.get(sub_id, 0)
+        if curr_amt < prev_amt and curr_amt > 0:
+            diff = prev_amt - curr_amt
+            contractions.append({
+                'subscription': sub_id,
+                'prev_amount_cents': prev_amt,
+                'curr_amount_cents': curr_amt,
+                'contraction_cents': diff,
+                'contraction_dollars': round(diff / 100, 2),
+            })
+            contraction_total += diff
+
+    # Subs that were in prev month but NOT in current month = potential pause/cancel
+    # (cancellations already handled, but pauses would show here)
+    paused_or_missing = []
+    pause_total = 0
+    for sub_id, prev_amt in prev_amounts.items():
+        if sub_id not in curr_amounts:
+            paused_or_missing.append({
+                'subscription': sub_id,
+                'prev_amount_cents': prev_amt,
+                'prev_amount_dollars': round(prev_amt / 100, 2),
+            })
+            pause_total += prev_amt
+
+    return jsonify({
+        'prev_month_invoices': len(prev_invoices),
+        'curr_month_invoices': len(curr_invoices),
+        'prev_subs': len(prev_amounts),
+        'curr_subs': len(curr_amounts),
+        'contractions_count': len(contractions),
+        'contraction_total_cents': contraction_total,
+        'contraction_total_dollars': round(contraction_total / 100, 2),
+        'contractions': contractions[:20],
+        'subs_missing_in_curr_count': len(paused_or_missing),
+        'subs_missing_total_cents': pause_total,
+        'subs_missing_total_dollars': round(pause_total / 100, 2),
+        'subs_missing': paused_or_missing[:20],
+    })
+
+
 @app.route('/api/stripe/test-mrr-movement')
 def test_mrr_movement():
     """Calculate churn MRR using the MRR movement formula:
