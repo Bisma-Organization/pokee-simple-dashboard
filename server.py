@@ -1484,49 +1484,78 @@ def refresh_cache():
     return jsonify({'status': 'ok', 'message': 'Cache cleared'})
 
 
-@app.route('/api/stripe/test-metrics')
-def test_stripe_metrics():
-    """Temporary: test which v2 analytics metrics are available."""
-    test_metrics = [
-        'revenue.churned_mrr', 'revenue.churn_mrr', 'revenue.contraction_mrr',
-        'revenue.net_new_mrr', 'revenue.expansion_mrr', 'revenue.new_mrr',
-        'revenue.reactivation_mrr', 'subscribers.churned', 'subscribers.new',
-        'revenue.gross_churn', 'mrr.churn', 'mrr.contraction', 'mrr.net_new',
-        'revenue.churned', 'revenue.contracted', 'revenue.expanded',
-        'subscriber.churn_rate', 'subscriber.count', 'revenue.net_mrr_change',
-        'revenue.mrr_churn', 'revenue.mrr_contraction', 'revenue.mrr_new',
-        'revenue.mrr_expansion', 'revenue.mrr_reactivation',
-    ]
-    results = {}
-    headers = {
-        'Authorization': f'Bearer {STRIPE_KEY}',
-        'Stripe-Version': STRIPE_API_VERSION,
-        'Content-Type': 'application/json'
-    }
-    for metric in test_metrics:
-        payload = {
-            'metrics': [{'name': metric}],
-            'starts_at': '2026-04-01T00:00:00Z',
-            'ends_at': '2026-04-30T23:59:59Z',
-            'granularity': 'month',
-            'currency': 'usd',
-            'timezone': 'America/Los_Angeles'
-        }
-        try:
-            resp = requests.post(STRIPE_ANALYTICS_URL, headers=headers, json=payload)
-            if resp.status_code == 200:
-                data = resp.json()
-                val = None
-                for item in data.get('data', []):
-                    for r in item.get('results', []):
-                        val = r.get('value')
-                results[metric] = {'status': 'ok', 'value': val}
-            else:
-                err = resp.json().get('error', {}).get('message', f'HTTP {resp.status_code}')
-                results[metric] = {'status': 'error', 'message': err[:100]}
-        except Exception as e:
-            results[metric] = {'status': 'error', 'message': str(e)[:100]}
-    return jsonify(results)
+@app.route('/api/stripe/test-contraction')
+def test_contraction():
+    """Test: find contraction MRR via invoices with prorations in April."""
+    start_str = request.args.get('start', '2026-04-01')
+    end_str = request.args.get('end', '2026-04-30')
+    start_dt = datetime.fromisoformat(start_str).replace(tzinfo=LOCAL_TZ)
+    end_dt = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ)
+    start_ts = int(start_dt.timestamp())
+    end_ts = int(end_dt.timestamp())
+
+    # Approach 1: Look for credit notes (issued when downgrading)
+    credit_notes = []
+    params = {'limit': 100}
+    if start_ts:
+        params['created[gte]'] = start_ts
+    if end_ts:
+        params['created[lte]'] = end_ts
+    try:
+        while True:
+            data = stripe_get('/credit_notes', params)
+            notes = data.get('data', [])
+            credit_notes.extend(notes)
+            if not data.get('has_more'):
+                break
+            params['starting_after'] = notes[-1]['id']
+    except Exception as e:
+        credit_notes = [{'error': str(e)}]
+
+    # Approach 2: Look for invoices with negative line items (prorations from downgrades)
+    proration_invoices = []
+    params2 = {'limit': 100, 'created[gte]': start_ts, 'created[lte]': end_ts}
+    try:
+        page_count = 0
+        while page_count < 5:
+            data = stripe_get('/invoices', params2)
+            invoices = data.get('data', [])
+            for inv in invoices:
+                lines = inv.get('lines', {}).get('data', [])
+                for line in lines:
+                    if line.get('proration') and line.get('amount', 0) < 0:
+                        proration_invoices.append({
+                            'invoice_id': inv['id'],
+                            'customer': inv.get('customer'),
+                            'amount': line['amount'],
+                            'description': line.get('description', '')[:100],
+                            'period_start': line.get('period', {}).get('start'),
+                            'period_end': line.get('period', {}).get('end'),
+                            'subscription': line.get('subscription')
+                        })
+            if not data.get('has_more'):
+                break
+            params2['starting_after'] = invoices[-1]['id']
+            page_count += 1
+    except Exception as e:
+        proration_invoices = [{'error': str(e)}]
+
+    # Approach 3: Check subscription_schedule changes
+    # Approach 4: Look at invoice items for subscription changes
+
+    total_credit_notes = sum(cn.get('amount', 0) for cn in credit_notes if isinstance(cn, dict) and 'amount' in cn)
+    total_prorations = sum(abs(p.get('amount', 0)) for p in proration_invoices if 'amount' in p)
+
+    return jsonify({
+        'credit_notes_count': len(credit_notes),
+        'credit_notes_total_cents': total_credit_notes,
+        'credit_notes_total_dollars': round(total_credit_notes / 100, 2),
+        'proration_invoices_count': len(proration_invoices),
+        'proration_total_cents': total_prorations,
+        'proration_total_dollars': round(total_prorations / 100, 2),
+        'prorations': proration_invoices[:20],
+        'credit_notes_sample': [{'id': cn.get('id'), 'amount': cn.get('amount'), 'reason': cn.get('reason')} for cn in credit_notes[:10] if isinstance(cn, dict) and 'id' in cn]
+    })
 
 
 if __name__ == '__main__':
