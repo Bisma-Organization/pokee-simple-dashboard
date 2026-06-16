@@ -954,6 +954,10 @@ def get_sdr_data():
     })
 
 
+STRIPE_ANALYTICS_URL = 'https://api.stripe.com/v2/data/analytics/metric_query'
+STRIPE_API_VERSION = '2026-04-22.preview'
+
+
 def stripe_get(endpoint, params=None):
     if not STRIPE_KEY:
         raise ValueError('STRIPE_API_KEY environment variable is not set')
@@ -964,6 +968,39 @@ def stripe_get(endpoint, params=None):
     )
     resp.raise_for_status()
     return resp.json()
+
+
+def stripe_analytics_query(metrics, starts_at, ends_at, granularity='month'):
+    if not STRIPE_KEY:
+        raise ValueError('STRIPE_API_KEY environment variable is not set')
+    headers = {
+        'Authorization': f'Bearer {STRIPE_KEY}',
+        'Stripe-Version': STRIPE_API_VERSION,
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'metrics': [{'name': m} for m in metrics],
+        'starts_at': starts_at,
+        'ends_at': ends_at,
+        'granularity': granularity,
+        'currency': 'usd',
+        'timezone': 'America/Los_Angeles'
+    }
+    resp = requests.post(STRIPE_ANALYTICS_URL, headers=headers, json=payload)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def fetch_stripe_mrr_arr(starts_at, ends_at, granularity='month'):
+    cache_key = f'stripe_analytics_{starts_at}_{ends_at}_{granularity}'
+
+    def _fetch():
+        data = stripe_analytics_query(
+            ['revenue.mrr', 'revenue.arr'],
+            starts_at, ends_at, granularity
+        )
+        return data
+    return cached(cache_key, _fetch)
 
 
 def fetch_stripe_subscriptions():
@@ -980,27 +1017,6 @@ def fetch_stripe_subscriptions():
                 params['starting_after'] = subs[-1]['id']
         return all_subs
     return cached('stripe_subs', _fetch)
-
-
-def calc_mrr(subs):
-    mrr = 0
-    for sub in subs:
-        if sub.get('pause_collection'):
-            continue
-        if sub.get('status') == 'trialing':
-            continue
-        for item in sub.get('items', {}).get('data', []):
-            price = item.get('price', {})
-            amount = price.get('unit_amount', 0) * item.get('quantity', 1)
-            interval = price.get('recurring', {}).get('interval', 'month')
-            interval_count = price.get('recurring', {}).get('interval_count', 1)
-            if interval == 'month':
-                mrr += amount / interval_count
-            elif interval == 'year':
-                mrr += amount / (12 * interval_count)
-            elif interval == 'day':
-                mrr += amount * 30.4375 / interval_count
-    return round(mrr / 100, 2)
 
 
 def fetch_stripe_charges(start_ts, end_ts):
@@ -1056,13 +1072,30 @@ def fetch_stripe_canceled(start_ts, end_ts):
 @app.route('/api/stripe/mrr')
 def get_stripe_mrr():
     try:
+        now = datetime.now(LOCAL_TZ)
+        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        next_month = (start_of_month + timedelta(days=32)).replace(day=1)
+        starts_at = start_of_month.strftime('%Y-%m-%dT%H:%M:%SZ')
+        ends_at = next_month.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        analytics = fetch_stripe_mrr_arr(starts_at, ends_at, 'month')
+        mrr = 0
+        arr = 0
+        for item in analytics.get('data', []):
+            for r in item.get('results', []):
+                val = int(r.get('value', 0)) / 100
+                if r.get('name') == 'revenue.mrr':
+                    mrr = val
+                elif r.get('name') == 'revenue.arr':
+                    arr = val
+
         subs = fetch_stripe_subscriptions()
-        mrr = calc_mrr(subs)
         active_count = len([s for s in subs if s.get('status') == 'active' and not s.get('pause_collection')])
         past_due_count = len([s for s in subs if s.get('status') == 'past_due'])
         paused_count = len([s for s in subs if s.get('pause_collection')])
         return jsonify({
             'mrr': mrr,
+            'arr': arr,
             'active': active_count,
             'past_due': past_due_count,
             'paused': paused_count
@@ -1178,17 +1211,37 @@ def _stripe_summary_impl():
     start_str = request.args.get('start')
     end_str = request.args.get('end')
 
-    subs = fetch_stripe_subscriptions()
-    mrr = calc_mrr(subs)
-
-    start_ts = None
-    end_ts = None
+    now = datetime.now(LOCAL_TZ)
     if start_str:
         start_dt = datetime.fromisoformat(start_str).replace(tzinfo=LOCAL_TZ)
-        start_ts = int(start_dt.timestamp())
+    else:
+        start_dt = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
     if end_str:
         end_dt = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ)
-        end_ts = int(end_dt.timestamp())
+    else:
+        end_dt = now
+
+    starts_at_iso = start_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+    ends_at_iso = (end_dt + timedelta(days=1)).replace(hour=0, minute=0, second=0).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    analytics_data = fetch_stripe_mrr_arr(starts_at_iso, ends_at_iso, 'month')
+    mrr_monthly = {}
+    arr_monthly = {}
+    latest_mrr = 0
+    latest_arr = 0
+    for item in analytics_data.get('data', []):
+        ts = item.get('timestamp', '')[:10]
+        for r in item.get('results', []):
+            val = int(r.get('value', 0)) / 100
+            if r.get('name') == 'revenue.mrr':
+                mrr_monthly[ts] = val
+                latest_mrr = val
+            elif r.get('name') == 'revenue.arr':
+                arr_monthly[ts] = val
+                latest_arr = val
+
+    start_ts = int(start_dt.timestamp())
+    end_ts = int(end_dt.timestamp())
 
     charges = fetch_stripe_charges(start_ts, end_ts)
     revenue = calc_revenue(charges)
@@ -1200,9 +1253,9 @@ def _stripe_summary_impl():
     for sub in canceled:
         canceled_at = sub.get('canceled_at') or sub.get('ended_at')
         if canceled_at:
-            if start_ts and canceled_at < start_ts:
+            if canceled_at < start_ts:
                 continue
-            if end_ts and canceled_at > end_ts:
+            if canceled_at > end_ts:
                 continue
             churn_count += 1
             dt = datetime.fromtimestamp(canceled_at, tz=LOCAL_TZ)
@@ -1237,6 +1290,7 @@ def _stripe_summary_impl():
             'churn': churn_monthly.get(m, 0)
         })
 
+    subs = fetch_stripe_subscriptions()
     active_count = len([s for s in subs if s.get('status') == 'active' and not s.get('pause_collection')])
     past_due_count = len([s for s in subs if s.get('status') == 'past_due'])
     paused_count = len([s for s in subs if s.get('pause_collection')])
@@ -1244,7 +1298,8 @@ def _stripe_summary_impl():
     churn_rate = round((churn_count / (active_count + churn_count) * 100), 1) if (active_count + churn_count) > 0 else 0
 
     return jsonify({
-        'mrr': mrr,
+        'mrr': latest_mrr,
+        'arr': latest_arr,
         'revenue': revenue,
         'churn_count': churn_count,
         'lost_mrr': round(lost_mrr / 100, 2),
@@ -1252,7 +1307,9 @@ def _stripe_summary_impl():
         'active': active_count,
         'past_due': past_due_count,
         'paused': paused_count,
-        'monthly': monthly_data
+        'monthly': monthly_data,
+        'mrr_monthly': mrr_monthly,
+        'arr_monthly': arr_monthly
     })
 
 

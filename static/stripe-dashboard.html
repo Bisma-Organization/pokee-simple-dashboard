@@ -288,6 +288,11 @@
                         <div class="value">${formatCurrency(data.mrr)}</div>
                         <div class="sub">${data.active} active subs</div>
                     </div>
+                    <div class="kpi-card cyan">
+                        <div class="label">Current ARR</div>
+                        <div class="value">${formatCurrency(data.arr)}</div>
+                        <div class="sub">Annual Recurring Revenue</div>
+                    </div>
                     <div class="kpi-card blue">
                         <div class="label">Revenue (Period)</div>
                         <div class="value">${formatCurrency(data.revenue)}</div>
@@ -307,11 +312,6 @@
                         <div class="label">Past Due</div>
                         <div class="value">${data.past_due}</div>
                         <div class="sub">At risk of churning</div>
-                    </div>
-                    <div class="kpi-card cyan">
-                        <div class="label">Paused</div>
-                        <div class="value">${data.paused}</div>
-                        <div class="sub">Temporarily paused</div>
                     </div>
                 `;
 
