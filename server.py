@@ -1077,6 +1077,47 @@ def calc_revenue(charges):
     return round(total / 100, 2)
 
 
+def fetch_stripe_balance_txns(start_ts, end_ts):
+    cache_key = f'stripe_bal_txns_{start_ts}_{end_ts}'
+
+    def _fetch():
+        all_txns = []
+        for txn_type in ['charge', 'payment', 'refund', 'payment_refund']:
+            params = {'limit': 100, 'type': txn_type}
+            if start_ts:
+                params['created[gte]'] = start_ts
+            if end_ts:
+                params['created[lte]'] = end_ts
+            while True:
+                data = stripe_get('/balance_transactions', params)
+                txns = data.get('data', [])
+                all_txns.extend(txns)
+                if not data.get('has_more'):
+                    break
+                params['starting_after'] = txns[-1]['id']
+        return all_txns
+    return cached(cache_key, _fetch)
+
+
+def calc_net_revenue(balance_txns):
+    """Net revenue = gross charges - fees - refunds (what lands in your account)."""
+    gross = 0
+    fees = 0
+    refunds = 0
+    for t in balance_txns:
+        if t['type'] in ('charge', 'payment'):
+            gross += t['amount']
+            fees += t['fee']
+        elif t['type'] in ('refund', 'payment_refund'):
+            refunds += abs(t['amount'])
+    return {
+        'gross': round(gross / 100, 2),
+        'fees': round(fees / 100, 2),
+        'refunds': round(refunds / 100, 2),
+        'net': round((gross - fees - refunds) / 100, 2)
+    }
+
+
 def fetch_stripe_canceled(start_ts, end_ts):
     cache_key = f'stripe_canceled_{start_ts}_{end_ts}'
 
@@ -1286,8 +1327,8 @@ def _stripe_summary_impl():
     start_ts = int(start_dt.timestamp())
     end_ts = int(end_dt.timestamp())
 
-    charges = fetch_stripe_charges(start_ts, end_ts)
-    revenue = calc_revenue(charges)
+    bal_txns = fetch_stripe_balance_txns(start_ts, end_ts)
+    rev_data = calc_net_revenue(bal_txns)
 
     canceled = filter_true_churn(fetch_stripe_canceled(start_ts, end_ts))
     churn_count = 0
@@ -1317,12 +1358,16 @@ def _stripe_summary_impl():
                     lost_mrr += amount * 30.4375 / interval_count
 
     revenue_monthly = {}
-    for ch in charges:
-        if ch.get('paid') and ch.get('status') == 'succeeded':
-            dt = datetime.fromtimestamp(ch['created'], tz=LOCAL_TZ)
+    for t in bal_txns:
+        if t['type'] in ('charge', 'payment'):
+            dt = datetime.fromtimestamp(t['created'], tz=LOCAL_TZ)
             key = dt.strftime('%Y-%m')
-            net = (ch.get('amount', 0) - ch.get('amount_refunded', 0)) / 100
-            revenue_monthly[key] = revenue_monthly.get(key, 0) + net
+            net_amt = (t['amount'] - t['fee']) / 100
+            revenue_monthly[key] = revenue_monthly.get(key, 0) + net_amt
+        elif t['type'] in ('refund', 'payment_refund'):
+            dt = datetime.fromtimestamp(t['created'], tz=LOCAL_TZ)
+            key = dt.strftime('%Y-%m')
+            revenue_monthly[key] = revenue_monthly.get(key, 0) + t['amount'] / 100
 
     all_months = sorted(set(list(revenue_monthly.keys()) + list(churn_monthly.keys())))
     monthly_data = []
@@ -1343,7 +1388,10 @@ def _stripe_summary_impl():
     return jsonify({
         'mrr': latest_mrr,
         'arr': latest_arr,
-        'revenue': revenue,
+        'net_revenue': rev_data['net'],
+        'gross_revenue': rev_data['gross'],
+        'fees': rev_data['fees'],
+        'refunds': rev_data['refunds'],
         'churn_count': churn_count,
         'lost_mrr': round(lost_mrr / 100, 2),
         'churn_rate': churn_rate,
