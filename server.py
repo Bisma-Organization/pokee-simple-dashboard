@@ -1023,21 +1023,50 @@ def fetch_stripe_charges(start_ts, end_ts):
     cache_key = f'stripe_charges_{start_ts}_{end_ts}'
 
     def _fetch():
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        from calendar import monthrange
+
+        if not start_ts or not end_ts:
+            return _fetch_charges_range(start_ts, end_ts)
+
+        chunks = []
+        dt = datetime.fromtimestamp(start_ts, tz=timezone.utc)
+        end_dt_utc = datetime.fromtimestamp(end_ts, tz=timezone.utc)
+        while dt <= end_dt_utc:
+            chunk_start = int(dt.timestamp())
+            _, days = monthrange(dt.year, dt.month)
+            next_month = dt.replace(day=days, hour=23, minute=59, second=59)
+            chunk_end = min(int(next_month.timestamp()), end_ts)
+            chunks.append((chunk_start, chunk_end))
+            if dt.month == 12:
+                dt = dt.replace(year=dt.year + 1, month=1, day=1)
+            else:
+                dt = dt.replace(month=dt.month + 1, day=1)
+
         all_charges = []
-        params = {'limit': 100}
-        if start_ts:
-            params['created[gte]'] = start_ts
-        if end_ts:
-            params['created[lte]'] = end_ts
-        while True:
-            data = stripe_get('/charges', params)
-            charges = data.get('data', [])
-            all_charges.extend(charges)
-            if not data.get('has_more'):
-                break
-            params['starting_after'] = charges[-1]['id']
+        with ThreadPoolExecutor(max_workers=6) as executor:
+            futures = {executor.submit(_fetch_charges_range, s, e): (s, e) for s, e in chunks}
+            for future in as_completed(futures):
+                all_charges.extend(future.result())
         return all_charges
     return cached(cache_key, _fetch)
+
+
+def _fetch_charges_range(start_ts, end_ts):
+    all_charges = []
+    params = {'limit': 100}
+    if start_ts:
+        params['created[gte]'] = start_ts
+    if end_ts:
+        params['created[lte]'] = end_ts
+    while True:
+        data = stripe_get('/charges', params)
+        charges = data.get('data', [])
+        all_charges.extend(charges)
+        if not data.get('has_more'):
+            break
+        params['starting_after'] = charges[-1]['id']
+    return all_charges
 
 
 def calc_revenue(charges):
