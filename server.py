@@ -1053,20 +1053,30 @@ def fetch_stripe_canceled(start_ts, end_ts):
 
     def _fetch():
         all_subs = []
-        params = {'limit': 100, 'status': 'canceled'}
+        params = {'limit': 100, 'type': 'customer.subscription.deleted'}
         if start_ts:
             params['created[gte]'] = start_ts
         if end_ts:
             params['created[lte]'] = end_ts
         while True:
-            data = stripe_get('/subscriptions', params)
-            subs = data.get('data', [])
-            all_subs.extend(subs)
+            data = stripe_get('/events', params)
+            events = data.get('data', [])
+            for event in events:
+                sub = event.get('data', {}).get('object', {})
+                if sub:
+                    all_subs.append(sub)
             if not data.get('has_more'):
                 break
-            params['starting_after'] = subs[-1]['id']
+            params['starting_after'] = events[-1]['id']
         return all_subs
     return cached(cache_key, _fetch)
+
+
+def filter_true_churn(canceled_subs):
+    """Exclude cancel-and-recreate: if the customer still has an active sub, it's not true churn."""
+    active_subs = fetch_stripe_subscriptions()
+    active_customers = {s.get('customer') for s in active_subs if s.get('status') in ('active', 'past_due')}
+    return [sub for sub in canceled_subs if sub.get('customer') not in active_customers]
 
 
 @app.route('/api/stripe/mrr')
@@ -1155,7 +1165,7 @@ def get_stripe_churn():
             end_dt = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ)
             end_ts = int(end_dt.timestamp())
 
-        canceled = fetch_stripe_canceled(start_ts, end_ts)
+        canceled = filter_true_churn(fetch_stripe_canceled(start_ts, end_ts))
 
         monthly = {}
         for sub in canceled:
@@ -1250,7 +1260,7 @@ def _stripe_summary_impl():
     charges = fetch_stripe_charges(start_ts, end_ts)
     revenue = calc_revenue(charges)
 
-    canceled = fetch_stripe_canceled(start_ts, end_ts)
+    canceled = filter_true_churn(fetch_stripe_canceled(start_ts, end_ts))
     churn_count = 0
     lost_mrr = 0
     churn_monthly = {}
