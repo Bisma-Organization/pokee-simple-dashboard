@@ -955,7 +955,8 @@ def get_sdr_data():
 
 
 def stripe_get(endpoint, params=None):
-    import math
+    if not STRIPE_KEY:
+        raise ValueError('STRIPE_API_KEY environment variable is not set')
     resp = requests.get(
         f'{STRIPE_BASE}{endpoint}',
         auth=(STRIPE_KEY, ''),
@@ -1054,110 +1055,126 @@ def fetch_stripe_canceled(start_ts, end_ts):
 
 @app.route('/api/stripe/mrr')
 def get_stripe_mrr():
-    subs = fetch_stripe_subscriptions()
-    mrr = calc_mrr(subs)
-    active_count = len([s for s in subs if s.get('status') == 'active' and not s.get('pause_collection')])
-    past_due_count = len([s for s in subs if s.get('status') == 'past_due'])
-    paused_count = len([s for s in subs if s.get('pause_collection')])
-    return jsonify({
-        'mrr': mrr,
-        'active': active_count,
-        'past_due': past_due_count,
-        'paused': paused_count
-    })
+    try:
+        subs = fetch_stripe_subscriptions()
+        mrr = calc_mrr(subs)
+        active_count = len([s for s in subs if s.get('status') == 'active' and not s.get('pause_collection')])
+        past_due_count = len([s for s in subs if s.get('status') == 'past_due'])
+        paused_count = len([s for s in subs if s.get('pause_collection')])
+        return jsonify({
+            'mrr': mrr,
+            'active': active_count,
+            'past_due': past_due_count,
+            'paused': paused_count
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/stripe/revenue')
 def get_stripe_revenue():
-    start_str = request.args.get('start')
-    end_str = request.args.get('end')
+    try:
+        start_str = request.args.get('start')
+        end_str = request.args.get('end')
 
-    start_ts = None
-    end_ts = None
-    if start_str:
-        start_dt = datetime.fromisoformat(start_str).replace(tzinfo=LOCAL_TZ)
-        start_ts = int(start_dt.timestamp())
-    if end_str:
-        end_dt = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ)
-        end_ts = int(end_dt.timestamp())
+        start_ts = None
+        end_ts = None
+        if start_str:
+            start_dt = datetime.fromisoformat(start_str).replace(tzinfo=LOCAL_TZ)
+            start_ts = int(start_dt.timestamp())
+        if end_str:
+            end_dt = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ)
+            end_ts = int(end_dt.timestamp())
 
-    charges = fetch_stripe_charges(start_ts, end_ts)
-    revenue = calc_revenue(charges)
+        charges = fetch_stripe_charges(start_ts, end_ts)
+        revenue = calc_revenue(charges)
 
-    monthly = {}
-    for ch in charges:
-        if ch.get('paid') and ch.get('status') == 'succeeded':
-            dt = datetime.fromtimestamp(ch['created'], tz=LOCAL_TZ)
-            key = dt.strftime('%Y-%m')
-            net = (ch.get('amount', 0) - ch.get('amount_refunded', 0)) / 100
-            monthly[key] = monthly.get(key, 0) + net
+        monthly = {}
+        for ch in charges:
+            if ch.get('paid') and ch.get('status') == 'succeeded':
+                dt = datetime.fromtimestamp(ch['created'], tz=LOCAL_TZ)
+                key = dt.strftime('%Y-%m')
+                net = (ch.get('amount', 0) - ch.get('amount_refunded', 0)) / 100
+                monthly[key] = monthly.get(key, 0) + net
 
-    sorted_months = sorted(monthly.items())
-    return jsonify({
-        'revenue': revenue,
-        'monthly': [{'month': m, 'revenue': round(v, 2)} for m, v in sorted_months],
-        'charge_count': len([c for c in charges if c.get('paid') and c.get('status') == 'succeeded'])
-    })
+        sorted_months = sorted(monthly.items())
+        return jsonify({
+            'revenue': revenue,
+            'monthly': [{'month': m, 'revenue': round(v, 2)} for m, v in sorted_months],
+            'charge_count': len([c for c in charges if c.get('paid') and c.get('status') == 'succeeded'])
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/stripe/churn')
 def get_stripe_churn():
-    start_str = request.args.get('start')
-    end_str = request.args.get('end')
+    try:
+        start_str = request.args.get('start')
+        end_str = request.args.get('end')
 
-    start_ts = None
-    end_ts = None
-    if start_str:
-        start_dt = datetime.fromisoformat(start_str).replace(tzinfo=LOCAL_TZ)
-        start_ts = int(start_dt.timestamp())
-    if end_str:
-        end_dt = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ)
-        end_ts = int(end_dt.timestamp())
+        start_ts = None
+        end_ts = None
+        if start_str:
+            start_dt = datetime.fromisoformat(start_str).replace(tzinfo=LOCAL_TZ)
+            start_ts = int(start_dt.timestamp())
+        if end_str:
+            end_dt = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ)
+            end_ts = int(end_dt.timestamp())
 
-    canceled = fetch_stripe_canceled(start_ts, end_ts)
+        canceled = fetch_stripe_canceled(start_ts, end_ts)
 
-    monthly = {}
-    for sub in canceled:
-        canceled_at = sub.get('canceled_at') or sub.get('ended_at')
-        if canceled_at:
-            dt = datetime.fromtimestamp(canceled_at, tz=LOCAL_TZ)
-            if start_ts and canceled_at < start_ts:
-                continue
-            if end_ts and canceled_at > end_ts:
-                continue
-            key = dt.strftime('%Y-%m')
-            monthly[key] = monthly.get(key, 0) + 1
+        monthly = {}
+        for sub in canceled:
+            canceled_at = sub.get('canceled_at') or sub.get('ended_at')
+            if canceled_at:
+                dt = datetime.fromtimestamp(canceled_at, tz=LOCAL_TZ)
+                if start_ts and canceled_at < start_ts:
+                    continue
+                if end_ts and canceled_at > end_ts:
+                    continue
+                key = dt.strftime('%Y-%m')
+                monthly[key] = monthly.get(key, 0) + 1
 
-    lost_mrr = 0
-    for sub in canceled:
-        canceled_at = sub.get('canceled_at') or sub.get('ended_at')
-        if canceled_at:
-            if start_ts and canceled_at < start_ts:
-                continue
-            if end_ts and canceled_at > end_ts:
-                continue
-            for item in sub.get('items', {}).get('data', []):
-                price = item.get('price', {})
-                amount = price.get('unit_amount', 0) * item.get('quantity', 1)
-                interval = price.get('recurring', {}).get('interval', 'month')
-                interval_count = price.get('recurring', {}).get('interval_count', 1)
-                if interval == 'month':
-                    lost_mrr += amount / interval_count
-                elif interval == 'year':
-                    lost_mrr += amount / (12 * interval_count)
-                elif interval == 'day':
-                    lost_mrr += amount * 30.4375 / interval_count
+        lost_mrr = 0
+        for sub in canceled:
+            canceled_at = sub.get('canceled_at') or sub.get('ended_at')
+            if canceled_at:
+                if start_ts and canceled_at < start_ts:
+                    continue
+                if end_ts and canceled_at > end_ts:
+                    continue
+                for item in sub.get('items', {}).get('data', []):
+                    price = item.get('price', {})
+                    amount = price.get('unit_amount', 0) * item.get('quantity', 1)
+                    interval = price.get('recurring', {}).get('interval', 'month')
+                    interval_count = price.get('recurring', {}).get('interval_count', 1)
+                    if interval == 'month':
+                        lost_mrr += amount / interval_count
+                    elif interval == 'year':
+                        lost_mrr += amount / (12 * interval_count)
+                    elif interval == 'day':
+                        lost_mrr += amount * 30.4375 / interval_count
 
-    sorted_months = sorted(monthly.items())
-    return jsonify({
-        'total_canceled': sum(monthly.values()),
-        'lost_mrr': round(lost_mrr / 100, 2),
-        'monthly': [{'month': m, 'count': v} for m, v in sorted_months]
-    })
+        sorted_months = sorted(monthly.items())
+        return jsonify({
+            'total_canceled': sum(monthly.values()),
+            'lost_mrr': round(lost_mrr / 100, 2),
+            'monthly': [{'month': m, 'count': v} for m, v in sorted_months]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/stripe/summary')
 def get_stripe_summary():
+    try:
+        return _stripe_summary_impl()
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+def _stripe_summary_impl():
     start_str = request.args.get('start')
     end_str = request.args.get('end')
 

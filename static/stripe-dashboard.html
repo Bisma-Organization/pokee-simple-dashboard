@@ -274,7 +274,13 @@
 
             try {
                 const resp = await fetch('/api/stripe/summary' + qs);
+                if (!resp.ok) {
+                    let errMsg = `HTTP ${resp.status}`;
+                    try { const ej = await resp.json(); errMsg = ej.error || errMsg; } catch(e) {}
+                    throw new Error(errMsg);
+                }
                 const data = await resp.json();
+                if (data.error) throw new Error(data.error);
 
                 document.getElementById('kpiGrid').innerHTML = `
                     <div class="kpi-card green">
