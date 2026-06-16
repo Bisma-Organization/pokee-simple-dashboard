@@ -1484,6 +1484,51 @@ def refresh_cache():
     return jsonify({'status': 'ok', 'message': 'Cache cleared'})
 
 
+@app.route('/api/stripe/test-metrics')
+def test_stripe_metrics():
+    """Temporary: test which v2 analytics metrics are available."""
+    test_metrics = [
+        'revenue.churned_mrr', 'revenue.churn_mrr', 'revenue.contraction_mrr',
+        'revenue.net_new_mrr', 'revenue.expansion_mrr', 'revenue.new_mrr',
+        'revenue.reactivation_mrr', 'subscribers.churned', 'subscribers.new',
+        'revenue.gross_churn', 'mrr.churn', 'mrr.contraction', 'mrr.net_new',
+        'revenue.churned', 'revenue.contracted', 'revenue.expanded',
+        'subscriber.churn_rate', 'subscriber.count', 'revenue.net_mrr_change',
+        'revenue.mrr_churn', 'revenue.mrr_contraction', 'revenue.mrr_new',
+        'revenue.mrr_expansion', 'revenue.mrr_reactivation',
+    ]
+    results = {}
+    headers = {
+        'Authorization': f'Bearer {STRIPE_KEY}',
+        'Stripe-Version': STRIPE_API_VERSION,
+        'Content-Type': 'application/json'
+    }
+    for metric in test_metrics:
+        payload = {
+            'metrics': [{'name': metric}],
+            'starts_at': '2026-04-01T00:00:00Z',
+            'ends_at': '2026-04-30T23:59:59Z',
+            'granularity': 'month',
+            'currency': 'usd',
+            'timezone': 'America/Los_Angeles'
+        }
+        try:
+            resp = requests.post(STRIPE_ANALYTICS_URL, headers=headers, json=payload)
+            if resp.status_code == 200:
+                data = resp.json()
+                val = None
+                for item in data.get('data', []):
+                    for r in item.get('results', []):
+                        val = r.get('value')
+                results[metric] = {'status': 'ok', 'value': val}
+            else:
+                err = resp.json().get('error', {}).get('message', f'HTTP {resp.status_code}')
+                results[metric] = {'status': 'error', 'message': err[:100]}
+        except Exception as e:
+            results[metric] = {'status': 'error', 'message': str(e)[:100]}
+    return jsonify(results)
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
