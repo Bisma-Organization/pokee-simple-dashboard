@@ -1484,6 +1484,42 @@ def refresh_cache():
     return jsonify({'status': 'ok', 'message': 'Cache cleared'})
 
 
+@app.route('/api/stripe/test-sub-status')
+def test_sub_status():
+    """Check current status of specific subscriptions."""
+    sub_ids = request.args.get('ids', '').split(',')
+    results = []
+    for sub_id in sub_ids:
+        if not sub_id:
+            continue
+        try:
+            sub = stripe_get(f'/subscriptions/{sub_id}')
+            mrr = 0
+            for item in sub.get('items', {}).get('data', []):
+                price = item.get('price', {})
+                amount = price.get('unit_amount', 0) * item.get('quantity', 1)
+                interval = price.get('recurring', {}).get('interval', 'month')
+                interval_count = price.get('recurring', {}).get('interval_count', 1)
+                if interval == 'month':
+                    mrr += amount / interval_count
+                elif interval == 'year':
+                    mrr += amount / (12 * interval_count)
+                elif interval == 'day':
+                    mrr += amount * 30.4375 / interval_count
+            results.append({
+                'id': sub_id,
+                'status': sub.get('status'),
+                'paused': bool(sub.get('pause_collection')),
+                'canceled_at': sub.get('canceled_at'),
+                'ended_at': sub.get('ended_at'),
+                'mrr_dollars': round(mrr / 100, 2),
+                'current_period_start': sub.get('current_period_start'),
+            })
+        except Exception as e:
+            results.append({'id': sub_id, 'error': str(e)[:100]})
+    return jsonify({'subs': results})
+
+
 @app.route('/api/stripe/test-invoice-contraction')
 def test_invoice_contraction():
     """Detect contraction by comparing invoice amounts for the same subscription
