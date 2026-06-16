@@ -1636,15 +1636,61 @@ def test_contraction():
     except Exception as e:
         pause_events = [{'error': str(e)}]
 
+    # Check paused subscription details - look at metadata, billing_cycle_anchor, etc.
+    paused_details = []
+    for sub in paused_subs:
+        pause_info = sub.get('pause_collection', {})
+        # Get the last invoice to determine when the pause might have started
+        paused_details.append({
+            'id': sub['id'],
+            'customer': sub.get('customer'),
+            'status': sub.get('status'),
+            'current_period_start': sub.get('current_period_start'),
+            'current_period_end': sub.get('current_period_end'),
+            'pause_behavior': pause_info.get('behavior') if pause_info else None,
+            'pause_resumes_at': pause_info.get('resumes_at') if pause_info else None,
+            'created': sub.get('created'),
+            'start_date': sub.get('start_date'),
+            'metadata': sub.get('metadata', {}),
+            'items_amount': sum(
+                item.get('price', {}).get('unit_amount', 0) * item.get('quantity', 1)
+                for item in sub.get('items', {}).get('data', [])
+            )
+        })
+
+    # Try: use invoice data to find when subs stopped generating charges
+    # A paused sub won't have invoices after the pause date
+    # Let's check the most recent invoice for each paused sub
+    pause_timing = []
+    for sub in paused_subs[:10]:  # limit to avoid timeout
+        try:
+            inv_data = stripe_get('/invoices', {
+                'subscription': sub['id'],
+                'limit': 1,
+            })
+            invoices = inv_data.get('data', [])
+            last_invoice_date = invoices[0].get('created') if invoices else None
+            pause_timing.append({
+                'sub_id': sub['id'],
+                'last_invoice_created': last_invoice_date,
+                'last_invoice_date_str': datetime.fromtimestamp(last_invoice_date, tz=LOCAL_TZ).strftime('%Y-%m-%d') if last_invoice_date else None,
+                'items_amount_cents': sum(
+                    item.get('price', {}).get('unit_amount', 0) * item.get('quantity', 1)
+                    for item in sub.get('items', {}).get('data', [])
+                )
+            })
+        except Exception:
+            pass
+
     return jsonify({
         'mrr_values': mrr_values,
         'cancellation_mrr': cancellation_mrr,
         'total_paused_mrr_current': total_paused_mrr,
         'paused_subs_count': len(paused_subs),
         'downgrade_events_count': len(downgrade_events),
-        'downgrade_events': downgrade_events[:20],
         'pause_events_count': len(pause_events),
-        'pause_events': pause_events[:10],
+        'pause_timing': pause_timing,
+        'paused_details': paused_details[:5],
         'target_churn': 6849.52,
         'gap': round(6849.52 - cancellation_mrr, 2),
     })
