@@ -1073,10 +1073,10 @@ def fetch_stripe_canceled(start_ts, end_ts):
 def get_stripe_mrr():
     try:
         now = datetime.now(LOCAL_TZ)
+        utc_now = datetime.now(timezone.utc)
         start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        next_month = (start_of_month + timedelta(days=32)).replace(day=1)
         starts_at = start_of_month.strftime('%Y-%m-%dT%H:%M:%SZ')
-        ends_at = next_month.strftime('%Y-%m-%dT%H:%M:%SZ')
+        ends_at = utc_now.strftime('%Y-%m-%dT%H:%M:%SZ')
 
         analytics = fetch_stripe_mrr_arr(starts_at, ends_at, 'month')
         mrr = 0
@@ -1222,7 +1222,11 @@ def _stripe_summary_impl():
         end_dt = now
 
     starts_at_iso = start_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
-    ends_at_iso = (end_dt + timedelta(days=1)).replace(hour=0, minute=0, second=0).strftime('%Y-%m-%dT%H:%M:%SZ')
+    utc_now = datetime.now(timezone.utc)
+    ends_at_candidate = (end_dt + timedelta(days=1)).replace(hour=0, minute=0, second=0, tzinfo=timezone.utc)
+    if ends_at_candidate > utc_now:
+        ends_at_candidate = utc_now
+    ends_at_iso = ends_at_candidate.strftime('%Y-%m-%dT%H:%M:%SZ')
 
     analytics_data = fetch_stripe_mrr_arr(starts_at_iso, ends_at_iso, 'month')
     mrr_monthly = {}
@@ -1230,9 +1234,9 @@ def _stripe_summary_impl():
     latest_mrr = 0
     latest_arr = 0
     for item in analytics_data.get('data', []):
-        ts = item.get('timestamp', '')[:10]
+        ts = item.get('timestamp', '')[:7]
         for r in item.get('results', []):
-            val = int(r.get('value', 0)) / 100
+            val = int(r.get('value') or 0) / 100
             if r.get('name') == 'revenue.mrr':
                 mrr_monthly[ts] = val
                 latest_mrr = val
