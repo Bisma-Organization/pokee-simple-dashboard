@@ -293,16 +293,6 @@
                         <div class="value">${formatCurrency(data.arr)}</div>
                         <div class="sub">Annual Recurring Revenue</div>
                     </div>
-                    <div class="kpi-card blue">
-                        <div class="label">Revenue (Period)</div>
-                        <div class="value">${formatCurrency(data.revenue)}</div>
-                        <div class="sub">${start || 'All time'} to ${end || 'now'}</div>
-                    </div>
-                    <div class="kpi-card red">
-                        <div class="label">Cancellations</div>
-                        <div class="value">${data.churn_count}</div>
-                        <div class="sub">Lost MRR: ${formatCurrencyFull(data.lost_mrr)}</div>
-                    </div>
                     <div class="kpi-card yellow">
                         <div class="label">Churn Revenue</div>
                         <div class="value">${formatCurrency(data.lost_mrr)}</div>
@@ -312,11 +302,6 @@
                         <div class="label">Net Revenue</div>
                         <div class="value">${formatCurrency(data.revenue - data.lost_mrr)}</div>
                         <div class="sub">Revenue minus churn</div>
-                    </div>
-                    <div class="kpi-card purple">
-                        <div class="label">Past Due</div>
-                        <div class="value">${data.past_due}</div>
-                        <div class="sub">At risk of churning</div>
                     </div>
                 `;
 
