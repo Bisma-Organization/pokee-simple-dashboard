@@ -1486,7 +1486,16 @@ def refresh_cache():
 
 @app.route('/api/stripe/test-contraction')
 def test_contraction():
-    """Test: find contraction MRR via invoices with prorations in April."""
+    """Test: find contraction MRR using MRR delta approach.
+    Stripe Churn MRR = Cancellation MRR + Contraction MRR.
+    Contraction = MRR lost from downgrades (subscription price decreases).
+
+    We can derive it: End_MRR = Start_MRR + New + Expansion - Churn - Contraction
+    So: Contraction = Start_MRR + New + Expansion - End_MRR - Cancellation_MRR
+
+    Or simpler: compare MRR values from v2 API across months.
+    The difference between (start MRR - cancellation MRR - end MRR) = contraction - new - expansion.
+    """
     start_str = request.args.get('start', '2026-04-01')
     end_str = request.args.get('end', '2026-04-30')
     start_dt = datetime.fromisoformat(start_str).replace(tzinfo=LOCAL_TZ)
@@ -1494,67 +1503,150 @@ def test_contraction():
     start_ts = int(start_dt.timestamp())
     end_ts = int(end_dt.timestamp())
 
-    # Approach 1: Look for credit notes (issued when downgrading)
-    credit_notes = []
-    params = {'limit': 100}
-    if start_ts:
-        params['created[gte]'] = start_ts
-    if end_ts:
-        params['created[lte]'] = end_ts
+    # Get MRR at start of month (end of previous month) and end of this month
+    prev_month_start = (start_dt - timedelta(days=1)).replace(day=1)
+    utc_now = datetime.now(timezone.utc)
+
+    # Query MRR for previous month and current month
+    prev_starts = prev_month_start.strftime('%Y-%m-%dT00:00:00Z')
+    both_ends = min(end_dt + timedelta(days=1), utc_now).strftime('%Y-%m-%dT%H:%M:%SZ')
+
     try:
+        analytics = stripe_analytics_query(['revenue.mrr'], prev_starts, both_ends, 'month')
+        mrr_values = {}
+        for item in analytics.get('data', []):
+            ts = item.get('timestamp', '')[:7]
+            for r in item.get('results', []):
+                if r.get('name') == 'revenue.mrr':
+                    mrr_values[ts] = int(r.get('value', 0)) / 100
+    except Exception as e:
+        mrr_values = {'error': str(e)}
+
+    # Get canceled subs for the period (our existing calculation)
+    canceled = fetch_stripe_canceled(start_ts, end_ts)
+    cancellation_mrr = 0
+    for sub in canceled:
+        canceled_at = sub.get('canceled_at') or sub.get('ended_at')
+        if not canceled_at:
+            continue
+        if start_ts and canceled_at < start_ts:
+            continue
+        if end_ts and canceled_at > end_ts:
+            continue
+        for item in sub.get('items', {}).get('data', []):
+            price = item.get('price', {})
+            amount = price.get('unit_amount', 0) * item.get('quantity', 1)
+            interval = price.get('recurring', {}).get('interval', 'month')
+            interval_count = price.get('recurring', {}).get('interval_count', 1)
+            if interval == 'month':
+                cancellation_mrr += amount / interval_count
+            elif interval == 'year':
+                cancellation_mrr += amount / (12 * interval_count)
+            elif interval == 'day':
+                cancellation_mrr += amount * 30.4375 / interval_count
+    cancellation_mrr = round(cancellation_mrr / 100, 2)
+
+    # Also check paused subscriptions - look at all paused subs
+    # Stripe counts pausing as churn
+    paused_subs = fetch_stripe_paused_subs()
+    paused_in_period = []
+    for sub in paused_subs:
+        pause_info = sub.get('pause_collection', {})
+        # Check metadata or created date for when pause started
+        # Unfortunately pause_collection doesn't have a 'paused_at' timestamp
+        # We need to check subscription update events or use a different approach
+        paused_in_period.append({
+            'id': sub['id'],
+            'customer': sub.get('customer'),
+            'pause_behavior': pause_info.get('behavior') if pause_info else None,
+            'items': [{
+                'amount': item.get('price', {}).get('unit_amount', 0),
+                'interval': item.get('price', {}).get('recurring', {}).get('interval', 'month'),
+                'interval_count': item.get('price', {}).get('recurring', {}).get('interval_count', 1),
+            } for item in sub.get('items', {}).get('data', [])]
+        })
+
+    # Calculate potential paused MRR
+    total_paused_mrr = 0
+    for sub in paused_subs:
+        for item in sub.get('items', {}).get('data', []):
+            price = item.get('price', {})
+            amount = price.get('unit_amount', 0) * item.get('quantity', 1)
+            interval = price.get('recurring', {}).get('interval', 'month')
+            interval_count = price.get('recurring', {}).get('interval_count', 1)
+            if interval == 'month':
+                total_paused_mrr += amount / interval_count
+            elif interval == 'year':
+                total_paused_mrr += amount / (12 * interval_count)
+            elif interval == 'day':
+                total_paused_mrr += amount * 30.4375 / interval_count
+    total_paused_mrr = round(total_paused_mrr / 100, 2)
+
+    # Now check subscription events for downgrades
+    # customer.subscription.updated with plan change
+    downgrade_events = []
+    try:
+        params = {'limit': 100, 'type': 'customer.subscription.updated'}
+        if start_ts:
+            params['created[gte]'] = start_ts
+        if end_ts:
+            params['created[lte]'] = end_ts
         while True:
-            data = stripe_get('/credit_notes', params)
-            notes = data.get('data', [])
-            credit_notes.extend(notes)
+            data = stripe_get('/events', params)
+            events = data.get('data', [])
+            for event in events:
+                prev_attrs = event.get('data', {}).get('previous_attributes', {})
+                if 'items' in prev_attrs or 'plan' in prev_attrs or 'quantity' in prev_attrs:
+                    sub = event.get('data', {}).get('object', {})
+                    downgrade_events.append({
+                        'event_id': event['id'],
+                        'subscription': sub.get('id'),
+                        'customer': sub.get('customer'),
+                        'previous_attributes_keys': list(prev_attrs.keys()),
+                        'created': event.get('created'),
+                    })
             if not data.get('has_more'):
                 break
-            params['starting_after'] = notes[-1]['id']
+            params['starting_after'] = events[-1]['id']
     except Exception as e:
-        credit_notes = [{'error': str(e)}]
+        downgrade_events = [{'error': str(e)}]
 
-    # Approach 2: Look for invoices with negative line items (prorations from downgrades)
-    proration_invoices = []
-    params2 = {'limit': 100, 'created[gte]': start_ts, 'created[lte]': end_ts}
+    # Check for pause_collection events
+    pause_events = []
     try:
-        page_count = 0
-        while page_count < 5:
-            data = stripe_get('/invoices', params2)
-            invoices = data.get('data', [])
-            for inv in invoices:
-                lines = inv.get('lines', {}).get('data', [])
-                for line in lines:
-                    if line.get('proration') and line.get('amount', 0) < 0:
-                        proration_invoices.append({
-                            'invoice_id': inv['id'],
-                            'customer': inv.get('customer'),
-                            'amount': line['amount'],
-                            'description': line.get('description', '')[:100],
-                            'period_start': line.get('period', {}).get('start'),
-                            'period_end': line.get('period', {}).get('end'),
-                            'subscription': line.get('subscription')
-                        })
+        params = {'limit': 100, 'type': 'customer.subscription.paused'}
+        if start_ts:
+            params['created[gte]'] = start_ts
+        if end_ts:
+            params['created[lte]'] = end_ts
+        while True:
+            data = stripe_get('/events', params)
+            events = data.get('data', [])
+            for event in events:
+                sub = event.get('data', {}).get('object', {})
+                pause_events.append({
+                    'event_id': event['id'],
+                    'subscription': sub.get('id'),
+                    'customer': sub.get('customer'),
+                    'created': event.get('created'),
+                })
             if not data.get('has_more'):
                 break
-            params2['starting_after'] = invoices[-1]['id']
-            page_count += 1
+            params['starting_after'] = events[-1]['id']
     except Exception as e:
-        proration_invoices = [{'error': str(e)}]
-
-    # Approach 3: Check subscription_schedule changes
-    # Approach 4: Look at invoice items for subscription changes
-
-    total_credit_notes = sum(cn.get('amount', 0) for cn in credit_notes if isinstance(cn, dict) and 'amount' in cn)
-    total_prorations = sum(abs(p.get('amount', 0)) for p in proration_invoices if 'amount' in p)
+        pause_events = [{'error': str(e)}]
 
     return jsonify({
-        'credit_notes_count': len(credit_notes),
-        'credit_notes_total_cents': total_credit_notes,
-        'credit_notes_total_dollars': round(total_credit_notes / 100, 2),
-        'proration_invoices_count': len(proration_invoices),
-        'proration_total_cents': total_prorations,
-        'proration_total_dollars': round(total_prorations / 100, 2),
-        'prorations': proration_invoices[:20],
-        'credit_notes_sample': [{'id': cn.get('id'), 'amount': cn.get('amount'), 'reason': cn.get('reason')} for cn in credit_notes[:10] if isinstance(cn, dict) and 'id' in cn]
+        'mrr_values': mrr_values,
+        'cancellation_mrr': cancellation_mrr,
+        'total_paused_mrr_current': total_paused_mrr,
+        'paused_subs_count': len(paused_subs),
+        'downgrade_events_count': len(downgrade_events),
+        'downgrade_events': downgrade_events[:20],
+        'pause_events_count': len(pause_events),
+        'pause_events': pause_events[:10],
+        'target_churn': 6849.52,
+        'gap': round(6849.52 - cancellation_mrr, 2),
     })
 
 
