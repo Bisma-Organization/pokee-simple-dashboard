@@ -1118,8 +1118,25 @@ def calc_net_revenue(balance_txns):
     }
 
 
-def fetch_stripe_canceled(start_ts, end_ts):
-    cache_key = f'stripe_canceled_{start_ts}_{end_ts}'
+def fetch_all_canceled_subs():
+    """Fetch all canceled subscriptions (cached). Filter by canceled_at separately."""
+    def _fetch():
+        all_subs = []
+        params = {'limit': 100, 'status': 'canceled'}
+        while True:
+            data = stripe_get('/subscriptions', params)
+            subs = data.get('data', [])
+            all_subs.extend(subs)
+            if not data.get('has_more'):
+                break
+            params['starting_after'] = subs[-1]['id']
+        return all_subs
+    return cached('stripe_all_canceled', _fetch)
+
+
+def fetch_stripe_canceled_via_events(start_ts, end_ts):
+    """Use Events API for recent cancellations (< 30 days old)."""
+    cache_key = f'stripe_canceled_events_{start_ts}_{end_ts}'
 
     def _fetch():
         all_subs = []
@@ -1142,11 +1159,31 @@ def fetch_stripe_canceled(start_ts, end_ts):
     return cached(cache_key, _fetch)
 
 
-def filter_true_churn(canceled_subs):
-    """Exclude cancel-and-recreate: if the customer still has an active sub, it's not true churn."""
-    active_subs = fetch_stripe_subscriptions()
-    active_customers = {s.get('customer') for s in active_subs if s.get('status') in ('active', 'past_due')}
-    return [sub for sub in canceled_subs if sub.get('customer') not in active_customers]
+def fetch_stripe_canceled(start_ts, end_ts):
+    """Get subscriptions canceled within the given time range.
+    Uses Events API for recent data (accurate, includes context),
+    falls back to subscriptions list for older periods."""
+    now_ts = int(time.time())
+    events_cutoff = now_ts - 25 * 86400
+
+    if start_ts and start_ts >= events_cutoff:
+        subs = fetch_stripe_canceled_via_events(start_ts, end_ts)
+        active_subs = fetch_stripe_subscriptions()
+        active_customers = {s.get('customer') for s in active_subs if s.get('status') in ('active', 'past_due')}
+        return [sub for sub in subs if sub.get('customer') not in active_customers]
+
+    all_canceled = fetch_all_canceled_subs()
+    filtered = []
+    for sub in all_canceled:
+        canceled_at = sub.get('canceled_at') or sub.get('ended_at')
+        if not canceled_at:
+            continue
+        if start_ts and canceled_at < start_ts:
+            continue
+        if end_ts and canceled_at > end_ts:
+            continue
+        filtered.append(sub)
+    return filtered
 
 
 @app.route('/api/stripe/mrr')
@@ -1235,7 +1272,7 @@ def get_stripe_churn():
             end_dt = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ)
             end_ts = int(end_dt.timestamp())
 
-        canceled = filter_true_churn(fetch_stripe_canceled(start_ts, end_ts))
+        canceled = fetch_stripe_canceled(start_ts, end_ts)
 
         monthly = {}
         for sub in canceled:
@@ -1330,7 +1367,7 @@ def _stripe_summary_impl():
     bal_txns = fetch_stripe_balance_txns(start_ts, end_ts)
     rev_data = calc_net_revenue(bal_txns)
 
-    canceled = filter_true_churn(fetch_stripe_canceled(start_ts, end_ts))
+    canceled = fetch_stripe_canceled(start_ts, end_ts)
     churn_count = 0
     lost_mrr = 0
     churn_monthly = {}
