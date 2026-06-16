@@ -1484,62 +1484,129 @@ def refresh_cache():
     return jsonify({'status': 'ok', 'message': 'Cache cleared'})
 
 
-@app.route('/api/stripe/test-paused')
-def test_paused():
-    """Directly examine all paused subscriptions and determine when they were paused."""
-    all_subs = []
-    params = {'limit': 100, 'status': 'active', 'expand[]': 'data.pause_collection'}
-    try:
-        while True:
-            data = stripe_get('/subscriptions', params)
-            subs = data.get('data', [])
-            for sub in subs:
-                if sub.get('pause_collection'):
-                    all_subs.append(sub)
-            if not data.get('has_more'):
-                break
-            params['starting_after'] = subs[-1]['id']
-    except Exception as e:
-        return jsonify({'error': str(e)})
+@app.route('/api/stripe/test-mrr-movement')
+def test_mrr_movement():
+    """Calculate churn MRR using the MRR movement formula:
+    Churn MRR = Start_MRR + New_MRR + Expansion_MRR - End_MRR
+    (where Churn = Cancellation + Contraction + Pause)
 
-    results = []
-    for sub in all_subs:
-        pause_info = sub.get('pause_collection', {})
-        # The current_period_end is when the current (paused) period ends
-        # The current_period_start is when it started
-        # For paused subs with behavior=void, no invoice is created at period end
-        mrr = 0
+    For a given month, we need:
+    1. MRR at start of month (end of previous month) — from v2 API
+    2. MRR at end of month — from v2 API
+    3. New subscription MRR created during the month
+    4. Expansion MRR (upgrades) — subs that increased in value
+
+    Total Churn = Start + New + Expansion - End
+    """
+    start_str = request.args.get('start', '2026-04-01')
+    end_str = request.args.get('end', '2026-04-30')
+    start_dt = datetime.fromisoformat(start_str).replace(tzinfo=LOCAL_TZ)
+    end_dt = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ)
+    start_ts = int(start_dt.timestamp())
+    end_ts = int(end_dt.timestamp())
+
+    # Get MRR values from v2 API
+    prev_month_start = (start_dt - timedelta(days=1)).replace(day=1)
+    utc_now = datetime.now(timezone.utc)
+    prev_starts = prev_month_start.strftime('%Y-%m-%dT00:00:00Z')
+    both_ends = min(end_dt + timedelta(days=1), utc_now).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    analytics = stripe_analytics_query(['revenue.mrr'], prev_starts, both_ends, 'month')
+    mrr_values = {}
+    for item in analytics.get('data', []):
+        ts = item.get('timestamp', '')[:7]
+        for r in item.get('results', []):
+            if r.get('name') == 'revenue.mrr':
+                mrr_values[ts] = int(r.get('value', 0)) / 100
+
+    # Get new subscriptions created during the month
+    new_subs = []
+    params = {'limit': 100, 'created[gte]': start_ts, 'created[lte]': end_ts, 'status': 'all'}
+    while True:
+        data = stripe_get('/subscriptions', params)
+        subs = data.get('data', [])
+        new_subs.extend(subs)
+        if not data.get('has_more'):
+            break
+        params['starting_after'] = subs[-1]['id']
+
+    # Calculate new MRR from new subs
+    new_mrr = 0
+    new_sub_details = []
+    for sub in new_subs:
+        sub_mrr = 0
         for item in sub.get('items', {}).get('data', []):
             price = item.get('price', {})
             amount = price.get('unit_amount', 0) * item.get('quantity', 1)
             interval = price.get('recurring', {}).get('interval', 'month')
             interval_count = price.get('recurring', {}).get('interval_count', 1)
             if interval == 'month':
-                mrr += amount / interval_count
+                sub_mrr += amount / interval_count
             elif interval == 'year':
-                mrr += amount / (12 * interval_count)
+                sub_mrr += amount / (12 * interval_count)
             elif interval == 'day':
-                mrr += amount * 30.4375 / interval_count
-
-        results.append({
+                sub_mrr += amount * 30.4375 / interval_count
+        new_mrr += sub_mrr
+        new_sub_details.append({
             'id': sub['id'],
-            'customer': sub.get('customer'),
-            'mrr_cents': round(mrr),
-            'mrr_dollars': round(mrr / 100, 2),
-            'pause_behavior': pause_info.get('behavior'),
-            'pause_resumes_at': pause_info.get('resumes_at'),
-            'current_period_start': sub.get('current_period_start'),
-            'current_period_end': sub.get('current_period_end'),
+            'status': sub.get('status'),
+            'mrr_cents': round(sub_mrr),
             'created': sub.get('created'),
         })
 
-    # Sort by current_period_start to see timing
-    results.sort(key=lambda x: x.get('current_period_start', 0))
+    new_mrr_dollars = round(new_mrr / 100, 2)
+
+    # MRR movement calculation
+    target_month = start_str[:7]
+    prev_month = prev_month_start.strftime('%Y-%m')
+
+    start_mrr = mrr_values.get(prev_month, 0)
+    end_mrr = mrr_values.get(target_month, 0)
+
+    # Total churn = Start + New - End (assuming no expansion for simplicity)
+    # If we ignore expansion: Total churn >= Start + New - End
+    implied_churn_no_expansion = round(start_mrr + new_mrr_dollars - end_mrr, 2)
+
+    # Our calculated cancellation MRR
+    canceled = fetch_stripe_canceled(start_ts, end_ts)
+    cancellation_mrr = 0
+    for sub in canceled:
+        canceled_at = sub.get('canceled_at') or sub.get('ended_at')
+        if not canceled_at or canceled_at < start_ts or canceled_at > end_ts:
+            continue
+        for item in sub.get('items', {}).get('data', []):
+            price = item.get('price', {})
+            amount = price.get('unit_amount', 0) * item.get('quantity', 1)
+            interval = price.get('recurring', {}).get('interval', 'month')
+            interval_count = price.get('recurring', {}).get('interval_count', 1)
+            if interval == 'month':
+                cancellation_mrr += amount / interval_count
+            elif interval == 'year':
+                cancellation_mrr += amount / (12 * interval_count)
+            elif interval == 'day':
+                cancellation_mrr += amount * 30.4375 / interval_count
+    cancellation_mrr = round(cancellation_mrr / 100, 2)
+
+    # Implied contraction/pause = total churn - cancellation
+    # But this only works if we assume zero expansion
+    # Let's also try: Expansion = End - Start - New + Cancellation + Contraction
+    # Without knowing expansion, we can set upper bound:
+    # If no expansion: contraction = Start + New - End - Cancellation (negative means expansion > contraction)
 
     return jsonify({
-        'total_paused': len(results),
-        'total_paused_mrr': round(sum(r['mrr_dollars'] for r in results), 2),
-        'subs': results
+        'month': target_month,
+        'start_mrr': start_mrr,
+        'end_mrr': end_mrr,
+        'new_mrr': new_mrr_dollars,
+        'new_subs_count': len(new_subs),
+        'cancellation_mrr': cancellation_mrr,
+        'canceled_count': len(canceled),
+        'implied_net_churn': implied_churn_no_expansion,
+        'note': 'implied_net_churn = start + new - end. If positive, net churn exceeds expansion. If negative, expansion exceeds churn.',
+        'formula': f'${start_mrr} + ${new_mrr_dollars} - ${end_mrr} = ${implied_churn_no_expansion}',
+        'stripe_target': 6849.52,
+        'our_cancellation': cancellation_mrr,
+        'gap': round(6849.52 - cancellation_mrr, 2),
     })
 
 
