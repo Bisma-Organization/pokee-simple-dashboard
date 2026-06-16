@@ -1484,6 +1484,65 @@ def refresh_cache():
     return jsonify({'status': 'ok', 'message': 'Cache cleared'})
 
 
+@app.route('/api/stripe/test-paused')
+def test_paused():
+    """Directly examine all paused subscriptions and determine when they were paused."""
+    all_subs = []
+    params = {'limit': 100, 'status': 'active', 'expand[]': 'data.pause_collection'}
+    try:
+        while True:
+            data = stripe_get('/subscriptions', params)
+            subs = data.get('data', [])
+            for sub in subs:
+                if sub.get('pause_collection'):
+                    all_subs.append(sub)
+            if not data.get('has_more'):
+                break
+            params['starting_after'] = subs[-1]['id']
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+    results = []
+    for sub in all_subs:
+        pause_info = sub.get('pause_collection', {})
+        # The current_period_end is when the current (paused) period ends
+        # The current_period_start is when it started
+        # For paused subs with behavior=void, no invoice is created at period end
+        mrr = 0
+        for item in sub.get('items', {}).get('data', []):
+            price = item.get('price', {})
+            amount = price.get('unit_amount', 0) * item.get('quantity', 1)
+            interval = price.get('recurring', {}).get('interval', 'month')
+            interval_count = price.get('recurring', {}).get('interval_count', 1)
+            if interval == 'month':
+                mrr += amount / interval_count
+            elif interval == 'year':
+                mrr += amount / (12 * interval_count)
+            elif interval == 'day':
+                mrr += amount * 30.4375 / interval_count
+
+        results.append({
+            'id': sub['id'],
+            'customer': sub.get('customer'),
+            'mrr_cents': round(mrr),
+            'mrr_dollars': round(mrr / 100, 2),
+            'pause_behavior': pause_info.get('behavior'),
+            'pause_resumes_at': pause_info.get('resumes_at'),
+            'current_period_start': sub.get('current_period_start'),
+            'current_period_end': sub.get('current_period_end'),
+            'created': sub.get('created'),
+        })
+
+    # Sort by current_period_start to see timing
+    results.sort(key=lambda x: x.get('current_period_start', 0))
+
+    return jsonify({
+        'total_paused': len(results),
+        'total_paused_mrr': round(sum(r['mrr_dollars'] for r in results), 2),
+        'subs': results
+    })
+
+
 @app.route('/api/stripe/test-contraction')
 def test_contraction():
     """Test: find contraction MRR using MRR delta approach.
