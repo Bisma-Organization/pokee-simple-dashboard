@@ -1262,6 +1262,7 @@ def calc_full_churn(start_ts, end_ts):
     total_churn = 0
     total_contraction = 0
     monthly_churn = {}
+    daily_churn = {}
 
     for item in data.get('data', []):
         ts = item.get('timestamp', '')[:10]
@@ -1276,6 +1277,7 @@ def calc_full_churn(start_ts, end_ts):
             elif change_type == 'MRR_CONTRACTION':
                 total_contraction += val
             monthly_churn[month] = monthly_churn.get(month, 0) + val
+            daily_churn[ts] = daily_churn.get(ts, 0) + val
 
     total_lost = total_churn + total_contraction
 
@@ -1289,6 +1291,7 @@ def calc_full_churn(start_ts, end_ts):
         'pause_mrr': 0,
         'canceled_count': churn_count,
         'monthly_churn_mrr': {k: round(v / 100, 2) for k, v in monthly_churn.items()},
+        'daily_churn_mrr': {k: round(v / 100, 2) for k, v in daily_churn.items()},
         'source': 'v2_analytics'
     }
 
@@ -1514,18 +1517,17 @@ def _stripe_summary_impl():
             key = dt.strftime('%Y-%m-%d')
             daily_net[key] = daily_net.get(key, 0) + t['net']
 
-    churn_mrr_monthly = churn_data.get('monthly_churn_mrr', {})
+    daily_churn_mrr = churn_data.get('daily_churn_mrr', {})
 
     # Build daily chart data
-    all_dates = sorted(daily_net.keys())
+    all_dates = sorted(set(list(daily_net.keys()) + list(daily_churn_mrr.keys())))
     monthly_data = []
     for d in all_dates:
-        month = d[:7]
         monthly_data.append({
             'date': d,
-            'month': month,
-            'net_volume': round(daily_net[d] / 100, 2),
-            'churn_revenue': churn_mrr_monthly.get(month, 0)
+            'month': d[:7],
+            'net_volume': round(daily_net.get(d, 0) / 100, 2),
+            'churn_revenue': daily_churn_mrr.get(d, 0)
         })
 
     subs = fetch_stripe_subscriptions()
