@@ -1457,7 +1457,9 @@ def get_stripe_churn():
 @app.route('/api/stripe/summary')
 def get_stripe_summary():
     try:
-        return _stripe_summary_impl()
+        resp = _stripe_summary_impl()
+        resp.headers['Cache-Control'] = 'no-cache, no-store'
+        return resp
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1566,6 +1568,7 @@ def stripe_dashboard():
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     resp.headers['Pragma'] = 'no-cache'
     resp.headers['Expires'] = '0'
+    resp.headers['ETag'] = 'v6-net-volume-fix'
     return resp
 
 
