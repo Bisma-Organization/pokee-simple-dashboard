@@ -1220,21 +1220,20 @@ def sub_mrr_from_items(sub):
 
 
 def calc_full_churn(start_ts, end_ts):
-    """Calculate churn revenue using Stripe v2 Analytics API.
+    """Calculate churn revenue using Stripe v2 Analytics API with daily granularity.
 
     Uses revenue_growth.mrr metric with MRR_CHURN + MRR_CONTRACTION filters.
-    Single API call returns exact Stripe dashboard values.
+    Daily granularity ensures exact match for any date range (not just full months).
     Values returned in cents as strings — sum and divide by 100 for dollars.
     """
     start_dt = datetime.fromtimestamp(start_ts, tz=LOCAL_TZ)
     end_dt = datetime.fromtimestamp(end_ts, tz=LOCAL_TZ)
 
     starts_at = start_dt.strftime('%Y-%m-%dT00:00:00Z')
+    ends_at = (end_dt + timedelta(days=1)).strftime('%Y-%m-%dT00:00:00Z')
     utc_now = datetime.now(timezone.utc)
-    ends_at_candidate = (end_dt + timedelta(days=1)).replace(hour=0, minute=0, second=0, tzinfo=timezone.utc)
-    if ends_at_candidate > utc_now:
-        ends_at_candidate = utc_now
-    ends_at = ends_at_candidate.strftime('%Y-%m-%dT%H:%M:%SZ')
+    if datetime.fromisoformat(ends_at.replace('Z', '+00:00')) > utc_now:
+        ends_at = utc_now.strftime('%Y-%m-%dT%H:%M:%SZ')
 
     cache_key = f'stripe_churn_v2_{starts_at}_{ends_at}'
 
@@ -1248,7 +1247,7 @@ def calc_full_churn(start_ts, end_ts):
             'metrics': [{'name': 'revenue_growth.mrr'}],
             'starts_at': starts_at,
             'ends_at': ends_at,
-            'granularity': 'month',
+            'granularity': 'day',
             'currency': 'usd',
             'filters': {'change_type': ['MRR_CHURN', 'MRR_CONTRACTION']},
             'group_by': ['change_type']
@@ -1259,17 +1258,18 @@ def calc_full_churn(start_ts, end_ts):
 
     data = cached(cache_key, _fetch)
 
-    start_month = start_dt.strftime('%Y-%m')
-    end_month = end_dt.strftime('%Y-%m')
+    start_date = start_dt.strftime('%Y-%m-%d')
+    end_date = end_dt.strftime('%Y-%m-%d')
 
     total_churn = 0
     total_contraction = 0
     monthly_churn = {}
 
     for item in data.get('data', []):
-        ts = item.get('timestamp', '')[:7]
-        if ts < start_month or ts > end_month:
+        ts = item.get('timestamp', '')[:10]
+        if ts < start_date or ts > end_date:
             continue
+        month = ts[:7]
         change_type = item.get('dimensions', {}).get('change_type', '')
         for r in item.get('results', []):
             val = abs(int(r.get('value') or 0))
@@ -1277,8 +1277,7 @@ def calc_full_churn(start_ts, end_ts):
                 total_churn += val
             elif change_type == 'MRR_CONTRACTION':
                 total_contraction += val
-            if ts:
-                monthly_churn[ts] = monthly_churn.get(ts, 0) + val
+            monthly_churn[month] = monthly_churn.get(month, 0) + val
 
     total_lost = total_churn + total_contraction
 
