@@ -1099,14 +1099,13 @@ def fetch_stripe_balance_txns(start_ts, end_ts):
 
 
 def calc_net_volume(balance_txns):
-    """Net volume = sum of net field for charge/payment/refund transactions."""
+    """Net volume = sum of net field for ALL balance transactions (matches Stripe dashboard)."""
     net_volume = 0
     gross = 0
     fees = 0
     refunds = 0
     for t in balance_txns:
-        if t['type'] in ('charge', 'payment', 'refund', 'payment_refund'):
-            net_volume += t['net']
+        net_volume += t['net']
         if t['type'] in ('charge', 'payment'):
             gross += t['amount']
             fees += t['fee']
@@ -1509,13 +1508,12 @@ def _stripe_summary_impl():
     lost_mrr_dollars = churn_data['lost_mrr']
     churn_source = churn_data['source']
 
-    # Group net volume by date for chart
+    # Group net volume by date for chart (all transaction types)
     daily_net = {}
     for t in bal_txns:
-        if t['type'] in ('charge', 'payment', 'refund', 'payment_refund'):
-            dt = datetime.fromtimestamp(t['created'], tz=LOCAL_TZ)
-            key = dt.strftime('%Y-%m-%d')
-            daily_net[key] = daily_net.get(key, 0) + t['net']
+        dt = datetime.fromtimestamp(t['created'], tz=LOCAL_TZ)
+        key = dt.strftime('%Y-%m-%d')
+        daily_net[key] = daily_net.get(key, 0) + t['net']
 
     daily_churn_mrr = churn_data.get('daily_churn_mrr', {})
 
