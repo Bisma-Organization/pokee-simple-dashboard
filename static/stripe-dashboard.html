@@ -209,6 +209,7 @@
         </div>
         <div class="controls">
             <div class="preset-btns">
+                <button class="btn btn-ghost" onclick="setPreset('last7')">Last 7d</button>
                 <button class="btn btn-ghost" onclick="setPreset('last30')">Last 30d</button>
                 <button class="btn btn-ghost" onclick="setPreset('last3m')">Last 3m</button>
                 <button class="btn btn-ghost" onclick="setPreset('last6m')">Last 6m</button>
@@ -225,11 +226,11 @@
 
     <div class="charts-grid">
         <div class="chart-card">
-            <h3>Monthly Revenue</h3>
+            <h3>Daily Net Volume</h3>
             <canvas id="revenueChart"></canvas>
         </div>
         <div class="chart-card">
-            <h3>Monthly Churn Revenue</h3>
+            <h3>Daily Churn Revenue</h3>
             <canvas id="churnChart"></canvas>
         </div>
     </div>
@@ -246,7 +247,7 @@
                 theme: 'dark',
                 maxDate: 'today',
                 defaultDate: [
-                    new Date(new Date().getFullYear(), new Date().getMonth() - 6, 1).toISOString().split('T')[0],
+                    new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0],
                     new Date().toISOString().split('T')[0]
                 ],
                 onReady: function() {
@@ -261,6 +262,9 @@
             end = now.toISOString().split('T')[0];
 
             switch (preset) {
+                case 'last7':
+                    start = new Date(now - 6 * 86400000).toISOString().split('T')[0];
+                    break;
                 case 'last30':
                     start = new Date(now - 30 * 86400000).toISOString().split('T')[0];
                     break;
@@ -327,9 +331,9 @@
                         <div class="sub">${data.churn_count} cancellations</div>
                     </div>
                     <div class="kpi-card green">
-                        <div class="label">Net Revenue</div>
-                        <div class="value">${formatCurrency(data.net_revenue)}</div>
-                        <div class="sub">Gross - fees - refunds + adjustments</div>
+                        <div class="label">Net Volume</div>
+                        <div class="value">${formatCurrencyFull(data.net_volume)}</div>
+                        <div class="sub">Sum of net from balance transactions</div>
                     </div>
                 `;
 
@@ -347,10 +351,10 @@
             revenueChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: monthly.map(m => m.month),
+                    labels: monthly.map(m => m.date),
                     datasets: [{
-                        label: 'Revenue',
-                        data: monthly.map(m => m.revenue),
+                        label: 'Net Volume',
+                        data: monthly.map(m => m.net_volume),
                         backgroundColor: 'rgba(99, 102, 241, 0.6)',
                         borderColor: '#6366f1',
                         borderWidth: 1,
@@ -388,7 +392,7 @@
             churnChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: monthly.map(m => m.month),
+                    labels: monthly.map(m => m.date),
                     datasets: [{
                         label: 'Churn Revenue',
                         data: monthly.map(m => m.churn_revenue || 0),
