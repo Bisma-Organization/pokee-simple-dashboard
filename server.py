@@ -1259,12 +1259,17 @@ def calc_full_churn(start_ts, end_ts):
 
     data = cached(cache_key, _fetch)
 
+    start_month = start_dt.strftime('%Y-%m')
+    end_month = end_dt.strftime('%Y-%m')
+
     total_churn = 0
     total_contraction = 0
     monthly_churn = {}
 
     for item in data.get('data', []):
         ts = item.get('timestamp', '')[:7]
+        if ts < start_month or ts > end_month:
+            continue
         change_type = item.get('dimensions', {}).get('change_type', '')
         for r in item.get('results', []):
             val = abs(int(r.get('value') or 0))
