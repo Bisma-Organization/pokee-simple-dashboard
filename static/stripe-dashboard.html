@@ -255,11 +255,9 @@
                 dateFormat: 'Y-m-d',
                 theme: 'dark',
                 maxDate: 'today',
-                defaultDate: [localDateStr(weekAgo), localDateStr(today)],
-                onReady: function() {
-                    loadData();
-                }
+                defaultDate: [localDateStr(weekAgo), localDateStr(today)]
             });
+            loadData();
         });
 
         function setPreset(preset) {
