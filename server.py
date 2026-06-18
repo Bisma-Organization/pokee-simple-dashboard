@@ -1573,6 +1573,50 @@ def _stripe_summary_impl():
     })
 
 
+@app.route('/api/stripe/debug-churn')
+def debug_churn():
+    try:
+        start_str = request.args.get('start')
+        end_str = request.args.get('end')
+        now = datetime.now(LOCAL_TZ)
+        if start_str:
+            start_dt = datetime.fromisoformat(start_str).replace(tzinfo=LOCAL_TZ)
+        else:
+            start_dt = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        if end_str:
+            end_dt = datetime.fromisoformat(end_str).replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ)
+        else:
+            end_dt = now
+
+        starts_at = start_dt.strftime('%Y-%m-%dT00:00:00Z')
+        utc_now = datetime.now(timezone.utc)
+        ends_at_candidate = (end_dt + timedelta(days=1)).replace(hour=0, minute=0, second=0, tzinfo=timezone.utc)
+        if ends_at_candidate > utc_now:
+            ends_at_candidate = utc_now
+        ends_at = ends_at_candidate.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        headers = {
+            'Authorization': f'Bearer {STRIPE_KEY}',
+            'Stripe-Version': STRIPE_API_VERSION,
+            'Content-Type': 'application/json'
+        }
+        payload = {
+            'metrics': [{'name': 'revenue_growth.mrr'}],
+            'starts_at': starts_at,
+            'ends_at': ends_at,
+            'granularity': 'month',
+            'currency': 'usd',
+            'filters': {'change_type': ['MRR_CHURN', 'MRR_CONTRACTION']},
+            'group_by': ['change_type']
+        }
+        resp = requests.post(STRIPE_ANALYTICS_URL, headers=headers, json=payload)
+        resp.raise_for_status()
+        raw = resp.json()
+        return jsonify({'request': payload, 'response': raw})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/stripe-dashboard')
 def stripe_dashboard():
     return send_from_directory('static', 'stripe-dashboard.html')
