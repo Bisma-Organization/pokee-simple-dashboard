@@ -1582,7 +1582,11 @@ def _stripe_summary_impl():
 
 @app.route('/stripe-dashboard')
 def stripe_dashboard():
-    return send_from_directory('static', 'stripe-dashboard.html')
+    resp = send_from_directory('static', 'stripe-dashboard.html')
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 
 @app.route('/api/refresh', methods=['POST'])
