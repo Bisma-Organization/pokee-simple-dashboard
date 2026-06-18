@@ -310,9 +310,6 @@
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error);
 
-                // Compute churn revenue KPI from monthly data (same source as chart)
-                const totalChurnRevenue = data.monthly.reduce((sum, m) => sum + (m.churn_revenue || 0), 0);
-
                 document.getElementById('kpiGrid').innerHTML = `
                     <div class="kpi-card green">
                         <div class="label">Current MRR</div>
@@ -326,8 +323,8 @@
                     </div>
                     <div class="kpi-card yellow">
                         <div class="label">Churn Revenue</div>
-                        <div class="value">${formatCurrencyFull(totalChurnRevenue)}</div>
-                        <div class="sub">${data.churn_count} cancellations (MRR Churn + Contraction)</div>
+                        <div class="value">${formatCurrencyFull(data.lost_mrr)}</div>
+                        <div class="sub">${data.churn_count} cancellations</div>
                     </div>
                     <div class="kpi-card green">
                         <div class="label">Net Revenue</div>
