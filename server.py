@@ -1099,29 +1099,25 @@ def fetch_stripe_balance_txns(start_ts, end_ts):
 
 
 def calc_net_volume(balance_txns):
-    """Net volume = sum of net field excluding payouts/transfers (matches Stripe dashboard)."""
-    EXCLUDE_TYPES = ('payout', 'transfer', 'reserve_transaction')
+    """Net volume = sum of net for charge/payment/refund/adjustment types (matches Stripe dashboard)."""
+    VOLUME_TYPES = ('charge', 'payment', 'refund', 'payment_refund', 'adjustment')
     net_volume = 0
     gross = 0
     fees = 0
     refunds = 0
-    type_nets = {}
     for t in balance_txns:
-        tp = t['type']
-        type_nets[tp] = type_nets.get(tp, 0) + t['net']
-        if tp not in EXCLUDE_TYPES:
+        if t['type'] in VOLUME_TYPES:
             net_volume += t['net']
-        if tp in ('charge', 'payment'):
+        if t['type'] in ('charge', 'payment'):
             gross += t['amount']
             fees += t['fee']
-        elif tp in ('refund', 'payment_refund'):
+        elif t['type'] in ('refund', 'payment_refund'):
             refunds += abs(t['amount'])
     return {
         'gross': round(gross / 100, 2),
         'fees': round(fees / 100, 2),
         'refunds': round(refunds / 100, 2),
-        'net': round(net_volume / 100, 2),
-        'type_nets': {k: round(v / 100, 2) for k, v in type_nets.items()}
+        'net': round(net_volume / 100, 2)
     }
 
 
@@ -1515,10 +1511,10 @@ def _stripe_summary_impl():
     churn_source = churn_data['source']
 
     # Group net volume by date for chart
-    EXCLUDE_TYPES = ('payout', 'transfer', 'reserve_transaction', 'connect_collection_transfer')
+    VOLUME_TYPES = ('charge', 'payment', 'refund', 'payment_refund', 'adjustment')
     daily_net = {}
     for t in bal_txns:
-        if t['type'] not in EXCLUDE_TYPES:
+        if t['type'] in VOLUME_TYPES:
             dt = datetime.fromtimestamp(t['created'], tz=LOCAL_TZ)
             key = dt.strftime('%Y-%m-%d')
             daily_net[key] = daily_net.get(key, 0) + t['net']
@@ -1560,8 +1556,7 @@ def _stripe_summary_impl():
         'paused': paused_count,
         'monthly': monthly_data,
         'mrr_monthly': mrr_monthly,
-        'arr_monthly': arr_monthly,
-        'type_nets': rev_data.get('type_nets', {})
+        'arr_monthly': arr_monthly
     })
 
 
