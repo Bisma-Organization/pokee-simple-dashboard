@@ -1220,147 +1220,74 @@ def sub_mrr_from_items(sub):
 
 
 def calc_full_churn(start_ts, end_ts):
-    """Calculate total churn MRR = Cancellation + Contraction + Pause.
+    """Calculate churn revenue using Stripe v2 Analytics API.
 
-    For recent periods (< 25 days): uses Events API which matches Stripe exactly.
-    For older periods: combines subscription cancellations + invoice-based contraction
-    + detection of paused subs via invoice gap analysis.
-    Processes month-by-month for accurate contraction detection.
+    Uses revenue_growth.mrr metric with MRR_CHURN + MRR_CONTRACTION filters.
+    Single API call returns exact Stripe dashboard values.
+    Values returned in cents as strings — sum and divide by 100 for dollars.
     """
-    from calendar import monthrange
-    now_ts = int(time.time())
-    events_cutoff = now_ts - 25 * 86400
-
-    # For recent periods, Events API is accurate
-    if start_ts and start_ts >= events_cutoff:
-        subs = fetch_stripe_canceled_via_events(start_ts, end_ts)
-        active_subs = fetch_stripe_subscriptions()
-        active_customers = {s.get('customer') for s in active_subs if s.get('status') in ('active', 'past_due')}
-        true_canceled = [sub for sub in subs if sub.get('customer') not in active_customers]
-        lost_mrr = sum(sub_mrr_from_items(sub) for sub in true_canceled)
-        return {
-            'lost_mrr': round(lost_mrr / 100, 2),
-            'canceled_count': len(true_canceled),
-            'contraction_mrr': 0,
-            'pause_mrr': 0,
-            'source': 'events_api'
-        }
-
-    # For older periods: Cancellation MRR from subscriptions
-    all_canceled = fetch_all_canceled_subs()
-    canceled_in_period = []
-    cancellation_mrr = 0
-    canceled_sub_ids = set()
-    for sub in all_canceled:
-        canceled_at = sub.get('canceled_at') or sub.get('ended_at')
-        if not canceled_at:
-            continue
-        if start_ts and canceled_at < start_ts:
-            continue
-        if end_ts and canceled_at > end_ts:
-            continue
-        canceled_in_period.append(sub)
-        canceled_sub_ids.add(sub['id'])
-        cancellation_mrr += sub_mrr_from_items(sub)
-
-    # Process month-by-month for contraction + pause detection
     start_dt = datetime.fromtimestamp(start_ts, tz=LOCAL_TZ)
     end_dt = datetime.fromtimestamp(end_ts, tz=LOCAL_TZ)
 
+    starts_at = start_dt.strftime('%Y-%m-%dT00:00:00Z')
+    utc_now = datetime.now(timezone.utc)
+    ends_at_candidate = (end_dt + timedelta(days=1)).replace(hour=0, minute=0, second=0, tzinfo=timezone.utc)
+    if ends_at_candidate > utc_now:
+        ends_at_candidate = utc_now
+    ends_at = ends_at_candidate.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    cache_key = f'stripe_churn_v2_{starts_at}_{ends_at}'
+
+    def _fetch():
+        headers = {
+            'Authorization': f'Bearer {STRIPE_KEY}',
+            'Stripe-Version': STRIPE_API_VERSION,
+            'Content-Type': 'application/json'
+        }
+        payload = {
+            'metrics': [{'name': 'revenue_growth.mrr'}],
+            'starts_at': starts_at,
+            'ends_at': ends_at,
+            'granularity': 'month',
+            'currency': 'usd',
+            'filters': {'change_type': ['MRR_CHURN', 'MRR_CONTRACTION']},
+            'group_by': ['change_type']
+        }
+        resp = requests.post(STRIPE_ANALYTICS_URL, headers=headers, json=payload)
+        resp.raise_for_status()
+        return resp.json()
+
+    data = cached(cache_key, _fetch)
+
+    total_churn = 0
     total_contraction = 0
-    total_pause = 0
-    seen_pause_subs = set()
-    seen_contraction_subs = set()
+    monthly_churn = {}
 
-    # Iterate through each month in the range
-    current = start_dt.replace(day=1)
-    while current <= end_dt:
-        _, days_in_month = monthrange(current.year, current.month)
-        month_start = current.replace(hour=0, minute=0, second=0)
-        month_end = current.replace(day=days_in_month, hour=23, minute=59, second=59)
+    for item in data.get('data', []):
+        ts = item.get('timestamp', '')[:7]
+        change_type = item.get('dimensions', {}).get('change_type', '')
+        for r in item.get('results', []):
+            val = abs(int(r.get('value') or 0))
+            if change_type == 'MRR_CHURN':
+                total_churn += val
+            elif change_type == 'MRR_CONTRACTION':
+                total_contraction += val
+            if ts:
+                monthly_churn[ts] = monthly_churn.get(ts, 0) + val
 
-        month_start_ts = int(month_start.timestamp())
-        month_end_ts = int(month_end.timestamp())
+    total_lost = total_churn + total_contraction
 
-        # Previous month boundaries
-        prev_month_end = month_start - timedelta(days=1)
-        prev_month_start = prev_month_end.replace(day=1, hour=0, minute=0, second=0)
-        prev_start_ts = int(prev_month_start.timestamp())
-        prev_end_ts = int(prev_month_end.replace(hour=23, minute=59, second=59).timestamp())
-
-        prev_invoices = fetch_invoices_for_period(prev_start_ts, prev_end_ts)
-        curr_invoices = fetch_invoices_for_period(month_start_ts, month_end_ts)
-
-        def group_by_sub(invoices):
-            sub_amounts = {}
-            for inv in invoices:
-                sub_id = inv.get('subscription')
-                if not sub_id:
-                    continue
-                amount = inv.get('amount_paid', 0)
-                if sub_id not in sub_amounts:
-                    sub_amounts[sub_id] = 0
-                sub_amounts[sub_id] += amount
-            return sub_amounts
-
-        prev_amounts = group_by_sub(prev_invoices)
-        curr_amounts = group_by_sub(curr_invoices)
-
-        # Contraction: subs billed in both months but at lower amount
-        for sub_id, prev_amt in prev_amounts.items():
-            if sub_id in canceled_sub_ids or sub_id in seen_contraction_subs:
-                continue
-            curr_amt = curr_amounts.get(sub_id, 0)
-            if curr_amt > 0 and curr_amt < prev_amt:
-                try:
-                    sub_data = stripe_get(f'/subscriptions/{sub_id}')
-                    items = sub_data.get('items', {}).get('data', [])
-                    if items:
-                        price = items[0].get('price', {})
-                        interval = price.get('recurring', {}).get('interval', 'month')
-                        interval_count = price.get('recurring', {}).get('interval_count', 1)
-                        if interval == 'day':
-                            factor = 30.4375 / interval_count
-                        elif interval == 'year':
-                            factor = 1 / (12 * interval_count)
-                        else:
-                            factor = 1 / interval_count
-                    else:
-                        factor = 1
-                except Exception:
-                    factor = 1
-                total_contraction += (prev_amt - curr_amt) * factor
-                seen_contraction_subs.add(sub_id)
-
-        # Pause: subs billed prev month but NOT current month, still active
-        for sub_id, prev_amt in prev_amounts.items():
-            if sub_id in canceled_sub_ids or sub_id in seen_pause_subs:
-                continue
-            if sub_id in curr_amounts:
-                continue
-            try:
-                sub_data = stripe_get(f'/subscriptions/{sub_id}')
-                if sub_data.get('status') in ('active', 'past_due'):
-                    total_pause += sub_mrr_from_items(sub_data)
-                    seen_pause_subs.add(sub_id)
-            except Exception:
-                pass
-
-        # Move to next month
-        if current.month == 12:
-            current = current.replace(year=current.year + 1, month=1)
-        else:
-            current = current.replace(month=current.month + 1)
-
-    total_lost_mrr = (cancellation_mrr + total_contraction + total_pause) / 100
+    canceled = fetch_stripe_canceled(start_ts, end_ts)
+    churn_count = len(canceled)
 
     return {
-        'lost_mrr': round(total_lost_mrr, 2),
-        'cancellation_mrr': round(cancellation_mrr / 100, 2),
+        'lost_mrr': round(total_lost / 100, 2),
+        'cancellation_mrr': round(total_churn / 100, 2),
         'contraction_mrr': round(total_contraction / 100, 2),
-        'pause_mrr': round(total_pause / 100, 2),
-        'canceled_count': len(canceled_in_period),
-        'source': 'hybrid_invoice'
+        'pause_mrr': 0,
+        'canceled_count': churn_count,
+        'monthly_churn_mrr': {k: round(v / 100, 2) for k, v in monthly_churn.items()},
+        'source': 'v2_analytics'
     }
 
 
@@ -1577,7 +1504,7 @@ def _stripe_summary_impl():
     lost_mrr_dollars = churn_data['lost_mrr']
     churn_source = churn_data['source']
 
-    # Still need churn_monthly for the chart (cancellations by month)
+    # Monthly cancellation counts for the chart
     canceled = fetch_stripe_canceled(start_ts, end_ts)
     churn_monthly = {}
     for sub in canceled:
