@@ -1539,13 +1539,15 @@ def _stripe_summary_impl():
             key = dt.strftime('%Y-%m')
             revenue_monthly[key] = revenue_monthly.get(key, 0) + t['amount'] / 100
 
-    all_months = sorted(set(list(revenue_monthly.keys()) + list(churn_monthly.keys())))
+    churn_mrr_monthly = churn_data.get('monthly_churn_mrr', {})
+    all_months = sorted(set(list(revenue_monthly.keys()) + list(churn_monthly.keys()) + list(churn_mrr_monthly.keys())))
     monthly_data = []
     for m in all_months:
         monthly_data.append({
             'month': m,
             'revenue': round(revenue_monthly.get(m, 0), 2),
-            'churn': churn_monthly.get(m, 0)
+            'churn': churn_monthly.get(m, 0),
+            'churn_revenue': churn_mrr_monthly.get(m, 0)
         })
 
     subs = fetch_stripe_subscriptions()

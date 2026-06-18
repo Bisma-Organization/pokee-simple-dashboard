@@ -229,7 +229,7 @@
             <canvas id="revenueChart"></canvas>
         </div>
         <div class="chart-card">
-            <h3>Monthly Churn (Cancellations)</h3>
+            <h3>Monthly Churn Revenue</h3>
             <canvas id="churnChart"></canvas>
         </div>
     </div>
@@ -390,8 +390,8 @@
                 data: {
                     labels: monthly.map(m => m.month),
                     datasets: [{
-                        label: 'Cancellations',
-                        data: monthly.map(m => m.churn),
+                        label: 'Churn Revenue',
+                        data: monthly.map(m => m.churn_revenue || 0),
                         backgroundColor: 'rgba(239, 68, 68, 0.6)',
                         borderColor: '#ef4444',
                         borderWidth: 1,
@@ -404,14 +404,17 @@
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
-                                label: ctx => ctx.parsed.y + ' cancellations'
+                                label: ctx => formatCurrencyFull(ctx.parsed.y)
                             }
                         }
                     },
                     scales: {
                         x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(99,102,241,0.08)' } },
                         y: {
-                            ticks: { color: '#94a3b8', stepSize: 1 },
+                            ticks: {
+                                color: '#94a3b8',
+                                callback: val => '$' + (val / 1000).toFixed(1) + 'k'
+                            },
                             grid: { color: 'rgba(99,102,241,0.08)' }
                         }
                     }
