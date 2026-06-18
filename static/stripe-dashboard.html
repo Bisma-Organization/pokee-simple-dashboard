@@ -240,16 +240,22 @@
         let churnChart = null;
         let datePicker = null;
 
+        function localDateStr(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const weekAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
             datePicker = flatpickr('#dateRange', {
                 mode: 'range',
                 dateFormat: 'Y-m-d',
                 theme: 'dark',
                 maxDate: 'today',
-                defaultDate: [
-                    new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0],
-                    new Date().toISOString().split('T')[0]
-                ],
+                defaultDate: [localDateStr(weekAgo), localDateStr(today)],
                 onReady: function() {
                     loadData();
                 }
@@ -259,20 +265,20 @@
         function setPreset(preset) {
             const now = new Date();
             let start, end;
-            end = now.toISOString().split('T')[0];
+            end = localDateStr(now);
 
             switch (preset) {
                 case 'last7':
-                    start = new Date(now - 6 * 86400000).toISOString().split('T')[0];
+                    start = localDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
                     break;
                 case 'last30':
-                    start = new Date(now - 30 * 86400000).toISOString().split('T')[0];
+                    start = localDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29));
                     break;
                 case 'last3m':
-                    start = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString().split('T')[0];
+                    start = localDateStr(new Date(now.getFullYear(), now.getMonth() - 3, 1));
                     break;
                 case 'last6m':
-                    start = new Date(now.getFullYear(), now.getMonth() - 6, 1).toISOString().split('T')[0];
+                    start = localDateStr(new Date(now.getFullYear(), now.getMonth() - 6, 1));
                     break;
                 case 'all':
                     start = '2022-01-01';
@@ -293,8 +299,8 @@
 
         async function loadData() {
             const dates = datePicker ? datePicker.selectedDates : [];
-            const start = dates.length > 0 ? dates[0].toISOString().split('T')[0] : '';
-            const end = dates.length > 1 ? dates[1].toISOString().split('T')[0] : (dates.length > 0 ? dates[0].toISOString().split('T')[0] : '');
+            const start = dates.length > 0 ? localDateStr(dates[0]) : '';
+            const end = dates.length > 1 ? localDateStr(dates[1]) : (dates.length > 0 ? localDateStr(dates[0]) : '');
 
             let params = new URLSearchParams();
             if (start) params.set('start', start);
