@@ -1098,27 +1098,66 @@ def fetch_stripe_balance_txns(start_ts, end_ts):
     return cached(cache_key, _fetch)
 
 
-def calc_net_volume(balance_txns):
-    """Net volume = sum of net for charge/payment/refund/adjustment types (matches Stripe dashboard)."""
-    VOLUME_TYPES = ('charge', 'payment', 'refund', 'payment_refund', 'adjustment')
-    net_volume = 0
-    gross = 0
-    fees = 0
-    refunds = 0
-    for t in balance_txns:
-        tp = t['type']
-        if tp in VOLUME_TYPES:
-            net_volume += t['net']
-        if tp in ('charge', 'payment'):
-            gross += t['amount']
-            fees += t['fee']
-        elif tp in ('refund', 'payment_refund'):
-            refunds += abs(t['amount'])
+NET_VOLUME_METRICS = ['revenue.net_revenue', 'billing.net_revenue', 'revenue.net_volume']
+
+def calc_net_volume_v2(start_ts, end_ts):
+    """Net volume using v2 Analytics API (matches Stripe Billing overview)."""
+    start_dt = datetime.fromtimestamp(start_ts, tz=LOCAL_TZ)
+    end_dt = datetime.fromtimestamp(end_ts, tz=LOCAL_TZ)
+
+    day_count = (end_dt - start_dt).days + 1
+    granularity = 'day' if day_count <= 93 else 'month'
+
+    starts_at = start_dt.strftime('%Y-%m-%dT00:00:00Z')
+    ends_at = (end_dt + timedelta(days=1)).strftime('%Y-%m-%dT00:00:00Z')
+    utc_now = datetime.now(timezone.utc)
+    if datetime.fromisoformat(ends_at.replace('Z', '+00:00')) > utc_now:
+        ends_at = utc_now.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    cache_key = f'stripe_net_revenue_v2_{starts_at}_{ends_at}_{granularity}'
+
+    def _fetch():
+        headers = {
+            'Authorization': f'Bearer {STRIPE_KEY}',
+            'Stripe-Version': STRIPE_API_VERSION,
+            'Content-Type': 'application/json'
+        }
+        last_err = None
+        for metric_name in NET_VOLUME_METRICS:
+            payload = {
+                'metrics': [{'name': metric_name}],
+                'starts_at': starts_at,
+                'ends_at': ends_at,
+                'granularity': granularity,
+                'currency': 'usd',
+                'timezone': 'America/Los_Angeles'
+            }
+            resp = requests.post(STRIPE_ANALYTICS_URL, headers=headers, json=payload)
+            if resp.status_code == 200:
+                return resp.json()
+            last_err = f'{metric_name}: {resp.status_code} {resp.text[:200]}'
+        raise Exception(f'All net volume metrics failed. Last: {last_err}')
+
+    data = cached(cache_key, _fetch)
+
+    start_date = start_dt.strftime('%Y-%m-%d')
+    end_date = end_dt.strftime('%Y-%m-%d')
+
+    total_net = 0
+    daily_net = {}
+
+    for item in data.get('data', []):
+        ts = item.get('timestamp', '')[:10]
+        if ts < start_date or ts > end_date:
+            continue
+        for r in item.get('results', []):
+            val = int(r.get('value') or 0)
+            total_net += val
+            daily_net[ts] = daily_net.get(ts, 0) + val
+
     return {
-        'gross': round(gross / 100, 2),
-        'fees': round(fees / 100, 2),
-        'refunds': round(refunds / 100, 2),
-        'net': round(net_volume / 100, 2)
+        'net': round(total_net / 100, 2),
+        'daily_net': {k: round(v / 100, 2) for k, v in daily_net.items()}
     }
 
 
@@ -1506,33 +1545,24 @@ def _stripe_summary_impl():
     start_ts = int(start_dt.timestamp())
     end_ts = int(end_dt.timestamp())
 
-    bal_txns = fetch_stripe_balance_txns(start_ts, end_ts)
-    rev_data = calc_net_volume(bal_txns)
+    rev_data = calc_net_volume_v2(start_ts, end_ts)
 
     churn_data = calc_full_churn(start_ts, end_ts)
     churn_count = churn_data['canceled_count']
     lost_mrr_dollars = churn_data['lost_mrr']
     churn_source = churn_data['source']
 
-    # Group net volume by date for chart
-    VOLUME_TYPES = ('charge', 'payment', 'refund', 'payment_refund', 'adjustment')
-    daily_net = {}
-    for t in bal_txns:
-        if t['type'] in VOLUME_TYPES:
-            dt = datetime.fromtimestamp(t['created'], tz=LOCAL_TZ)
-            key = dt.strftime('%Y-%m-%d')
-            daily_net[key] = daily_net.get(key, 0) + t['net']
-
+    daily_net_v2 = rev_data.get('daily_net', {})
     daily_churn_mrr = churn_data.get('daily_churn_mrr', {})
 
     # Build daily chart data
-    all_dates = sorted(set(list(daily_net.keys()) + list(daily_churn_mrr.keys())))
+    all_dates = sorted(set(list(daily_net_v2.keys()) + list(daily_churn_mrr.keys())))
     monthly_data = []
     for d in all_dates:
         monthly_data.append({
             'date': d,
             'month': d[:7],
-            'net_volume': round(daily_net.get(d, 0) / 100, 2),
+            'net_volume': daily_net_v2.get(d, 0),
             'churn_revenue': daily_churn_mrr.get(d, 0)
         })
 
@@ -1547,9 +1577,6 @@ def _stripe_summary_impl():
         'mrr': latest_mrr,
         'arr': latest_arr,
         'net_volume': rev_data['net'],
-        'gross_revenue': rev_data['gross'],
-        'fees': rev_data['fees'],
-        'refunds': rev_data['refunds'],
         'churn_count': churn_count,
         'lost_mrr': lost_mrr_dollars,
         'churn_rate': churn_rate,
@@ -1564,13 +1591,44 @@ def _stripe_summary_impl():
     })
 
 
+@app.route('/api/stripe/test-net-metric')
+def test_net_metric():
+    """Debug endpoint to test which net volume metric works."""
+    headers = {
+        'Authorization': f'Bearer {STRIPE_KEY}',
+        'Stripe-Version': STRIPE_API_VERSION,
+        'Content-Type': 'application/json'
+    }
+    results = {}
+    for metric_name in NET_VOLUME_METRICS:
+        payload = {
+            'metrics': [{'name': metric_name}],
+            'starts_at': '2025-04-01T00:00:00Z',
+            'ends_at': '2025-05-01T00:00:00Z',
+            'granularity': 'month',
+            'currency': 'usd',
+            'timezone': 'America/Los_Angeles'
+        }
+        resp = requests.post(STRIPE_ANALYTICS_URL, headers=headers, json=payload)
+        if resp.status_code == 200:
+            data = resp.json()
+            total = 0
+            for item in data.get('data', []):
+                for r in item.get('results', []):
+                    total += int(r.get('value') or 0)
+            results[metric_name] = {'status': 'ok', 'april_total_cents': total, 'april_total_dollars': round(total / 100, 2), 'raw': data}
+        else:
+            results[metric_name] = {'status': 'error', 'code': resp.status_code, 'body': resp.text[:500]}
+    return jsonify(results)
+
+
 @app.route('/stripe-dashboard')
 def stripe_dashboard():
     resp = send_from_directory('static', 'stripe-dashboard.html')
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     resp.headers['Pragma'] = 'no-cache'
     resp.headers['Expires'] = '0'
-    resp.headers['ETag'] = 'v6-net-volume-fix'
+    resp.headers['ETag'] = 'v7-net-volume-v2'
     return resp
 
 
