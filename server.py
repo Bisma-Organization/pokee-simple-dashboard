@@ -1229,7 +1229,9 @@ def calc_full_churn(start_ts, end_ts):
     day_count = (end_dt - start_dt).days + 1
     granularity = 'day' if day_count <= 93 else 'month'
 
-    starts_at = start_dt.strftime('%Y-%m-%dT00:00:00Z')
+    # Query 1 day earlier to capture UTC/Pacific timezone boundary events
+    query_start = start_dt - timedelta(days=1)
+    starts_at = query_start.strftime('%Y-%m-%dT00:00:00Z')
     ends_at = (end_dt + timedelta(days=1)).strftime('%Y-%m-%dT00:00:00Z')
     utc_now = datetime.now(timezone.utc)
     if datetime.fromisoformat(ends_at.replace('Z', '+00:00')) > utc_now:
@@ -1258,7 +1260,8 @@ def calc_full_churn(start_ts, end_ts):
 
     data = cached(cache_key, _fetch)
 
-    start_date = start_dt.strftime('%Y-%m-%d')
+    # Include 1 day before start to capture timezone boundary events
+    filter_start = (start_dt - timedelta(days=1)).strftime('%Y-%m-%d')
     end_date = end_dt.strftime('%Y-%m-%d')
 
     total_churn = 0
@@ -1268,7 +1271,7 @@ def calc_full_churn(start_ts, end_ts):
 
     for item in data.get('data', []):
         ts = item.get('timestamp', '')[:10]
-        if ts < start_date or ts > end_date:
+        if ts < filter_start or ts > end_date:
             continue
         month = ts[:7]
         change_type = item.get('dimensions', {}).get('change_type', '')
