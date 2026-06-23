@@ -209,11 +209,11 @@
         </div>
         <div class="controls">
             <div class="preset-btns">
-                <button class="btn btn-ghost" onclick="setPreset('last7')">Last 7d</button>
                 <button class="btn btn-ghost" onclick="setPreset('last30')">Last 30d</button>
                 <button class="btn btn-ghost" onclick="setPreset('last3m')">Last 3m</button>
                 <button class="btn btn-ghost" onclick="setPreset('last6m')">Last 6m</button>
-                <button class="btn btn-ghost" onclick="setPreset('all')">All Time</button>
+                <button class="btn btn-ghost" onclick="setPreset('last12m')">12 Month</button>
+                <button class="btn btn-ghost" onclick="setPreset('ytd')">YTD</button>
             </div>
             <input type="text" id="dateRange" class="date-input date-range-input" placeholder="Select date range" readonly>
             <button class="btn btn-primary" onclick="loadData()">Apply</button>
@@ -266,9 +266,6 @@
             end = localDateStr(now);
 
             switch (preset) {
-                case 'last7':
-                    start = localDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
-                    break;
                 case 'last30':
                     start = localDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29));
                     break;
@@ -278,8 +275,11 @@
                 case 'last6m':
                     start = localDateStr(new Date(now.getFullYear(), now.getMonth() - 6, 1));
                     break;
-                case 'all':
-                    start = '2022-01-01';
+                case 'last12m':
+                    start = localDateStr(new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()));
+                    break;
+                case 'ytd':
+                    start = now.getFullYear() + '-01-01';
                     break;
             }
 
