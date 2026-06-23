@@ -1098,78 +1098,27 @@ def fetch_stripe_balance_txns(start_ts, end_ts):
     return cached(cache_key, _fetch)
 
 
-def fetch_stripe_invoices(start_ts, end_ts):
-    """Fetch all paid invoices in date range using invoice created date (matches Billing overview)."""
-    cache_key = f'stripe_invoices_{start_ts}_{end_ts}'
-
-    def _fetch():
-        all_invoices = []
-        params = {
-            'limit': 100,
-            'status': 'paid',
-            'created[gte]': start_ts,
-            'created[lte]': end_ts
-        }
-        while True:
-            data = stripe_get('/invoices', params)
-            invoices = data.get('data', [])
-            all_invoices.extend(invoices)
-            if not data.get('has_more'):
-                break
-            params['starting_after'] = invoices[-1]['id']
-        return all_invoices
-    return cached(cache_key, _fetch)
-
-
-def fetch_stripe_credit_notes(start_ts, end_ts):
-    """Fetch credit notes in date range."""
-    cache_key = f'stripe_credit_notes_{start_ts}_{end_ts}'
-
-    def _fetch():
-        all_notes = []
-        params = {
-            'limit': 100,
-            'created[gte]': start_ts,
-            'created[lte]': end_ts
-        }
-        while True:
-            data = stripe_get('/credit_notes', params)
-            notes = data.get('data', [])
-            all_notes.extend(notes)
-            if not data.get('has_more'):
-                break
-            params['starting_after'] = notes[-1]['id']
-        return all_notes
-    return cached(cache_key, _fetch)
-
-
-def calc_net_volume_v2(start_ts, end_ts):
-    """Net volume from invoices (matches Stripe Billing overview)."""
-    invoices = fetch_stripe_invoices(start_ts, end_ts)
-    credit_notes = fetch_stripe_credit_notes(start_ts, end_ts)
-
-    total_net = 0
-    daily_net = {}
-
-    for inv in invoices:
-        amount = inv.get('amount_paid', 0)
-        created = inv.get('created', 0)
-        dt = datetime.fromtimestamp(created, tz=LOCAL_TZ)
-        key = dt.strftime('%Y-%m-%d')
-        total_net += amount
-        daily_net[key] = daily_net.get(key, 0) + amount
-
-    for cn in credit_notes:
-        amount = cn.get('amount', 0)
-        created = cn.get('created', 0)
-        dt = datetime.fromtimestamp(created, tz=LOCAL_TZ)
-        key = dt.strftime('%Y-%m-%d')
-        total_net -= amount
-        daily_net[key] = daily_net.get(key, 0) - amount
-
+def calc_net_volume(balance_txns):
+    """Net volume = sum of net for charge/payment/refund/adjustment types (matches Stripe dashboard)."""
+    VOLUME_TYPES = ('charge', 'payment', 'refund', 'payment_refund', 'adjustment')
+    net_volume = 0
+    gross = 0
+    fees = 0
+    refunds = 0
+    for t in balance_txns:
+        tp = t['type']
+        if tp in VOLUME_TYPES:
+            net_volume += t['net']
+        if tp in ('charge', 'payment'):
+            gross += t['amount']
+            fees += t['fee']
+        elif tp in ('refund', 'payment_refund'):
+            refunds += abs(t['amount'])
     return {
-        'net': round(total_net / 100, 2),
-        'daily_net': {k: round(v / 100, 2) for k, v in daily_net.items()}
+        'gross': round(gross / 100, 2),
+        'fees': round(fees / 100, 2),
+        'refunds': round(refunds / 100, 2),
+        'net': round(net_volume / 100, 2)
     }
 
 
@@ -1557,24 +1506,33 @@ def _stripe_summary_impl():
     start_ts = int(start_dt.timestamp())
     end_ts = int(end_dt.timestamp())
 
-    rev_data = calc_net_volume_v2(start_ts, end_ts)
+    bal_txns = fetch_stripe_balance_txns(start_ts, end_ts)
+    rev_data = calc_net_volume(bal_txns)
 
     churn_data = calc_full_churn(start_ts, end_ts)
     churn_count = churn_data['canceled_count']
     lost_mrr_dollars = churn_data['lost_mrr']
     churn_source = churn_data['source']
 
-    daily_net_v2 = rev_data.get('daily_net', {})
+    # Group net volume by date for chart
+    VOLUME_TYPES = ('charge', 'payment', 'refund', 'payment_refund', 'adjustment')
+    daily_net = {}
+    for t in bal_txns:
+        if t['type'] in VOLUME_TYPES:
+            dt = datetime.fromtimestamp(t['created'], tz=LOCAL_TZ)
+            key = dt.strftime('%Y-%m-%d')
+            daily_net[key] = daily_net.get(key, 0) + t['net']
+
     daily_churn_mrr = churn_data.get('daily_churn_mrr', {})
 
     # Build daily chart data
-    all_dates = sorted(set(list(daily_net_v2.keys()) + list(daily_churn_mrr.keys())))
+    all_dates = sorted(set(list(daily_net.keys()) + list(daily_churn_mrr.keys())))
     monthly_data = []
     for d in all_dates:
         monthly_data.append({
             'date': d,
             'month': d[:7],
-            'net_volume': daily_net_v2.get(d, 0),
+            'net_volume': round(daily_net.get(d, 0) / 100, 2),
             'churn_revenue': daily_churn_mrr.get(d, 0)
         })
 
@@ -1589,6 +1547,9 @@ def _stripe_summary_impl():
         'mrr': latest_mrr,
         'arr': latest_arr,
         'net_volume': rev_data['net'],
+        'gross_revenue': rev_data['gross'],
+        'fees': rev_data['fees'],
+        'refunds': rev_data['refunds'],
         'churn_count': churn_count,
         'lost_mrr': lost_mrr_dollars,
         'churn_rate': churn_rate,
@@ -1603,48 +1564,13 @@ def _stripe_summary_impl():
     })
 
 
-@app.route('/api/stripe/test-net-metric')
-def test_net_metric():
-    """Debug: try charges API and also check if Billing overview uses amount_captured."""
-    april_start = int(datetime(2025, 4, 1, tzinfo=LOCAL_TZ).timestamp())
-    april_end = int(datetime(2025, 4, 30, 23, 59, 59, tzinfo=LOCAL_TZ).timestamp())
-
-    # Fetch charges directly
-    charges = fetch_stripe_charges(april_start, april_end)
-
-    # Different calculations
-    total_amount = sum(c.get('amount', 0) for c in charges if c.get('status') == 'succeeded')
-    total_captured = sum(c.get('amount_captured', 0) for c in charges if c.get('captured'))
-    total_refunded = sum(c.get('amount_refunded', 0) for c in charges)
-    total_net_captured = total_captured - total_refunded
-
-    # Also try: sum of (amount_captured - amount_refunded) for paid charges
-    net_volume_calc = sum(
-        c.get('amount_captured', 0) - c.get('amount_refunded', 0)
-        for c in charges if c.get('paid') and c.get('status') == 'succeeded'
-    )
-
-    return jsonify({
-        'charges_api': {
-            'total_charges': len(charges),
-            'succeeded_count': len([c for c in charges if c.get('status') == 'succeeded']),
-            'total_amount': round(total_amount / 100, 2),
-            'total_captured': round(total_captured / 100, 2),
-            'total_refunded': round(total_refunded / 100, 2),
-            'net_captured_minus_refunded': round(total_net_captured / 100, 2),
-            'net_volume_calc': round(net_volume_calc / 100, 2)
-        },
-        'expected_billing_overview': 108338.51
-    })
-
-
 @app.route('/stripe-dashboard')
 def stripe_dashboard():
     resp = send_from_directory('static', 'stripe-dashboard.html')
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     resp.headers['Pragma'] = 'no-cache'
     resp.headers['Expires'] = '0'
-    resp.headers['ETag'] = 'v7-net-volume-v2'
+    resp.headers['ETag'] = 'v6-net-volume-fix'
     return resp
 
 
