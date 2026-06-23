@@ -270,10 +270,10 @@
                     start = localDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28));
                     break;
                 case 'last3m':
-                    start = localDateStr(new Date(now.getFullYear(), now.getMonth() - 3, 1));
+                    start = localDateStr(new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()));
                     break;
                 case 'last6m':
-                    start = localDateStr(new Date(now.getFullYear(), now.getMonth() - 6, 1));
+                    start = localDateStr(new Date(now.getFullYear(), now.getMonth() - 6, now.getDate()));
                     break;
                 case 'last12m':
                     start = localDateStr(new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()));
