@@ -1605,45 +1605,49 @@ def _stripe_summary_impl():
 
 @app.route('/api/stripe/test-net-metric')
 def test_net_metric():
-    """Debug: check balance_txns count, timestamps, and amounts for April."""
-    april_start = int(datetime(2025, 4, 1, tzinfo=LOCAL_TZ).timestamp())
-    april_end = int(datetime(2025, 4, 30, 23, 59, 59, tzinfo=LOCAL_TZ).timestamp())
-    may_start = int(datetime(2025, 5, 1, tzinfo=LOCAL_TZ).timestamp())
-    may_end = int(datetime(2025, 5, 31, 23, 59, 59, tzinfo=LOCAL_TZ).timestamp())
+    """Debug: compare Pacific vs UTC timestamps and also try amount instead of net."""
+    from datetime import timezone as tz
+    # Pacific timestamps
+    april_start_pt = int(datetime(2025, 4, 1, tzinfo=LOCAL_TZ).timestamp())
+    april_end_pt = int(datetime(2025, 4, 30, 23, 59, 59, tzinfo=LOCAL_TZ).timestamp())
+    # UTC timestamps
+    april_start_utc = int(datetime(2025, 4, 1, tzinfo=tz.utc).timestamp())
+    april_end_utc = int(datetime(2025, 4, 30, 23, 59, 59, tzinfo=tz.utc).timestamp())
 
     VOLUME_TYPES = ('charge', 'payment', 'refund', 'payment_refund', 'adjustment')
 
-    april_bal = fetch_stripe_balance_txns(april_start, april_end)
-    april_types = {}
-    for t in april_bal:
-        tp = t['type']
-        april_types[tp] = april_types.get(tp, 0) + t['net']
-    april_filtered = sum(v for k, v in april_types.items() if k in VOLUME_TYPES)
+    # Pacific
+    april_bal_pt = fetch_stripe_balance_txns(april_start_pt, april_end_pt)
+    pt_net = sum(t['net'] for t in april_bal_pt if t['type'] in VOLUME_TYPES)
+    pt_amount = sum(t.get('amount', 0) for t in april_bal_pt if t['type'] in ('charge', 'payment'))
+    pt_refunds = sum(abs(t.get('amount', 0)) for t in april_bal_pt if t['type'] in ('refund', 'payment_refund'))
 
-    may_bal = fetch_stripe_balance_txns(may_start, may_end)
-    may_types = {}
-    for t in may_bal:
-        tp = t['type']
-        may_types[tp] = may_types.get(tp, 0) + t['net']
-    may_filtered = sum(v for k, v in may_types.items() if k in VOLUME_TYPES)
+    # UTC
+    april_bal_utc = fetch_stripe_balance_txns(april_start_utc, april_end_utc)
+    utc_net = sum(t['net'] for t in april_bal_utc if t['type'] in VOLUME_TYPES)
+    utc_amount = sum(t.get('amount', 0) for t in april_bal_utc if t['type'] in ('charge', 'payment'))
+
+    # Gross volume approach (charges amount - refund amount)
+    pt_gross = sum(t.get('amount', 0) for t in april_bal_pt if t['type'] in ('charge', 'payment')) - sum(abs(t.get('amount', 0)) for t in april_bal_pt if t['type'] in ('refund', 'payment_refund'))
 
     return jsonify({
-        'april': {
-            'start_ts': april_start,
-            'end_ts': april_end,
-            'total_txns': len(april_bal),
-            'net_filtered': round(april_filtered / 100, 2),
-            'expected': 108338.51,
-            'types': {k: round(v / 100, 2) for k, v in sorted(april_types.items(), key=lambda x: -abs(x[1]))}
+        'pacific': {
+            'start_ts': april_start_pt,
+            'end_ts': april_end_pt,
+            'txn_count': len(april_bal_pt),
+            'net_filtered': round(pt_net / 100, 2),
+            'gross_charges': round(pt_amount / 100, 2),
+            'gross_minus_refunds': round(pt_gross / 100, 2)
         },
-        'may': {
-            'start_ts': may_start,
-            'end_ts': may_end,
-            'total_txns': len(may_bal),
-            'net_filtered': round(may_filtered / 100, 2),
-            'expected': 118357.51,
-            'types': {k: round(v / 100, 2) for k, v in sorted(may_types.items(), key=lambda x: -abs(x[1]))}
-        }
+        'utc': {
+            'start_ts': april_start_utc,
+            'end_ts': april_end_utc,
+            'txn_count': len(april_bal_utc),
+            'net_filtered': round(utc_net / 100, 2),
+            'gross_charges': round(utc_amount / 100, 2)
+        },
+        'expected_billing_overview': 108338.51,
+        'note': 'net = amount - fee, so net is lower than gross by stripe fees'
     })
 
 
