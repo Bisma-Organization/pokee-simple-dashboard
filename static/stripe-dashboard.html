@@ -209,7 +209,7 @@
         </div>
         <div class="controls">
             <div class="preset-btns">
-                <button class="btn btn-ghost" onclick="setPreset('last30')">Last 30d</button>
+                <button class="btn btn-ghost" onclick="setPreset('last28')">Last 28d</button>
                 <button class="btn btn-ghost" onclick="setPreset('last3m')">Last 3m</button>
                 <button class="btn btn-ghost" onclick="setPreset('last6m')">Last 6m</button>
                 <button class="btn btn-ghost" onclick="setPreset('last12m')">12 Month</button>
@@ -266,8 +266,8 @@
             end = localDateStr(now);
 
             switch (preset) {
-                case 'last30':
-                    start = localDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29));
+                case 'last28':
+                    start = localDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 27));
                     break;
                 case 'last3m':
                     start = localDateStr(new Date(now.getFullYear(), now.getMonth() - 3, 1));
