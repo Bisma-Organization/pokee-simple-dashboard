@@ -1605,49 +1605,36 @@ def _stripe_summary_impl():
 
 @app.route('/api/stripe/test-net-metric')
 def test_net_metric():
-    """Debug: compare Pacific vs UTC timestamps and also try amount instead of net."""
-    from datetime import timezone as tz
-    # Pacific timestamps
-    april_start_pt = int(datetime(2025, 4, 1, tzinfo=LOCAL_TZ).timestamp())
-    april_end_pt = int(datetime(2025, 4, 30, 23, 59, 59, tzinfo=LOCAL_TZ).timestamp())
-    # UTC timestamps
-    april_start_utc = int(datetime(2025, 4, 1, tzinfo=tz.utc).timestamp())
-    april_end_utc = int(datetime(2025, 4, 30, 23, 59, 59, tzinfo=tz.utc).timestamp())
+    """Debug: try charges API and also check if Billing overview uses amount_captured."""
+    april_start = int(datetime(2025, 4, 1, tzinfo=LOCAL_TZ).timestamp())
+    april_end = int(datetime(2025, 4, 30, 23, 59, 59, tzinfo=LOCAL_TZ).timestamp())
 
-    VOLUME_TYPES = ('charge', 'payment', 'refund', 'payment_refund', 'adjustment')
+    # Fetch charges directly
+    charges = fetch_stripe_charges(april_start, april_end)
 
-    # Pacific
-    april_bal_pt = fetch_stripe_balance_txns(april_start_pt, april_end_pt)
-    pt_net = sum(t['net'] for t in april_bal_pt if t['type'] in VOLUME_TYPES)
-    pt_amount = sum(t.get('amount', 0) for t in april_bal_pt if t['type'] in ('charge', 'payment'))
-    pt_refunds = sum(abs(t.get('amount', 0)) for t in april_bal_pt if t['type'] in ('refund', 'payment_refund'))
+    # Different calculations
+    total_amount = sum(c.get('amount', 0) for c in charges if c.get('status') == 'succeeded')
+    total_captured = sum(c.get('amount_captured', 0) for c in charges if c.get('captured'))
+    total_refunded = sum(c.get('amount_refunded', 0) for c in charges)
+    total_net_captured = total_captured - total_refunded
 
-    # UTC
-    april_bal_utc = fetch_stripe_balance_txns(april_start_utc, april_end_utc)
-    utc_net = sum(t['net'] for t in april_bal_utc if t['type'] in VOLUME_TYPES)
-    utc_amount = sum(t.get('amount', 0) for t in april_bal_utc if t['type'] in ('charge', 'payment'))
-
-    # Gross volume approach (charges amount - refund amount)
-    pt_gross = sum(t.get('amount', 0) for t in april_bal_pt if t['type'] in ('charge', 'payment')) - sum(abs(t.get('amount', 0)) for t in april_bal_pt if t['type'] in ('refund', 'payment_refund'))
+    # Also try: sum of (amount_captured - amount_refunded) for paid charges
+    net_volume_calc = sum(
+        c.get('amount_captured', 0) - c.get('amount_refunded', 0)
+        for c in charges if c.get('paid') and c.get('status') == 'succeeded'
+    )
 
     return jsonify({
-        'pacific': {
-            'start_ts': april_start_pt,
-            'end_ts': april_end_pt,
-            'txn_count': len(april_bal_pt),
-            'net_filtered': round(pt_net / 100, 2),
-            'gross_charges': round(pt_amount / 100, 2),
-            'gross_minus_refunds': round(pt_gross / 100, 2)
+        'charges_api': {
+            'total_charges': len(charges),
+            'succeeded_count': len([c for c in charges if c.get('status') == 'succeeded']),
+            'total_amount': round(total_amount / 100, 2),
+            'total_captured': round(total_captured / 100, 2),
+            'total_refunded': round(total_refunded / 100, 2),
+            'net_captured_minus_refunded': round(total_net_captured / 100, 2),
+            'net_volume_calc': round(net_volume_calc / 100, 2)
         },
-        'utc': {
-            'start_ts': april_start_utc,
-            'end_ts': april_end_utc,
-            'txn_count': len(april_bal_utc),
-            'net_filtered': round(utc_net / 100, 2),
-            'gross_charges': round(utc_amount / 100, 2)
-        },
-        'expected_billing_overview': 108338.51,
-        'note': 'net = amount - fee, so net is lower than gross by stripe fees'
+        'expected_billing_overview': 108338.51
     })
 
 
