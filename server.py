@@ -1105,19 +1105,23 @@ def calc_net_volume(balance_txns):
     gross = 0
     fees = 0
     refunds = 0
+    type_nets = {}
     for t in balance_txns:
-        if t['type'] in VOLUME_TYPES:
+        tp = t['type']
+        type_nets[tp] = type_nets.get(tp, 0) + t['net']
+        if tp in VOLUME_TYPES:
             net_volume += t['net']
-        if t['type'] in ('charge', 'payment'):
+        if tp in ('charge', 'payment'):
             gross += t['amount']
             fees += t['fee']
-        elif t['type'] in ('refund', 'payment_refund'):
+        elif tp in ('refund', 'payment_refund'):
             refunds += abs(t['amount'])
     return {
         'gross': round(gross / 100, 2),
         'fees': round(fees / 100, 2),
         'refunds': round(refunds / 100, 2),
-        'net': round(net_volume / 100, 2)
+        'net': round(net_volume / 100, 2),
+        'type_nets': {k: round(v / 100, 2) for k, v in type_nets.items()}
     }
 
 
@@ -1559,7 +1563,8 @@ def _stripe_summary_impl():
         'paused': paused_count,
         'monthly': monthly_data,
         'mrr_monthly': mrr_monthly,
-        'arr_monthly': arr_monthly
+        'arr_monthly': arr_monthly,
+        'type_nets': rev_data.get('type_nets', {})
     })
 
 
