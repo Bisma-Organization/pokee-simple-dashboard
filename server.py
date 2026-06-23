@@ -1599,8 +1599,14 @@ def test_net_metric():
         'Stripe-Version': STRIPE_API_VERSION,
         'Content-Type': 'application/json'
     }
+    test_metrics = [
+        'revenue.net_revenue', 'revenue.net_volume', 'billing.net_revenue',
+        'revenue_growth.net_revenue', 'revenue_growth.net_volume',
+        'billing.net_volume', 'revenue.volume', 'revenue.gross_revenue',
+        'revenue.total_revenue', 'billing.volume', 'billing.revenue'
+    ]
     results = {}
-    for metric_name in NET_VOLUME_METRICS:
+    for metric_name in test_metrics:
         payload = {
             'metrics': [{'name': metric_name}],
             'starts_at': '2025-04-01T00:00:00Z',
@@ -1616,9 +1622,9 @@ def test_net_metric():
             for item in data.get('data', []):
                 for r in item.get('results', []):
                     total += int(r.get('value') or 0)
-            results[metric_name] = {'status': 'ok', 'april_total_cents': total, 'april_total_dollars': round(total / 100, 2), 'raw': data}
+            results[metric_name] = {'status': 'ok', 'april_total_cents': total, 'april_total_dollars': round(total / 100, 2)}
         else:
-            results[metric_name] = {'status': 'error', 'code': resp.status_code, 'body': resp.text[:500]}
+            results[metric_name] = {'status': 'error', 'code': resp.status_code, 'msg': resp.json().get('error', {}).get('message', '')[:100] if resp.headers.get('content-type', '').startswith('application/json') else resp.text[:100]}
     return jsonify(results)
 
 
