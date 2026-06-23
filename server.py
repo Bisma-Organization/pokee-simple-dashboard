@@ -1605,19 +1605,48 @@ def _stripe_summary_impl():
 
 @app.route('/api/stripe/test-net-metric')
 def test_net_metric():
-    """Debug endpoint to test invoice-based net volume for April."""
+    """Debug endpoint: compare balance_txns vs invoices for April and March."""
     april_start = int(datetime(2025, 4, 1, tzinfo=LOCAL_TZ).timestamp())
     april_end = int(datetime(2025, 4, 30, 23, 59, 59, tzinfo=LOCAL_TZ).timestamp())
     march_start = int(datetime(2025, 3, 1, tzinfo=LOCAL_TZ).timestamp())
     march_end = int(datetime(2025, 3, 31, 23, 59, 59, tzinfo=LOCAL_TZ).timestamp())
 
-    april_data = calc_net_volume_v2(april_start, april_end)
-    march_data = calc_net_volume_v2(march_start, march_end)
+    # Balance transactions approach
+    VOLUME_TYPES = ('charge', 'payment', 'refund', 'payment_refund', 'adjustment')
+    april_bal = fetch_stripe_balance_txns(april_start, april_end)
+    april_bal_net = sum(t['net'] for t in april_bal if t['type'] in VOLUME_TYPES)
+
+    march_bal = fetch_stripe_balance_txns(march_start, march_end)
+    march_bal_net = sum(t['net'] for t in march_bal if t['type'] in VOLUME_TYPES)
+
+    # Invoice approach
+    april_inv_data = calc_net_volume_v2(april_start, april_end)
+    march_inv_data = calc_net_volume_v2(march_start, march_end)
+
+    # Also try: all balance_txns with NO type filter
+    april_all_net = sum(t['net'] for t in april_bal)
+    march_all_net = sum(t['net'] for t in march_bal)
+
+    # Types breakdown for March
+    march_types = {}
+    for t in march_bal:
+        tp = t['type']
+        march_types[tp] = march_types.get(tp, 0) + t['net']
 
     return jsonify({
-        'april': {'net_volume': april_data['net'], 'expected': 108338.51},
-        'march': {'net_volume': march_data['net'], 'expected': 115372},
-        'method': 'invoices_api'
+        'april': {
+            'balance_txns_filtered': round(april_bal_net / 100, 2),
+            'balance_txns_all': round(april_all_net / 100, 2),
+            'invoices': april_inv_data['net'],
+            'expected_billing_overview': 108338.51
+        },
+        'march': {
+            'balance_txns_filtered': round(march_bal_net / 100, 2),
+            'balance_txns_all': round(march_all_net / 100, 2),
+            'invoices': march_inv_data['net'],
+            'expected_billing_overview': 115372,
+            'types_breakdown': {k: round(v / 100, 2) for k, v in sorted(march_types.items(), key=lambda x: -abs(x[1]))}
+        }
     })
 
 
