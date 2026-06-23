@@ -1600,10 +1600,11 @@ def test_net_metric():
         'Content-Type': 'application/json'
     }
     test_metrics = [
-        'revenue.net_revenue', 'revenue.net_volume', 'billing.net_revenue',
-        'revenue_growth.net_revenue', 'revenue_growth.net_volume',
-        'billing.net_volume', 'revenue.volume', 'revenue.gross_revenue',
-        'revenue.total_revenue', 'billing.volume', 'billing.revenue'
+        'revenue_growth.mrr', 'revenue.recurring_revenue',
+        'revenue.collected_revenue', 'revenue.invoiced_revenue',
+        'revenue.recognized_revenue', 'revenue.deferred_revenue',
+        'subscriber_count.active', 'subscriber_count.new',
+        'revenue_growth.arr', 'revenue.subscription_revenue'
     ]
     results = {}
     for metric_name in test_metrics:
