@@ -1098,62 +1098,74 @@ def fetch_stripe_balance_txns(start_ts, end_ts):
     return cached(cache_key, _fetch)
 
 
-NET_VOLUME_METRICS = ['revenue.net_revenue', 'billing.net_revenue', 'revenue.net_volume']
-
-def calc_net_volume_v2(start_ts, end_ts):
-    """Net volume using v2 Analytics API (matches Stripe Billing overview)."""
-    start_dt = datetime.fromtimestamp(start_ts, tz=LOCAL_TZ)
-    end_dt = datetime.fromtimestamp(end_ts, tz=LOCAL_TZ)
-
-    day_count = (end_dt - start_dt).days + 1
-    granularity = 'day' if day_count <= 93 else 'month'
-
-    starts_at = start_dt.strftime('%Y-%m-%dT00:00:00Z')
-    ends_at = (end_dt + timedelta(days=1)).strftime('%Y-%m-%dT00:00:00Z')
-    utc_now = datetime.now(timezone.utc)
-    if datetime.fromisoformat(ends_at.replace('Z', '+00:00')) > utc_now:
-        ends_at = utc_now.strftime('%Y-%m-%dT%H:%M:%SZ')
-
-    cache_key = f'stripe_net_revenue_v2_{starts_at}_{ends_at}_{granularity}'
+def fetch_stripe_invoices(start_ts, end_ts):
+    """Fetch all paid invoices in date range using invoice created date (matches Billing overview)."""
+    cache_key = f'stripe_invoices_{start_ts}_{end_ts}'
 
     def _fetch():
-        headers = {
-            'Authorization': f'Bearer {STRIPE_KEY}',
-            'Stripe-Version': STRIPE_API_VERSION,
-            'Content-Type': 'application/json'
+        all_invoices = []
+        params = {
+            'limit': 100,
+            'status': 'paid',
+            'created[gte]': start_ts,
+            'created[lte]': end_ts
         }
-        last_err = None
-        for metric_name in NET_VOLUME_METRICS:
-            payload = {
-                'metrics': [{'name': metric_name}],
-                'starts_at': starts_at,
-                'ends_at': ends_at,
-                'granularity': granularity,
-                'currency': 'usd',
-                'timezone': 'America/Los_Angeles'
-            }
-            resp = requests.post(STRIPE_ANALYTICS_URL, headers=headers, json=payload)
-            if resp.status_code == 200:
-                return resp.json()
-            last_err = f'{metric_name}: {resp.status_code} {resp.text[:200]}'
-        raise Exception(f'All net volume metrics failed. Last: {last_err}')
+        while True:
+            data = stripe_get('/invoices', params)
+            invoices = data.get('data', [])
+            all_invoices.extend(invoices)
+            if not data.get('has_more'):
+                break
+            params['starting_after'] = invoices[-1]['id']
+        return all_invoices
+    return cached(cache_key, _fetch)
 
-    data = cached(cache_key, _fetch)
 
-    start_date = start_dt.strftime('%Y-%m-%d')
-    end_date = end_dt.strftime('%Y-%m-%d')
+def fetch_stripe_credit_notes(start_ts, end_ts):
+    """Fetch credit notes in date range."""
+    cache_key = f'stripe_credit_notes_{start_ts}_{end_ts}'
+
+    def _fetch():
+        all_notes = []
+        params = {
+            'limit': 100,
+            'created[gte]': start_ts,
+            'created[lte]': end_ts
+        }
+        while True:
+            data = stripe_get('/credit_notes', params)
+            notes = data.get('data', [])
+            all_notes.extend(notes)
+            if not data.get('has_more'):
+                break
+            params['starting_after'] = notes[-1]['id']
+        return all_notes
+    return cached(cache_key, _fetch)
+
+
+def calc_net_volume_v2(start_ts, end_ts):
+    """Net volume from invoices (matches Stripe Billing overview)."""
+    invoices = fetch_stripe_invoices(start_ts, end_ts)
+    credit_notes = fetch_stripe_credit_notes(start_ts, end_ts)
 
     total_net = 0
     daily_net = {}
 
-    for item in data.get('data', []):
-        ts = item.get('timestamp', '')[:10]
-        if ts < start_date or ts > end_date:
-            continue
-        for r in item.get('results', []):
-            val = int(r.get('value') or 0)
-            total_net += val
-            daily_net[ts] = daily_net.get(ts, 0) + val
+    for inv in invoices:
+        amount = inv.get('amount_paid', 0)
+        created = inv.get('created', 0)
+        dt = datetime.fromtimestamp(created, tz=LOCAL_TZ)
+        key = dt.strftime('%Y-%m-%d')
+        total_net += amount
+        daily_net[key] = daily_net.get(key, 0) + amount
+
+    for cn in credit_notes:
+        amount = cn.get('amount', 0)
+        created = cn.get('created', 0)
+        dt = datetime.fromtimestamp(created, tz=LOCAL_TZ)
+        key = dt.strftime('%Y-%m-%d')
+        total_net -= amount
+        daily_net[key] = daily_net.get(key, 0) - amount
 
     return {
         'net': round(total_net / 100, 2),
@@ -1593,40 +1605,20 @@ def _stripe_summary_impl():
 
 @app.route('/api/stripe/test-net-metric')
 def test_net_metric():
-    """Debug endpoint to test which net volume metric works."""
-    headers = {
-        'Authorization': f'Bearer {STRIPE_KEY}',
-        'Stripe-Version': STRIPE_API_VERSION,
-        'Content-Type': 'application/json'
-    }
-    test_metrics = [
-        'revenue_growth.mrr', 'revenue.recurring_revenue',
-        'revenue.collected_revenue', 'revenue.invoiced_revenue',
-        'revenue.recognized_revenue', 'revenue.deferred_revenue',
-        'subscriber_count.active', 'subscriber_count.new',
-        'revenue_growth.arr', 'revenue.subscription_revenue'
-    ]
-    results = {}
-    for metric_name in test_metrics:
-        payload = {
-            'metrics': [{'name': metric_name}],
-            'starts_at': '2025-04-01T00:00:00Z',
-            'ends_at': '2025-05-01T00:00:00Z',
-            'granularity': 'month',
-            'currency': 'usd',
-            'timezone': 'America/Los_Angeles'
-        }
-        resp = requests.post(STRIPE_ANALYTICS_URL, headers=headers, json=payload)
-        if resp.status_code == 200:
-            data = resp.json()
-            total = 0
-            for item in data.get('data', []):
-                for r in item.get('results', []):
-                    total += int(r.get('value') or 0)
-            results[metric_name] = {'status': 'ok', 'april_total_cents': total, 'april_total_dollars': round(total / 100, 2)}
-        else:
-            results[metric_name] = {'status': 'error', 'code': resp.status_code, 'msg': resp.json().get('error', {}).get('message', '')[:100] if resp.headers.get('content-type', '').startswith('application/json') else resp.text[:100]}
-    return jsonify(results)
+    """Debug endpoint to test invoice-based net volume for April."""
+    april_start = int(datetime(2025, 4, 1, tzinfo=LOCAL_TZ).timestamp())
+    april_end = int(datetime(2025, 4, 30, 23, 59, 59, tzinfo=LOCAL_TZ).timestamp())
+    march_start = int(datetime(2025, 3, 1, tzinfo=LOCAL_TZ).timestamp())
+    march_end = int(datetime(2025, 3, 31, 23, 59, 59, tzinfo=LOCAL_TZ).timestamp())
+
+    april_data = calc_net_volume_v2(april_start, april_end)
+    march_data = calc_net_volume_v2(march_start, march_end)
+
+    return jsonify({
+        'april': {'net_volume': april_data['net'], 'expected': 108338.51},
+        'march': {'net_volume': march_data['net'], 'expected': 115372},
+        'method': 'invoices_api'
+    })
 
 
 @app.route('/stripe-dashboard')
