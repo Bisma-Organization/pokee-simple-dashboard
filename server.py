@@ -1219,14 +1219,15 @@ def sub_mrr_from_items(sub):
 
 
 def calc_full_churn(start_ts, end_ts):
-    """Calculate churn revenue using Stripe v2 Analytics API with daily granularity.
+    """Calculate churn revenue using Stripe v2 Analytics API.
 
-    Uses revenue_growth.mrr metric with MRR_CHURN + MRR_CONTRACTION filters.
-    Daily granularity ensures exact match for any date range (not just full months).
-    Values returned in cents as strings — sum and divide by 100 for dollars.
+    Uses daily granularity for ranges <= 93 days, monthly for longer ranges.
     """
     start_dt = datetime.fromtimestamp(start_ts, tz=LOCAL_TZ)
     end_dt = datetime.fromtimestamp(end_ts, tz=LOCAL_TZ)
+
+    day_count = (end_dt - start_dt).days + 1
+    granularity = 'day' if day_count <= 93 else 'month'
 
     starts_at = start_dt.strftime('%Y-%m-%dT00:00:00Z')
     ends_at = (end_dt + timedelta(days=1)).strftime('%Y-%m-%dT00:00:00Z')
@@ -1234,7 +1235,7 @@ def calc_full_churn(start_ts, end_ts):
     if datetime.fromisoformat(ends_at.replace('Z', '+00:00')) > utc_now:
         ends_at = utc_now.strftime('%Y-%m-%dT%H:%M:%SZ')
 
-    cache_key = f'stripe_churn_v2_{starts_at}_{ends_at}'
+    cache_key = f'stripe_churn_v2_{starts_at}_{ends_at}_{granularity}'
 
     def _fetch():
         headers = {
@@ -1246,7 +1247,7 @@ def calc_full_churn(start_ts, end_ts):
             'metrics': [{'name': 'revenue_growth.mrr'}],
             'starts_at': starts_at,
             'ends_at': ends_at,
-            'granularity': 'day',
+            'granularity': granularity,
             'currency': 'usd',
             'filters': {'change_type': ['MRR_CHURN', 'MRR_CONTRACTION']},
             'group_by': ['change_type']
