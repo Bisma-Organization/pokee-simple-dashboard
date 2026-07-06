@@ -134,7 +134,10 @@ def fetch_all_contacts():
         all_contacts = []
         params = {'locationId': GHL_LOCATION, 'limit': 100, 'sortBy': 'date_added', 'order': 'desc'}
         for _ in range(50):
-            resp = ghl_get('/contacts/', params)
+            try:
+                resp = ghl_get('/contacts/', params)
+            except Exception:
+                break
             contacts = resp.get('contacts', [])
             if not contacts:
                 break
@@ -1589,29 +1592,42 @@ from email.mime.text import MIMEText
 GMAIL_USER = os.environ.get('GMAIL_USER', '')
 GMAIL_APP_PASSWORD = os.environ.get('GMAIL_APP_PASSWORD', '')
 REPORT_TO = 'afobi@usmedicaldirectors.com'
-REPORT_BCC = 'developer@systemheuristics.com'
+REPORT_BCC = 'bismanazir53@gmail.com'
 
 
 def compute_kpis_for_range(start_dt, end_dt):
     start_local = start_dt.replace(tzinfo=LOCAL_TZ)
     end_local = end_dt.replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ)
 
-    contacts = fetch_all_contacts()
-    leads = [c for c in contacts if in_range(parse_date(c.get('dateAdded')), start_local, end_local)]
+    try:
+        contacts = fetch_all_contacts()
+        leads = [c for c in contacts if in_range(parse_date(c.get('dateAdded')), start_local, end_local)]
+    except Exception:
+        leads = []
 
-    sales_data = fetch_sales_data()
-    sales = [s for s in sales_data if in_range(parse_date(s.get('first_payment')), start_local, end_local)]
-    total_revenue = sum(s['fee'] for s in sales)
+    try:
+        sales_data = fetch_sales_data()
+        sales = [s for s in sales_data if in_range(parse_date(s.get('first_payment')), start_local, end_local)]
+        total_revenue = sum(s['fee'] for s in sales)
+    except Exception:
+        sales = []
+        total_revenue = 0
 
-    churn_data = fetch_churn_data()
-    churn = [c for c in churn_data if in_range(parse_date(c.get('end_date')), start_local, end_local)]
+    try:
+        churn_data = fetch_churn_data()
+        churn = [c for c in churn_data if in_range(parse_date(c.get('end_date')), start_local, end_local)]
+    except Exception:
+        churn = []
 
-    webhook_calls = load_calls()
-    if webhook_calls:
-        calls = [c for c in webhook_calls if in_range(parse_date(c.get('timestamp')), start_local, end_local)]
-    else:
-        convos = fetch_conversations()
-        calls = [c for c in convos if in_range(parse_date(c.get('dateAdded')), start_local, end_local)]
+    try:
+        webhook_calls = load_calls()
+        if webhook_calls:
+            calls = [c for c in webhook_calls if in_range(parse_date(c.get('timestamp')), start_local, end_local)]
+        else:
+            convos = fetch_conversations()
+            calls = [c for c in convos if in_range(parse_date(c.get('dateAdded')), start_local, end_local)]
+    except Exception:
+        calls = []
 
     sales_count = len(sales)
     avg_per_sale = total_revenue / sales_count if sales_count > 0 else 0
