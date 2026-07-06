@@ -1582,10 +1582,14 @@ def refresh_cache():
 
 # --- Email Report ---
 
-SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+GMAIL_USER = os.environ.get('GMAIL_USER', '')
+GMAIL_APP_PASSWORD = os.environ.get('GMAIL_APP_PASSWORD', '')
 REPORT_TO = 'afobi@usmedicaldirectors.com'
 REPORT_BCC = 'bismanazir53@gmail.com'
-REPORT_FROM = os.environ.get('REPORT_FROM_EMAIL', 'dashboard@usmedicaldirectors.com')
 
 
 def compute_kpis_for_range(start_dt, end_dt):
@@ -1627,64 +1631,101 @@ def compute_kpis_for_range(start_dt, end_dt):
 def generate_report_html():
     today = datetime.now(LOCAL_TZ).date()
 
-    periods = [
-        ('Current 7 days', today - timedelta(days=6), today),
-        ('Previous 7 days', today - timedelta(days=13), today - timedelta(days=7)),
-        ('Previous Month', today - timedelta(days=37), today - timedelta(days=7)),
-        ('Previous Quarter', today - timedelta(days=97), today - timedelta(days=7)),
-    ]
+    # Current 7 days
+    cur7_start = today - timedelta(days=6)
+    cur7_end = today
 
-    results = []
-    for label, s, e in periods:
-        start_dt = datetime(s.year, s.month, s.day)
-        end_dt = datetime(e.year, e.month, e.day)
-        kpis = compute_kpis_for_range(start_dt, end_dt)
-        results.append({'label': label, 'start': s, 'end': e, 'kpis': kpis})
+    # Previous 7 days
+    prev7_start = today - timedelta(days=13)
+    prev7_end = today - timedelta(days=7)
 
-    current = results[0]['kpis']
+    # Current month (1st of this month to today)
+    cur_month_start = today.replace(day=1)
+    cur_month_end = today
+
+    # Previous month (1st of prev month to last day of prev month)
+    first_this_month = today.replace(day=1)
+    prev_month_end = first_this_month - timedelta(days=1)
+    prev_month_start = prev_month_end.replace(day=1)
+
+    # Current quarter
+    q_month = ((today.month - 1) // 3) * 3 + 1
+    cur_q_start = today.replace(month=q_month, day=1)
+    cur_q_end = today
+
+    # Previous quarter
+    prev_q_end = cur_q_start - timedelta(days=1)
+    prev_q_month = ((prev_q_end.month - 1) // 3) * 3 + 1
+    prev_q_start = prev_q_end.replace(month=prev_q_month, day=1)
+
+    periods = {
+        'cur7': (cur7_start, cur7_end),
+        'prev7': (prev7_start, prev7_end),
+        'cur_month': (cur_month_start, cur_month_end),
+        'prev_month': (prev_month_start, prev_month_end),
+        'cur_quarter': (cur_q_start, cur_q_end),
+        'prev_quarter': (prev_q_start, prev_q_end),
+    }
+
+    data = {}
+    for key, (s, e) in periods.items():
+        data[key] = compute_kpis_for_range(datetime(s.year, s.month, s.day), datetime(e.year, e.month, e.day))
+
     metrics = ['leads', 'sales', 'churn', 'calls', 'revenue', 'avg_per_sale']
     labels = {'leads': 'Leads', 'sales': 'Sales', 'churn': 'Churn', 'calls': 'Calls',
               'revenue': 'Revenue', 'avg_per_sale': 'Avg $ / Sale'}
 
-    def fmt_date(d):
+    def fd(d):
         return d.strftime('%m/%d')
 
-    def fmt_val(metric, val):
+    def fv(metric, val):
         if metric in ('revenue', 'avg_per_sale'):
             return f'${val:,.2f}'
-        return str(val)
+        return str(int(val))
 
-    def pct_change(curr, prev):
+    def pct(curr, prev):
         if prev == 0:
             return '+∞%' if curr > 0 else '0%'
         change = ((curr - prev) / abs(prev)) * 100
         sign = '+' if change >= 0 else ''
         return f'{sign}{change:.1f}%'
 
-    html = f'''<html><body style="font-family:Arial,sans-serif;color:#333;max-width:700px;margin:0 auto;padding:20px;">
+    html = f'''<html><body style="font-family:Arial,sans-serif;color:#333;max-width:750px;margin:0 auto;padding:20px;">
 <h2 style="color:#6366f1;">Daily Dashboard Performance Report</h2>
 <p style="color:#666;">Generated: {today.strftime("%B %d, %Y")} at 8:00 PM PT</p>
 <hr style="border:1px solid #e2e8f0;">'''
 
     for metric in metrics:
-        curr_val = current[metric]
+        cur7_val = data['cur7'][metric]
+        prev7_val = data['prev7'][metric]
+        cur_m_val = data['cur_month'][metric]
+        prev_m_val = data['prev_month'][metric]
+        cur_q_val = data['cur_quarter'][metric]
+        prev_q_val = data['prev_quarter'][metric]
+
+        c7 = '#10b981' if cur7_val >= prev7_val else '#ef4444'
+        cm = '#10b981' if cur_m_val >= prev_m_val else '#ef4444'
+        cq = '#10b981' if cur_q_val >= prev_q_val else '#ef4444'
+
         html += f'''<h3 style="color:#1e293b;margin-top:24px;">{labels[metric]}</h3>
 <table style="width:100%;border-collapse:collapse;font-size:14px;">
 <tr style="background:#f8fafc;">
-<td style="padding:8px 12px;border:1px solid #e2e8f0;font-weight:bold;">
-{results[0]['label']} ({fmt_date(results[0]['start'])} - {fmt_date(results[0]['end'])})</td>
-<td style="padding:8px 12px;border:1px solid #e2e8f0;font-weight:bold;color:#6366f1;">{fmt_val(metric, curr_val)}</td>
-</tr>'''
-        for comp in results[1:]:
-            comp_val = comp['kpis'][metric]
-            change = pct_change(curr_val, comp_val)
-            color = '#10b981' if curr_val >= comp_val else '#ef4444'
-            html += f'''<tr>
-<td style="padding:8px 12px;border:1px solid #e2e8f0;">
-Compared to {comp['label']} ({fmt_date(comp['start'])} - {fmt_date(comp['end'])})</td>
-<td style="padding:8px 12px;border:1px solid #e2e8f0;">{fmt_val(metric, comp_val)} / <span style="color:{color};font-weight:bold;">{change}</span></td>
-</tr>'''
-        html += '</table>'
+<td style="padding:8px 12px;border:1px solid #e2e8f0;font-weight:bold;">Current 7 days ({fd(cur7_start)} - {fd(cur7_end)})</td>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;font-weight:bold;color:#6366f1;">{fv(metric, cur7_val)}</td>
+</tr>
+<tr>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;">Compared to Previous 7 days ({fd(prev7_start)} - {fd(prev7_end)})</td>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;">{fv(metric, prev7_val)} / <span style="color:{c7};font-weight:bold;">{pct(cur7_val, prev7_val)}</span></td>
+</tr>
+<tr>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;">Current Month ({fd(cur_month_start)} - {fd(cur_month_end)}) vs Previous Month ({fd(prev_month_start)} - {fd(prev_month_end)})</td>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;">{fv(metric, prev_m_val)} / <span style="color:{cm};font-weight:bold;">{pct(cur_m_val, prev_m_val)}</span></td>
+</tr>
+<tr>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;">This Quarter ({fd(cur_q_start)} - {fd(cur_q_end)}) vs Previous Quarter ({fd(prev_q_start)} - {fd(prev_q_end)})</td>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;">{fv(metric, prev_q_val)} / <span style="color:{cq};font-weight:bold;">{pct(cur_q_val, prev_q_val)}</span></td>
+</tr>
+</table>'''
 
     html += '''<hr style="border:1px solid #e2e8f0;margin-top:30px;">
 <p style="color:#94a3b8;font-size:12px;">US Medical Directors — Automated Dashboard Report</p>
@@ -1693,34 +1734,27 @@ Compared to {comp['label']} ({fmt_date(comp['start'])} - {fmt_date(comp['end'])}
 
 
 def send_report_email():
-    if not SENDGRID_API_KEY:
-        return {'success': False, 'error': 'SENDGRID_API_KEY not configured'}
+    if not GMAIL_USER or not GMAIL_APP_PASSWORD:
+        return {'success': False, 'error': 'GMAIL_USER and GMAIL_APP_PASSWORD env vars required'}
 
     today_str = datetime.now(LOCAL_TZ).strftime('%B %d, %Y')
     html_content = generate_report_html()
 
-    payload = {
-        'personalizations': [{
-            'to': [{'email': REPORT_TO}],
-            'bcc': [{'email': REPORT_BCC}],
-            'subject': f'Daily Dashboard Performance Report (Pacific Time 8PM) {today_str}'
-        }],
-        'from': {'email': REPORT_FROM, 'name': 'USMD Dashboard'},
-        'content': [{'type': 'text/html', 'value': html_content}]
-    }
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = f'Daily Dashboard Performance Report (Pacific Time 8PM) {today_str}'
+    msg['From'] = GMAIL_USER
+    msg['To'] = REPORT_TO
+    msg['Bcc'] = REPORT_BCC
+    msg.attach(MIMEText(html_content, 'html'))
 
-    resp = requests.post(
-        'https://api.sendgrid.com/v3/mail/send',
-        headers={
-            'Authorization': f'Bearer {SENDGRID_API_KEY}',
-            'Content-Type': 'application/json'
-        },
-        json=payload
-    )
-
-    if resp.status_code in (200, 202):
+    try:
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
+            server.sendmail(GMAIL_USER, [REPORT_TO, REPORT_BCC], msg.as_string())
         return {'success': True, 'message': f'Report sent to {REPORT_TO}'}
-    return {'success': False, 'error': f'SendGrid {resp.status_code}: {resp.text[:200]}'}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
 
 
 @app.route('/api/email-report', methods=['POST'])
