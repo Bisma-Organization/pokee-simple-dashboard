@@ -1592,7 +1592,7 @@ from email.mime.text import MIMEText
 GMAIL_USER = os.environ.get('GMAIL_USER', '')
 GMAIL_APP_PASSWORD = os.environ.get('GMAIL_APP_PASSWORD', '')
 REPORT_TO = 'afobi@usmedicaldirectors.com'
-REPORT_BCC = 'bismanazir53@gmail.com'
+REPORT_BCC = 'bismanazir53@gmail.com,developer@systemheuristics.com'
 
 
 def compute_kpis_for_range(start_dt, end_dt):
@@ -1779,7 +1779,8 @@ def send_report_email():
         with smtplib.SMTP('smtp.gmail.com', 587) as server:
             server.starttls()
             server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
-            server.sendmail(GMAIL_USER, [REPORT_TO, REPORT_BCC], msg.as_string())
+            recipients = [REPORT_TO] + [b.strip() for b in REPORT_BCC.split(',')]
+            server.sendmail(GMAIL_USER, recipients, msg.as_string())
         return {'success': True, 'message': f'Report sent to {REPORT_TO}'}
     except Exception as e:
         return {'success': False, 'error': str(e)}
