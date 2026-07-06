@@ -1718,11 +1718,11 @@ def generate_report_html():
 <td style="padding:8px 12px;border:1px solid #e2e8f0;">{fv(metric, prev7_val)} / <span style="color:{c7};font-weight:bold;">{pct(cur7_val, prev7_val)}</span></td>
 </tr>
 <tr>
-<td style="padding:8px 12px;border:1px solid #e2e8f0;">Current Month ({fd(cur_month_start)} - {fd(cur_month_end)}) vs Previous Month ({fd(prev_month_start)} - {fd(prev_month_end)})</td>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;">This Month ({fv(metric, cur_m_val)}) ({fd(cur_month_start)} - {fd(cur_month_end)}) vs Previous Month ({fv(metric, prev_m_val)}) ({fd(prev_month_start)} - {fd(prev_month_end)})</td>
 <td style="padding:8px 12px;border:1px solid #e2e8f0;">{fv(metric, prev_m_val)} / <span style="color:{cm};font-weight:bold;">{pct(cur_m_val, prev_m_val)}</span></td>
 </tr>
 <tr>
-<td style="padding:8px 12px;border:1px solid #e2e8f0;">This Quarter ({fd(cur_q_start)} - {fd(cur_q_end)}) vs Previous Quarter ({fd(prev_q_start)} - {fd(prev_q_end)})</td>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;">This Quarter ({fv(metric, cur_q_val)}) ({fd(cur_q_start)} - {fd(cur_q_end)}) vs Previous Quarter ({fv(metric, prev_q_val)}) ({fd(prev_q_start)} - {fd(prev_q_end)})</td>
 <td style="padding:8px 12px;border:1px solid #e2e8f0;">{fv(metric, prev_q_val)} / <span style="color:{cq};font-weight:bold;">{pct(cur_q_val, prev_q_val)}</span></td>
 </tr>
 </table>'''
