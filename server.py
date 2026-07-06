@@ -1769,7 +1769,7 @@ def send_report_email():
     html_content = generate_report_html()
 
     msg = MIMEMultipart('alternative')
-    msg['Subject'] = f'Daily Dashboard Performance Report (Pacific Time 8PM) {today_str}'
+    msg['Subject'] = f'Daily Dashboard Performance Report {today_str}'
     msg['From'] = GMAIL_USER
     msg['To'] = REPORT_TO
     msg['Bcc'] = REPORT_BCC
