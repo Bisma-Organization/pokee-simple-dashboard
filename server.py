@@ -1599,46 +1599,56 @@ def compute_kpis_for_range(start_dt, end_dt):
     start_local = start_dt.replace(tzinfo=LOCAL_TZ)
     end_local = end_dt.replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ)
 
+    leads_count = None
+    sales_count = None
+    total_revenue = None
+    churn_count = None
+    calls_count = None
+
     try:
         contacts = fetch_all_contacts()
-        leads = [c for c in contacts if in_range(parse_date(c.get('dateAdded')), start_local, end_local)]
+        leads_count = len([c for c in contacts if in_range(parse_date(c.get('dateAdded')), start_local, end_local)])
     except Exception:
-        leads = []
+        pass
 
     try:
         sales_data = fetch_sales_data()
         sales = [s for s in sales_data if in_range(parse_date(s.get('first_payment')), start_local, end_local)]
-        total_revenue = sum(s['fee'] for s in sales)
+        sales_count = len(sales)
+        total_revenue = round(sum(s['fee'] for s in sales), 2)
     except Exception:
-        sales = []
-        total_revenue = 0
+        pass
 
     try:
-        churn_data = fetch_churn_data()
-        churn = [c for c in churn_data if in_range(parse_date(c.get('end_date')), start_local, end_local)]
+        churn_data_raw = fetch_churn_data()
+        churn_count = len([c for c in churn_data_raw if in_range(parse_date(c.get('end_date')), start_local, end_local)])
     except Exception:
-        churn = []
+        pass
 
     try:
         webhook_calls = load_calls()
         if webhook_calls:
-            calls = [c for c in webhook_calls if in_range(parse_date(c.get('timestamp')), start_local, end_local)]
+            calls_count = len([c for c in webhook_calls if in_range(parse_date(c.get('timestamp')), start_local, end_local)])
         else:
             convos = fetch_conversations()
-            calls = [c for c in convos if in_range(parse_date(c.get('dateAdded')), start_local, end_local)]
+            calls_count = len([c for c in convos if in_range(parse_date(c.get('dateAdded')), start_local, end_local)])
     except Exception:
-        calls = []
+        pass
 
-    sales_count = len(sales)
-    avg_per_sale = total_revenue / sales_count if sales_count > 0 else 0
+    if sales_count is not None and total_revenue is not None and sales_count > 0:
+        avg_per_sale = round(total_revenue / sales_count, 2)
+    elif sales_count == 0:
+        avg_per_sale = 0
+    else:
+        avg_per_sale = None
 
     return {
-        'leads': len(leads),
+        'leads': leads_count,
         'sales': sales_count,
-        'churn': len(churn),
-        'calls': len(calls),
-        'revenue': round(total_revenue, 2),
-        'avg_per_sale': round(avg_per_sale, 2)
+        'churn': churn_count,
+        'calls': calls_count,
+        'revenue': total_revenue,
+        'avg_per_sale': avg_per_sale
     }
 
 
@@ -1693,11 +1703,15 @@ def generate_report_html():
         return d.strftime('%m/%d')
 
     def fv(metric, val):
+        if val is None:
+            return "<span style='color:#ef4444;font-style:italic;'>Couldn't fetch</span>"
         if metric in ('revenue', 'avg_per_sale'):
             return f'${val:,.2f}'
         return str(int(val))
 
     def pct(curr, prev):
+        if curr is None or prev is None:
+            return "<span style='color:#94a3b8;'>N/A</span>"
         if prev == 0:
             return '+∞%' if curr > 0 else '0%'
         change = ((curr - prev) / abs(prev)) * 100
@@ -1717,9 +1731,9 @@ def generate_report_html():
         cur_q_val = data['cur_quarter'][metric]
         prev_q_val = data['prev_quarter'][metric]
 
-        c7 = '#10b981' if cur7_val >= prev7_val else '#ef4444'
-        cm = '#10b981' if cur_m_val >= prev_m_val else '#ef4444'
-        cq = '#10b981' if cur_q_val >= prev_q_val else '#ef4444'
+        c7 = '#94a3b8' if cur7_val is None or prev7_val is None else ('#10b981' if cur7_val >= prev7_val else '#ef4444')
+        cm = '#94a3b8' if cur_m_val is None or prev_m_val is None else ('#10b981' if cur_m_val >= prev_m_val else '#ef4444')
+        cq = '#94a3b8' if cur_q_val is None or prev_q_val is None else ('#10b981' if cur_q_val >= prev_q_val else '#ef4444')
 
         html += f'''<h3 style="color:#1e293b;margin-top:24px;">{labels[metric]}</h3>
 <table style="width:100%;border-collapse:collapse;font-size:14px;">
