@@ -1593,8 +1593,6 @@ REPORT_BCC = 'bismanazir53@gmail.com'
 
 
 def compute_kpis_for_range(start_dt, end_dt):
-    start_utc = start_dt.replace(tzinfo=timezone.utc)
-    end_utc = end_dt.replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
     start_local = start_dt.replace(tzinfo=LOCAL_TZ)
     end_local = end_dt.replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ)
 
@@ -1602,11 +1600,11 @@ def compute_kpis_for_range(start_dt, end_dt):
     leads = [c for c in contacts if in_range(parse_date(c.get('dateAdded')), start_local, end_local)]
 
     sales_data = fetch_sales_data()
-    sales = [s for s in sales_data if in_range(parse_date(s.get('first_payment')), start_utc, end_utc)]
+    sales = [s for s in sales_data if in_range(parse_date(s.get('first_payment')), start_local, end_local)]
     total_revenue = sum(s['fee'] for s in sales)
 
     churn_data = fetch_churn_data()
-    churn = [c for c in churn_data if in_range(parse_date(c.get('end_date')), start_utc, end_utc)]
+    churn = [c for c in churn_data if in_range(parse_date(c.get('end_date')), start_local, end_local)]
 
     webhook_calls = load_calls()
     if webhook_calls:
@@ -1788,7 +1786,7 @@ def init_scheduler():
         scheduler = BackgroundScheduler()
         scheduler.add_job(
             send_report_email,
-            CronTrigger(hour=20, minute=0, timezone='America/Los_Angeles'),
+            CronTrigger(hour=8, minute=0, timezone='America/Los_Angeles'),
             id='daily_email_report',
             replace_existing=True
         )
