@@ -256,6 +256,7 @@
             <button class="btn btn-primary" onclick="applyFilters()">Apply</button>
             <button class="btn btn-ghost" onclick="resetFilters()">Reset</button>
             <button class="btn btn-ghost" onclick="refreshData()">&#8635; Refresh</button>
+            <button class="btn btn-primary" onclick="sendEmailReport()" id="emailBtn" style="background:#10b981;">&#9993; Email Report</button>
         </div>
     </div>
 
@@ -269,7 +270,7 @@
 
     function getDefaultDates() {
         const now = new Date();
-        const start = new Date(now.getFullYear(), 0, 1);
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
         return {
             start: start.toISOString().split('T')[0],
             end: now.toISOString().split('T')[0]
@@ -582,6 +583,28 @@
     }
 
     function goPage(p) { tablePage = p; loadTable(currentTab); }
+
+    async function sendEmailReport() {
+        const btn = document.getElementById('emailBtn');
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+        try {
+            const resp = await fetch('/api/email-report', { method: 'POST' });
+            const data = await resp.json();
+            if (data.success) {
+                btn.textContent = '✓ Sent!';
+                btn.style.background = '#10b981';
+            } else {
+                btn.textContent = '✗ Failed';
+                btn.style.background = '#ef4444';
+                alert(data.error || 'Failed to send report');
+            }
+        } catch(e) {
+            btn.textContent = '✗ Error';
+            btn.style.background = '#ef4444';
+        }
+        setTimeout(() => { btn.disabled = false; btn.innerHTML = '&#9993; Email Report'; btn.style.background = '#10b981'; }, 3000);
+    }
 
     init();
     </script>
