@@ -1759,12 +1759,14 @@ def send_report_email():
 
 @app.route('/api/email-report', methods=['POST'])
 def email_report():
-    try:
+    import threading
+
+    def _run():
         cache.clear()
-        result = send_report_email()
-        return jsonify(result), 200 if result['success'] else 500
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        send_report_email()
+
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({'success': True, 'message': 'Report is being generated and sent in the background.'})
 
 
 @app.route('/api/email-report/preview')
