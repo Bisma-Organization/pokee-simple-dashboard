@@ -1586,78 +1586,100 @@ def refresh_cache():
 # --- Aesthetic Record Reverse Proxy ---
 
 AR_BASE = 'https://app.aestheticrecord.com'
+AR_DOMAINS = ('app.aestheticrecord.com', 'api.aestheticrecord.com', 'aestheticrecord.com')
+
+_ar_session = requests.Session()
+_ar_session.headers.update({
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+})
 
 @app.route('/ar')
 def ar_page():
     return send_from_directory('static', 'ar.html')
 
 
-@app.route('/proxy/ar/', defaults={'path': ''}, methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
-@app.route('/proxy/ar/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
+@app.route('/proxy/ar/', defaults={'path': ''}, methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'])
+@app.route('/proxy/ar/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'])
 def ar_proxy(path):
-    from urllib.parse import urljoin, urlparse
+    from urllib.parse import urlparse
+    from flask import Response, make_response
+
     target_url = f'{AR_BASE}/{path}'
     if request.query_string:
         target_url += '?' + request.query_string.decode()
 
+    skip_headers = ('host', 'connection', 'transfer-encoding', 'content-length',
+                    'accept-encoding', 'origin', 'referer')
     headers = {}
     for key, val in request.headers:
-        key_lower = key.lower()
-        if key_lower in ('host', 'connection', 'transfer-encoding', 'content-length'):
-            continue
-        headers[key] = val
+        if key.lower() not in skip_headers:
+            headers[key] = val
     headers['Host'] = 'app.aestheticrecord.com'
     headers['Origin'] = AR_BASE
     headers['Referer'] = AR_BASE + '/'
+    headers['Accept-Encoding'] = 'identity'
 
     try:
-        resp = requests.request(
+        resp = _ar_session.request(
             method=request.method,
             url=target_url,
             headers=headers,
             data=request.get_data(),
-            cookies=request.cookies,
             allow_redirects=False,
-            timeout=30
+            timeout=30,
+            stream=False
         )
     except Exception as e:
-        return f'Proxy error: {e}', 502
+        return f'<html><body><h2>Proxy Error</h2><p>{e}</p></body></html>', 502
 
     excluded_headers = ('transfer-encoding', 'content-encoding', 'content-length',
                         'connection', 'keep-alive', 'x-frame-options',
-                        'content-security-policy', 'content-security-policy-report-only')
+                        'content-security-policy', 'content-security-policy-report-only',
+                        'strict-transport-security', 'x-content-type-options')
     response_headers = [(k, v) for k, v in resp.headers.items() if k.lower() not in excluded_headers]
 
-    content = resp.content
     content_type = resp.headers.get('Content-Type', '')
 
-    if 'text/html' in content_type:
+    def rewrite_urls(text):
+        for domain in AR_DOMAINS:
+            text = text.replace(f'https://{domain}', '/proxy/ar')
+            text = text.replace(f'http://{domain}', '/proxy/ar')
+            text = text.replace(f'//{domain}', '/proxy/ar')
+            text = text.replace(f'"{domain}"', f'"{request.host}"')
+            text = text.replace(f"'{domain}'", f"'{request.host}'")
+        return text
+
+    if any(ct in content_type for ct in ('text/html', 'javascript', 'application/json', 'text/css')):
         text = resp.text
-        text = text.replace('https://app.aestheticrecord.com', '/proxy/ar')
-        text = text.replace('//app.aestheticrecord.com', '/proxy/ar')
-        text = text.replace("'app.aestheticrecord.com'", "'" + request.host + "'")
-        text = text.replace('"app.aestheticrecord.com"', '"' + request.host + '"')
+        text = rewrite_urls(text)
+        if 'text/html' in content_type and '<head' in text:
+            base_tag = f'<base href="/proxy/ar/">'
+            text = text.replace('<head>', '<head>' + base_tag, 1)
+            text = text.replace('<HEAD>', '<HEAD>' + base_tag, 1)
         content = text.encode('utf-8')
-    elif 'javascript' in content_type or 'application/json' in content_type:
-        text = resp.text
-        text = text.replace('https://app.aestheticrecord.com', '/proxy/ar')
-        text = text.replace('//app.aestheticrecord.com', '/proxy/ar')
-        content = text.encode('utf-8')
+    else:
+        content = resp.content
 
     if resp.status_code in (301, 302, 303, 307, 308):
         location = resp.headers.get('Location', '')
         if location:
             parsed = urlparse(location)
-            if parsed.hostname and 'aestheticrecord.com' in parsed.hostname:
-                new_path = parsed.path
+            if parsed.hostname and any(d in parsed.hostname for d in AR_DOMAINS):
+                new_path = parsed.path or '/'
                 if parsed.query:
                     new_path += '?' + parsed.query
                 location = '/proxy/ar' + new_path
+            elif location.startswith('/'):
+                location = '/proxy/ar' + location
             response_headers = [(k, v) for k, v in response_headers if k.lower() != 'location']
             response_headers.append(('Location', location))
 
-    from flask import Response
-    return Response(content, status=resp.status_code, headers=response_headers, content_type=content_type)
+    proxy_resp = Response(content, status=resp.status_code, headers=response_headers)
+    proxy_resp.headers['Content-Type'] = content_type
+    for cookie_name, cookie_val in resp.cookies.items():
+        proxy_resp.set_cookie(cookie_name, cookie_val, path='/proxy/ar/')
+
+    return proxy_resp
 
 
 # --- Email Report ---

@@ -22,52 +22,12 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
-        }
-        .toolbar {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 24px;
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border);
-        }
-        .toolbar a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 0.82rem;
-            padding: 8px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            transition: all 0.2s;
-        }
-        .toolbar a:hover {
-            border-color: var(--accent);
-            color: var(--text-primary);
-        }
-        .toolbar .title {
-            font-weight: 600;
-            font-size: 1rem;
-            color: var(--accent);
-            margin-right: auto;
-        }
-        .proxy-frame {
-            flex: 1;
-            border: none;
-            width: 100%;
-        }
-        .launch-screen {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             gap: 24px;
         }
-        .launch-screen h2 {
-            font-size: 1.4rem;
-            color: var(--text-primary);
-        }
-        .launch-screen p {
+        h2 { font-size: 1.4rem; }
+        p {
             color: var(--text-secondary);
             font-size: 0.9rem;
             max-width: 500px;
@@ -85,6 +45,8 @@
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
             box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+            text-decoration: none;
+            display: inline-block;
         }
         .btn-ar:hover {
             transform: translateY(-2px);
@@ -93,33 +55,40 @@
         .info-note {
             color: var(--text-secondary);
             font-size: 0.75rem;
-            margin-top: 8px;
             opacity: 0.7;
+        }
+        .nav-links {
+            position: absolute;
+            top: 16px;
+            left: 24px;
+            display: flex;
+            gap: 10px;
+        }
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.82rem;
+            padding: 8px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .nav-links a:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
         }
     </style>
 </head>
 <body>
-    <div class="toolbar">
-        <span class="title">Aesthetic Record</span>
+    <div class="nav-links">
         <a href="/">Dashboard</a>
         <a href="/monthly-summary">Monthly Summary</a>
         <a href="/sdr">SDR</a>
         <a href="/stripe-dashboard">Stripe</a>
     </div>
-    <div class="launch-screen" id="launchScreen">
-        <h2>Aesthetic Record Portal</h2>
-        <p>Access Aesthetic Record through the server proxy. Your IP address will not be exposed — all traffic routes through the server.</p>
-        <button class="btn-ar" onclick="launchAR()">Open Aesthetic Record</button>
-        <span class="info-note">Traffic is routed through the server to protect your IP</span>
-    </div>
-    <iframe class="proxy-frame" id="proxyFrame" style="display:none;" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>
-    <script>
-        function launchAR() {
-            document.getElementById('launchScreen').style.display = 'none';
-            var frame = document.getElementById('proxyFrame');
-            frame.style.display = 'block';
-            frame.src = '/proxy/ar/';
-        }
-    </script>
+    <h2>Aesthetic Record Portal</h2>
+    <p>Access Aesthetic Record through the server proxy. Your IP address will not be exposed — all traffic routes through the server.</p>
+    <a class="btn-ar" href="/proxy/ar/">Open Aesthetic Record</a>
+    <span class="info-note">Traffic is routed through the server to protect your IP</span>
 </body>
 </html>
