@@ -1583,6 +1583,83 @@ def refresh_cache():
     return jsonify({'status': 'ok', 'message': 'Cache cleared'})
 
 
+# --- Aesthetic Record Reverse Proxy ---
+
+AR_BASE = 'https://app.aestheticrecord.com'
+
+@app.route('/ar')
+def ar_page():
+    return send_from_directory('static', 'ar.html')
+
+
+@app.route('/proxy/ar/', defaults={'path': ''}, methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
+@app.route('/proxy/ar/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
+def ar_proxy(path):
+    from urllib.parse import urljoin, urlparse
+    target_url = f'{AR_BASE}/{path}'
+    if request.query_string:
+        target_url += '?' + request.query_string.decode()
+
+    headers = {}
+    for key, val in request.headers:
+        key_lower = key.lower()
+        if key_lower in ('host', 'connection', 'transfer-encoding', 'content-length'):
+            continue
+        headers[key] = val
+    headers['Host'] = 'app.aestheticrecord.com'
+    headers['Origin'] = AR_BASE
+    headers['Referer'] = AR_BASE + '/'
+
+    try:
+        resp = requests.request(
+            method=request.method,
+            url=target_url,
+            headers=headers,
+            data=request.get_data(),
+            cookies=request.cookies,
+            allow_redirects=False,
+            timeout=30
+        )
+    except Exception as e:
+        return f'Proxy error: {e}', 502
+
+    excluded_headers = ('transfer-encoding', 'content-encoding', 'content-length',
+                        'connection', 'keep-alive', 'x-frame-options',
+                        'content-security-policy', 'content-security-policy-report-only')
+    response_headers = [(k, v) for k, v in resp.headers.items() if k.lower() not in excluded_headers]
+
+    content = resp.content
+    content_type = resp.headers.get('Content-Type', '')
+
+    if 'text/html' in content_type:
+        text = resp.text
+        text = text.replace('https://app.aestheticrecord.com', '/proxy/ar')
+        text = text.replace('//app.aestheticrecord.com', '/proxy/ar')
+        text = text.replace("'app.aestheticrecord.com'", "'" + request.host + "'")
+        text = text.replace('"app.aestheticrecord.com"', '"' + request.host + '"')
+        content = text.encode('utf-8')
+    elif 'javascript' in content_type or 'application/json' in content_type:
+        text = resp.text
+        text = text.replace('https://app.aestheticrecord.com', '/proxy/ar')
+        text = text.replace('//app.aestheticrecord.com', '/proxy/ar')
+        content = text.encode('utf-8')
+
+    if resp.status_code in (301, 302, 303, 307, 308):
+        location = resp.headers.get('Location', '')
+        if location:
+            parsed = urlparse(location)
+            if parsed.hostname and 'aestheticrecord.com' in parsed.hostname:
+                new_path = parsed.path
+                if parsed.query:
+                    new_path += '?' + parsed.query
+                location = '/proxy/ar' + new_path
+            response_headers = [(k, v) for k, v in response_headers if k.lower() != 'location']
+            response_headers.append(('Location', location))
+
+    from flask import Response
+    return Response(content, status=resp.status_code, headers=response_headers, content_type=content_type)
+
+
 # --- Email Report ---
 
 import smtplib
