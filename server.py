@@ -1691,7 +1691,7 @@ from email.mime.text import MIMEText
 GMAIL_USER = os.environ.get('GMAIL_USER', '')
 GMAIL_APP_PASSWORD = os.environ.get('GMAIL_APP_PASSWORD', '')
 REPORT_TO = 'afobi@usmedicaldirectors.com'
-REPORT_BCC = 'shoaibhasnat@systemeuristics.com'
+REPORT_BCC = 'shoaibhasnat@systemheuristics.com'
 
 
 def compute_kpis_for_range(start_dt, end_dt):
