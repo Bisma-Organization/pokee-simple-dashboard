@@ -1904,7 +1904,6 @@ def email_report():
 @app.route('/api/email-report/preview')
 def email_report_preview():
     try:
-        cache.clear()
         return generate_report_html(), 200, {'Content-Type': 'text/html'}
     except Exception as e:
         return jsonify({'error': str(e)}), 500
