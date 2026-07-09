@@ -197,13 +197,14 @@ def fetch_sales_data():
         query = '''{ boards(ids: [1944309746]) {
             groups(ids: ["new_group_mkkazbjx"]) {
             items_page(limit: 500) { items { id name
-            column_values(ids: ["numbers_Mjivm65q", "date4", "date_Mjiv0T8Z", "status",
+            column_values(ids: ["color_mm31q77v", "numbers_Mjivm65q", "date4", "date_Mjiv0T8Z", "status",
             "text_MjivuCB8", "text_MjivTjDy"]) { id text column { title } } } } } } }'''
         resp = monday_query(query)
         records = []
         for group in resp['data']['boards'][0]['groups']:
             for item in group['items_page']['items']:
-                fee = 0
+                new_fee_text = ''
+                old_fee_text = ''
                 first_payment = ''
                 last_payment = ''
                 status = ''
@@ -212,11 +213,10 @@ def fetch_sales_data():
                 for cv in item['column_values']:
                     cid = cv['id']
                     text = cv.get('text', '') or ''
-                    if cid == 'numbers_Mjivm65q':
-                        try:
-                            fee = float(text) if text else 0
-                        except ValueError:
-                            fee = 0
+                    if cid == 'color_mm31q77v':
+                        new_fee_text = text
+                    elif cid == 'numbers_Mjivm65q':
+                        old_fee_text = text
                     elif cid == 'date4':
                         first_payment = text
                     elif cid == 'date_Mjiv0T8Z':
@@ -227,6 +227,17 @@ def fetch_sales_data():
                         contact = text
                     elif cid == 'text_MjivTjDy':
                         email = text
+                fee = 0
+                if new_fee_text:
+                    try:
+                        fee = float(new_fee_text.replace('$', '').replace(',', ''))
+                    except ValueError:
+                        pass
+                if fee == 0 and old_fee_text:
+                    try:
+                        fee = float(old_fee_text)
+                    except ValueError:
+                        pass
                 records.append({
                     'name': item['name'],
                     'fee': fee,
@@ -1762,24 +1773,17 @@ def generate_report_html():
     prev7_start = today - timedelta(days=13)
     prev7_end = today - timedelta(days=7)
 
-    # Current month (1st of this month to today)
-    cur_month_start = today.replace(day=1)
+    # Rolling 30 days: current = last 30 days, previous = 30 days before that
+    cur_month_start = today - timedelta(days=29)
     cur_month_end = today
+    prev_month_start = today - timedelta(days=59)
+    prev_month_end = today - timedelta(days=30)
 
-    # Previous month (1st of prev month to last day of prev month)
-    first_this_month = today.replace(day=1)
-    prev_month_end = first_this_month - timedelta(days=1)
-    prev_month_start = prev_month_end.replace(day=1)
-
-    # Current quarter
-    q_month = ((today.month - 1) // 3) * 3 + 1
-    cur_q_start = today.replace(month=q_month, day=1)
+    # Rolling 90 days: current = last 90 days, previous = 90 days before that
+    cur_q_start = today - timedelta(days=89)
     cur_q_end = today
-
-    # Previous quarter
-    prev_q_end = cur_q_start - timedelta(days=1)
-    prev_q_month = ((prev_q_end.month - 1) // 3) * 3 + 1
-    prev_q_start = prev_q_end.replace(month=prev_q_month, day=1)
+    prev_q_start = today - timedelta(days=179)
+    prev_q_end = today - timedelta(days=90)
 
     periods = {
         'cur7': (cur7_start, cur7_end),
@@ -1845,11 +1849,11 @@ def generate_report_html():
 <td style="padding:8px 12px;border:1px solid #e2e8f0;">{fv(metric, prev7_val)} / <span style="color:{c7};font-weight:bold;">{pct(cur7_val, prev7_val)}</span></td>
 </tr>
 <tr>
-<td style="padding:8px 12px;border:1px solid #e2e8f0;">This Month ({fv(metric, cur_m_val)}) ({fd(cur_month_start)} - {fd(cur_month_end)}) vs Previous Month ({fv(metric, prev_m_val)}) ({fd(prev_month_start)} - {fd(prev_month_end)})</td>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;">Last 30 Days ({fv(metric, cur_m_val)}) ({fd(cur_month_start)} - {fd(cur_month_end)}) vs Previous 30 Days ({fv(metric, prev_m_val)}) ({fd(prev_month_start)} - {fd(prev_month_end)})</td>
 <td style="padding:8px 12px;border:1px solid #e2e8f0;">{fv(metric, prev_m_val)} / <span style="color:{cm};font-weight:bold;">{pct(cur_m_val, prev_m_val)}</span></td>
 </tr>
 <tr>
-<td style="padding:8px 12px;border:1px solid #e2e8f0;">This Quarter ({fv(metric, cur_q_val)}) ({fd(cur_q_start)} - {fd(cur_q_end)}) vs Previous Quarter ({fv(metric, prev_q_val)}) ({fd(prev_q_start)} - {fd(prev_q_end)})</td>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;">Last 90 Days ({fv(metric, cur_q_val)}) ({fd(cur_q_start)} - {fd(cur_q_end)}) vs Previous 90 Days ({fv(metric, prev_q_val)}) ({fd(prev_q_start)} - {fd(prev_q_end)})</td>
 <td style="padding:8px 12px;border:1px solid #e2e8f0;">{fv(metric, prev_q_val)} / <span style="color:{cq};font-weight:bold;">{pct(cur_q_val, prev_q_val)}</span></td>
 </tr>
 </table>'''
