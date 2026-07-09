@@ -1706,8 +1706,13 @@ REPORT_BCC = 'shoaibhasnat@systemheuristics.com'
 
 
 def compute_kpis_for_range(start_dt, end_dt):
+    # GHL timestamps are full datetimes — compare in Pacific
     start_local = start_dt.replace(tzinfo=LOCAL_TZ)
     end_local = end_dt.replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ)
+
+    # Monday.com fields are date-only strings parsed as midnight UTC — compare in UTC
+    start_utc = start_dt.replace(tzinfo=timezone.utc)
+    end_utc = end_dt.replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
 
     leads_count = None
     sales_count = None
@@ -1723,7 +1728,7 @@ def compute_kpis_for_range(start_dt, end_dt):
 
     try:
         sales_data = fetch_sales_data()
-        sales = [s for s in sales_data if in_range(parse_date(s.get('first_payment')), start_local, end_local)]
+        sales = [s for s in sales_data if in_range(parse_date(s.get('first_payment')), start_utc, end_utc)]
         sales_count = len(sales)
         total_revenue = round(sum(s['fee'] for s in sales), 2)
     except Exception:
@@ -1731,7 +1736,7 @@ def compute_kpis_for_range(start_dt, end_dt):
 
     try:
         churn_data_raw = fetch_churn_data()
-        churn_count = len([c for c in churn_data_raw if in_range(parse_date(c.get('end_date')), start_local, end_local)])
+        churn_count = len([c for c in churn_data_raw if in_range(parse_date(c.get('end_date')), start_utc, end_utc)])
     except Exception:
         pass
 
