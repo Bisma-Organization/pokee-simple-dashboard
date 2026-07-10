@@ -272,9 +272,12 @@
     function getDefaultDates() {
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+        function fmt(d) {
+            return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        }
         return {
-            start: start.toISOString().split('T')[0],
-            end: now.toISOString().split('T')[0]
+            start: fmt(start),
+            end: fmt(now)
         };
     }
 
