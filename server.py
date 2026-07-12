@@ -1917,18 +1917,9 @@ def email_report_preview():
 # --- Scheduler (APScheduler) ---
 
 def init_scheduler():
-    import fcntl
     try:
         from apscheduler.schedulers.background import BackgroundScheduler
         from apscheduler.triggers.cron import CronTrigger
-
-        # Only one gunicorn worker should run the scheduler.
-        # Use a file lock so only the first worker to acquire it starts the cron.
-        lock_file = open('/tmp/email_scheduler.lock', 'w')
-        try:
-            fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except OSError:
-            return  # Another worker already holds the lock
 
         scheduler = BackgroundScheduler()
         scheduler.add_job(
