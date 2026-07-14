@@ -3,3 +3,5 @@ flask-cors==6.0.2
 requests==2.33.1
 gunicorn==21.2.0
 APScheduler==3.10.4
+pymongo==4.7.3
+dnspython==2.6.1

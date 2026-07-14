@@ -4,9 +4,11 @@ import os
 import json
 import requests
 import time
+import re
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 from collections import Counter
+from pymongo import MongoClient
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
@@ -1916,10 +1918,33 @@ def email_report_preview():
 
 # --- Scheduler (APScheduler) ---
 
+def trigger_ar_scrape():
+    """Trigger the AR scraper on its Heroku worker dyno via the Heroku API."""
+    heroku_api_key = os.environ.get('HEROKU_API_KEY', '')
+    heroku_app_name = os.environ.get('AR_SCRAPER_APP', 'scrape-aesthetic-record')
+    if not heroku_api_key:
+        print('[AR Scraper] No HEROKU_API_KEY set — skipping scrape trigger.')
+        return
+    try:
+        resp = requests.post(
+            f'https://api.heroku.com/apps/{heroku_app_name}/dynos',
+            headers={
+                'Authorization': f'Bearer {heroku_api_key}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.heroku+json; version=3',
+            },
+            json={'command': 'python scrape_AR.py', 'type': 'run'}
+        )
+        print(f'[AR Scraper] Triggered: {resp.status_code} {resp.text[:200]}')
+    except Exception as e:
+        print(f'[AR Scraper] Error triggering scrape: {e}')
+
+
 def init_scheduler():
     try:
         from apscheduler.schedulers.background import BackgroundScheduler
         from apscheduler.triggers.cron import CronTrigger
+        from apscheduler.triggers.interval import IntervalTrigger
 
         scheduler = BackgroundScheduler()
         scheduler.add_job(
@@ -1928,12 +1953,102 @@ def init_scheduler():
             id='daily_email_report',
             replace_existing=True
         )
+        scheduler.add_job(
+            trigger_ar_scrape,
+            IntervalTrigger(days=30),
+            id='ar_scrape_30day',
+            replace_existing=True
+        )
         scheduler.start()
     except ImportError:
         print('APScheduler not installed. Scheduled email report disabled.')
 
 
 init_scheduler()
+
+
+# --- MongoDB / Aesthetic Record ---
+
+MONGO_URI = os.environ.get(
+    'MONGO_URI',
+    'mongodb+srv://Bisma:Bisma123@cluster0.r1tthak.mongodb.net/'
+)
+mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+ar_db = mongo_client['aesthetic_record']
+ar_clients = ar_db['clients']
+
+NOTE_DATE_RE = re.compile(r'Date:\s*(\d{2}/\d{2}/\d{4})')
+
+
+def parse_procedure_notes(notes_str, start_date=None, end_date=None):
+    """Parse procedure_notes string, optionally filtering by date range."""
+    if not notes_str:
+        return []
+    blocks = [b.strip() for b in notes_str.split('||') if b.strip()]
+    results = []
+    for block in blocks:
+        m = NOTE_DATE_RE.search(block)
+        if m:
+            try:
+                note_date = datetime.strptime(m.group(1), '%m/%d/%Y')
+            except ValueError:
+                continue
+            if start_date and note_date < start_date:
+                continue
+            if end_date and note_date > end_date:
+                continue
+        elif start_date or end_date:
+            continue
+        results.append(block)
+    return results
+
+
+@app.route('/api/ar/clients')
+def ar_get_clients():
+    try:
+        start_str = request.args.get('start')
+        end_str = request.args.get('end')
+        start_date = datetime.strptime(start_str, '%Y-%m-%d') if start_str else None
+        end_date = datetime.strptime(end_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59) if end_str else None
+
+        docs = list(ar_clients.find({}, {'_id': 0}))
+
+        clients = []
+        for doc in docs:
+            notes_raw = doc.get('procedure_notes', '')
+            filtered_notes = parse_procedure_notes(notes_raw, start_date, end_date)
+            if start_date or end_date:
+                if not filtered_notes:
+                    continue
+            client = {
+                'clinic_name': doc.get('clinic_name', ''),
+                'name': doc.get('name', ''),
+                'client_url': doc.get('client_url', ''),
+                'dob': doc.get('dob', ''),
+                'age': doc.get('age', ''),
+                'address': doc.get('address', ''),
+                'email': doc.get('email', ''),
+                'phone': doc.get('phone', ''),
+                'primary_clinic': doc.get('primary_clinic', ''),
+                'creation_date': doc.get('creation_date', ''),
+                'customer_notes': doc.get('customer_notes', ''),
+                'procedure_notes_count': len(filtered_notes),
+                'procedure_notes': filtered_notes,
+            }
+            clients.append(client)
+        return jsonify({'success': True, 'count': len(clients), 'clients': clients})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/ar/refresh', methods=['POST'])
+def ar_refresh():
+    """Placeholder for manual refresh — triggers info message.
+    Actual scraping is done by the separate scrape_AR.py project on Heroku."""
+    return jsonify({
+        'success': True,
+        'message': 'Data refresh initiated. The scraper runs on a separate Heroku worker. New data will appear after the next scrape cycle completes.'
+    })
 
 
 if __name__ == '__main__':
