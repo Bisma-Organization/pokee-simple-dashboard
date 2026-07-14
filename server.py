@@ -4,9 +4,11 @@ import os
 import json
 import requests
 import time
+import re
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 from collections import Counter
+from pymongo import MongoClient
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
@@ -134,7 +136,10 @@ def fetch_all_contacts():
         all_contacts = []
         params = {'locationId': GHL_LOCATION, 'limit': 100, 'sortBy': 'date_added', 'order': 'desc'}
         for _ in range(50):
-            resp = ghl_get('/contacts/', params)
+            try:
+                resp = ghl_get('/contacts/', params)
+            except Exception:
+                break
             contacts = resp.get('contacts', [])
             if not contacts:
                 break
@@ -194,13 +199,14 @@ def fetch_sales_data():
         query = '''{ boards(ids: [1944309746]) {
             groups(ids: ["new_group_mkkazbjx"]) {
             items_page(limit: 500) { items { id name
-            column_values(ids: ["numbers_Mjivm65q", "date4", "date_Mjiv0T8Z", "status",
+            column_values(ids: ["color_mm31q77v", "numbers_Mjivm65q", "date4", "date_Mjiv0T8Z", "status",
             "text_MjivuCB8", "text_MjivTjDy"]) { id text column { title } } } } } } }'''
         resp = monday_query(query)
         records = []
         for group in resp['data']['boards'][0]['groups']:
             for item in group['items_page']['items']:
-                fee = 0
+                new_fee_text = ''
+                old_fee_text = ''
                 first_payment = ''
                 last_payment = ''
                 status = ''
@@ -209,11 +215,10 @@ def fetch_sales_data():
                 for cv in item['column_values']:
                     cid = cv['id']
                     text = cv.get('text', '') or ''
-                    if cid == 'numbers_Mjivm65q':
-                        try:
-                            fee = float(text) if text else 0
-                        except ValueError:
-                            fee = 0
+                    if cid == 'color_mm31q77v':
+                        new_fee_text = text
+                    elif cid == 'numbers_Mjivm65q':
+                        old_fee_text = text
                     elif cid == 'date4':
                         first_payment = text
                     elif cid == 'date_Mjiv0T8Z':
@@ -224,6 +229,17 @@ def fetch_sales_data():
                         contact = text
                     elif cid == 'text_MjivTjDy':
                         email = text
+                fee = 0
+                if new_fee_text:
+                    try:
+                        fee = float(new_fee_text.replace('$', '').replace(',', ''))
+                    except ValueError:
+                        pass
+                if fee == 0 and old_fee_text:
+                    try:
+                        fee = float(old_fee_text)
+                    except ValueError:
+                        pass
                 records.append({
                     'name': item['name'],
                     'fee': fee,
@@ -1082,43 +1098,43 @@ def fetch_stripe_balance_txns(start_ts, end_ts):
 
     def _fetch():
         all_txns = []
-        for txn_type in ['charge', 'payment', 'refund', 'payment_refund', 'adjustment']:
-            params = {'limit': 100, 'type': txn_type}
-            if start_ts:
-                params['created[gte]'] = start_ts
-            if end_ts:
-                params['created[lte]'] = end_ts
-            while True:
-                data = stripe_get('/balance_transactions', params)
-                txns = data.get('data', [])
-                all_txns.extend(txns)
-                if not data.get('has_more'):
-                    break
-                params['starting_after'] = txns[-1]['id']
+        params = {'limit': 100}
+        if start_ts:
+            params['created[gte]'] = start_ts
+        if end_ts:
+            params['created[lte]'] = end_ts
+        while True:
+            data = stripe_get('/balance_transactions', params)
+            txns = data.get('data', [])
+            all_txns.extend(txns)
+            if not data.get('has_more'):
+                break
+            params['starting_after'] = txns[-1]['id']
         return all_txns
     return cached(cache_key, _fetch)
 
 
-def calc_net_revenue(balance_txns):
-    """Net revenue = gross charges - fees - refunds + adjustments."""
+def calc_net_volume(balance_txns):
+    """Net volume = sum of net for charge/payment/refund/adjustment types (matches Stripe dashboard)."""
+    VOLUME_TYPES = ('charge', 'payment', 'refund', 'payment_refund', 'adjustment')
+    net_volume = 0
     gross = 0
     fees = 0
     refunds = 0
-    adjustments = 0
     for t in balance_txns:
-        if t['type'] in ('charge', 'payment'):
+        tp = t['type']
+        if tp in VOLUME_TYPES:
+            net_volume += t['net']
+        if tp in ('charge', 'payment'):
             gross += t['amount']
             fees += t['fee']
-        elif t['type'] in ('refund', 'payment_refund'):
+        elif tp in ('refund', 'payment_refund'):
             refunds += abs(t['amount'])
-        elif t['type'] == 'adjustment':
-            adjustments += t['amount']
     return {
         'gross': round(gross / 100, 2),
         'fees': round(fees / 100, 2),
         'refunds': round(refunds / 100, 2),
-        'adjustments': round(adjustments / 100, 2),
-        'net': round((gross - fees - refunds + adjustments) / 100, 2)
+        'net': round(net_volume / 100, 2)
     }
 
 
@@ -1222,21 +1238,21 @@ def sub_mrr_from_items(sub):
 def calc_full_churn(start_ts, end_ts):
     """Calculate churn revenue using Stripe v2 Analytics API.
 
-    Uses revenue_growth.mrr metric with MRR_CHURN + MRR_CONTRACTION filters.
-    Single API call returns exact Stripe dashboard values.
-    Values returned in cents as strings — sum and divide by 100 for dollars.
+    Uses daily granularity for ranges <= 93 days, monthly for longer ranges.
     """
     start_dt = datetime.fromtimestamp(start_ts, tz=LOCAL_TZ)
     end_dt = datetime.fromtimestamp(end_ts, tz=LOCAL_TZ)
 
-    starts_at = start_dt.strftime('%Y-%m-%dT00:00:00Z')
-    utc_now = datetime.now(timezone.utc)
-    ends_at_candidate = (end_dt + timedelta(days=1)).replace(hour=0, minute=0, second=0, tzinfo=timezone.utc)
-    if ends_at_candidate > utc_now:
-        ends_at_candidate = utc_now
-    ends_at = ends_at_candidate.strftime('%Y-%m-%dT%H:%M:%SZ')
+    day_count = (end_dt - start_dt).days + 1
+    granularity = 'day' if day_count <= 93 else 'month'
 
-    cache_key = f'stripe_churn_v2_{starts_at}_{ends_at}'
+    starts_at = start_dt.strftime('%Y-%m-%dT00:00:00Z')
+    ends_at = (end_dt + timedelta(days=1)).strftime('%Y-%m-%dT00:00:00Z')
+    utc_now = datetime.now(timezone.utc)
+    if datetime.fromisoformat(ends_at.replace('Z', '+00:00')) > utc_now:
+        ends_at = utc_now.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    cache_key = f'stripe_churn_v2_{starts_at}_{ends_at}_{granularity}'
 
     def _fetch():
         headers = {
@@ -1248,7 +1264,7 @@ def calc_full_churn(start_ts, end_ts):
             'metrics': [{'name': 'revenue_growth.mrr'}],
             'starts_at': starts_at,
             'ends_at': ends_at,
-            'granularity': 'month',
+            'granularity': granularity,
             'currency': 'usd',
             'filters': {'change_type': ['MRR_CHURN', 'MRR_CONTRACTION']},
             'group_by': ['change_type']
@@ -1259,12 +1275,19 @@ def calc_full_churn(start_ts, end_ts):
 
     data = cached(cache_key, _fetch)
 
+    start_date = start_dt.strftime('%Y-%m-%d')
+    end_date = end_dt.strftime('%Y-%m-%d')
+
     total_churn = 0
     total_contraction = 0
     monthly_churn = {}
+    daily_churn = {}
 
     for item in data.get('data', []):
-        ts = item.get('timestamp', '')[:7]
+        ts = item.get('timestamp', '')[:10]
+        if ts < start_date or ts > end_date:
+            continue
+        month = ts[:7]
         change_type = item.get('dimensions', {}).get('change_type', '')
         for r in item.get('results', []):
             val = abs(int(r.get('value') or 0))
@@ -1272,8 +1295,8 @@ def calc_full_churn(start_ts, end_ts):
                 total_churn += val
             elif change_type == 'MRR_CONTRACTION':
                 total_contraction += val
-            if ts:
-                monthly_churn[ts] = monthly_churn.get(ts, 0) + val
+            monthly_churn[month] = monthly_churn.get(month, 0) + val
+            daily_churn[ts] = daily_churn.get(ts, 0) + val
 
     total_lost = total_churn + total_contraction
 
@@ -1287,6 +1310,7 @@ def calc_full_churn(start_ts, end_ts):
         'pause_mrr': 0,
         'canceled_count': churn_count,
         'monthly_churn_mrr': {k: round(v / 100, 2) for k, v in monthly_churn.items()},
+        'daily_churn_mrr': {k: round(v / 100, 2) for k, v in daily_churn.items()},
         'source': 'v2_analytics'
     }
 
@@ -1451,7 +1475,9 @@ def get_stripe_churn():
 @app.route('/api/stripe/summary')
 def get_stripe_summary():
     try:
-        return _stripe_summary_impl()
+        resp = _stripe_summary_impl()
+        resp.headers['Cache-Control'] = 'no-cache, no-store'
+        return resp
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1497,50 +1523,33 @@ def _stripe_summary_impl():
     end_ts = int(end_dt.timestamp())
 
     bal_txns = fetch_stripe_balance_txns(start_ts, end_ts)
-    rev_data = calc_net_revenue(bal_txns)
+    rev_data = calc_net_volume(bal_txns)
 
     churn_data = calc_full_churn(start_ts, end_ts)
     churn_count = churn_data['canceled_count']
     lost_mrr_dollars = churn_data['lost_mrr']
     churn_source = churn_data['source']
 
-    # Monthly cancellation counts for the chart
-    canceled = fetch_stripe_canceled(start_ts, end_ts)
-    churn_monthly = {}
-    for sub in canceled:
-        canceled_at = sub.get('canceled_at') or sub.get('ended_at')
-        if canceled_at:
-            if canceled_at < start_ts:
-                continue
-            if canceled_at > end_ts:
-                continue
-            dt = datetime.fromtimestamp(canceled_at, tz=LOCAL_TZ)
-            key = dt.strftime('%Y-%m')
-            churn_monthly[key] = churn_monthly.get(key, 0) + 1
-
-    revenue_monthly = {}
+    # Group net volume by date for chart
+    VOLUME_TYPES = ('charge', 'payment', 'refund', 'payment_refund', 'adjustment')
+    daily_net = {}
     for t in bal_txns:
-        if t['type'] in ('charge', 'payment'):
+        if t['type'] in VOLUME_TYPES:
             dt = datetime.fromtimestamp(t['created'], tz=LOCAL_TZ)
-            key = dt.strftime('%Y-%m')
-            net_amt = (t['amount'] - t['fee']) / 100
-            revenue_monthly[key] = revenue_monthly.get(key, 0) + net_amt
-        elif t['type'] in ('refund', 'payment_refund'):
-            dt = datetime.fromtimestamp(t['created'], tz=LOCAL_TZ)
-            key = dt.strftime('%Y-%m')
-            revenue_monthly[key] = revenue_monthly.get(key, 0) + t['amount'] / 100
-        elif t['type'] == 'adjustment':
-            dt = datetime.fromtimestamp(t['created'], tz=LOCAL_TZ)
-            key = dt.strftime('%Y-%m')
-            revenue_monthly[key] = revenue_monthly.get(key, 0) + t['amount'] / 100
+            key = dt.strftime('%Y-%m-%d')
+            daily_net[key] = daily_net.get(key, 0) + t['net']
 
-    all_months = sorted(set(list(revenue_monthly.keys()) + list(churn_monthly.keys())))
+    daily_churn_mrr = churn_data.get('daily_churn_mrr', {})
+
+    # Build daily chart data
+    all_dates = sorted(set(list(daily_net.keys()) + list(daily_churn_mrr.keys())))
     monthly_data = []
-    for m in all_months:
+    for d in all_dates:
         monthly_data.append({
-            'month': m,
-            'revenue': round(revenue_monthly.get(m, 0), 2),
-            'churn': churn_monthly.get(m, 0)
+            'date': d,
+            'month': d[:7],
+            'net_volume': round(daily_net.get(d, 0) / 100, 2),
+            'churn_revenue': daily_churn_mrr.get(d, 0)
         })
 
     subs = fetch_stripe_subscriptions()
@@ -1553,17 +1562,15 @@ def _stripe_summary_impl():
     return jsonify({
         'mrr': latest_mrr,
         'arr': latest_arr,
-        'net_revenue': rev_data['net'],
+        'net_volume': rev_data['net'],
         'gross_revenue': rev_data['gross'],
         'fees': rev_data['fees'],
         'refunds': rev_data['refunds'],
-        'adjustments': rev_data['adjustments'],
         'churn_count': churn_count,
         'lost_mrr': lost_mrr_dollars,
         'churn_rate': churn_rate,
         'churn_source': churn_source,
         'contraction_mrr': churn_data.get('contraction_mrr', 0),
-        'pause_mrr': churn_data.get('pause_mrr', 0),
         'active': active_count,
         'past_due': past_due_count,
         'paused': paused_count,
@@ -1575,13 +1582,473 @@ def _stripe_summary_impl():
 
 @app.route('/stripe-dashboard')
 def stripe_dashboard():
-    return send_from_directory('static', 'stripe-dashboard.html')
+    resp = send_from_directory('static', 'stripe-dashboard.html')
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    resp.headers['ETag'] = 'v6-net-volume-fix'
+    return resp
 
 
 @app.route('/api/refresh', methods=['POST'])
 def refresh_cache():
     cache.clear()
     return jsonify({'status': 'ok', 'message': 'Cache cleared'})
+
+
+# --- Aesthetic Record Reverse Proxy ---
+
+AR_BASE = 'https://app.aestheticrecord.com'
+AR_DOMAINS = ('app.aestheticrecord.com', 'api.aestheticrecord.com', 'aestheticrecord.com')
+
+_ar_session = requests.Session()
+_ar_session.headers.update({
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+})
+
+@app.route('/ar')
+def ar_page():
+    return send_from_directory('static', 'ar.html')
+
+
+@app.route('/proxy/ar/', defaults={'path': ''}, methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'])
+@app.route('/proxy/ar/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'])
+def ar_proxy(path):
+    from urllib.parse import urlparse
+    from flask import Response, make_response
+
+    target_url = f'{AR_BASE}/{path}'
+    if request.query_string:
+        target_url += '?' + request.query_string.decode()
+
+    skip_headers = ('host', 'connection', 'transfer-encoding', 'content-length',
+                    'accept-encoding', 'origin', 'referer')
+    headers = {}
+    for key, val in request.headers:
+        if key.lower() not in skip_headers:
+            headers[key] = val
+    headers['Host'] = 'app.aestheticrecord.com'
+    headers['Origin'] = AR_BASE
+    headers['Referer'] = AR_BASE + '/'
+    headers['Accept-Encoding'] = 'identity'
+
+    try:
+        resp = _ar_session.request(
+            method=request.method,
+            url=target_url,
+            headers=headers,
+            data=request.get_data(),
+            allow_redirects=False,
+            timeout=30,
+            stream=False
+        )
+    except Exception as e:
+        return f'<html><body><h2>Proxy Error</h2><p>{e}</p></body></html>', 502
+
+    excluded_headers = ('transfer-encoding', 'content-encoding', 'content-length',
+                        'connection', 'keep-alive', 'x-frame-options',
+                        'content-security-policy', 'content-security-policy-report-only',
+                        'strict-transport-security', 'x-content-type-options')
+    response_headers = [(k, v) for k, v in resp.headers.items() if k.lower() not in excluded_headers]
+
+    content_type = resp.headers.get('Content-Type', '')
+
+    def rewrite_urls(text):
+        for domain in AR_DOMAINS:
+            text = text.replace(f'https://{domain}', '/proxy/ar')
+            text = text.replace(f'http://{domain}', '/proxy/ar')
+            text = text.replace(f'//{domain}', '/proxy/ar')
+            text = text.replace(f'"{domain}"', f'"{request.host}"')
+            text = text.replace(f"'{domain}'", f"'{request.host}'")
+        return text
+
+    if any(ct in content_type for ct in ('text/html', 'javascript', 'application/json', 'text/css')):
+        text = resp.text
+        text = rewrite_urls(text)
+        if 'text/html' in content_type and '<head' in text:
+            base_tag = f'<base href="/proxy/ar/">'
+            text = text.replace('<head>', '<head>' + base_tag, 1)
+            text = text.replace('<HEAD>', '<HEAD>' + base_tag, 1)
+        content = text.encode('utf-8')
+    else:
+        content = resp.content
+
+    if resp.status_code in (301, 302, 303, 307, 308):
+        location = resp.headers.get('Location', '')
+        if location:
+            parsed = urlparse(location)
+            if parsed.hostname and any(d in parsed.hostname for d in AR_DOMAINS):
+                new_path = parsed.path or '/'
+                if parsed.query:
+                    new_path += '?' + parsed.query
+                location = '/proxy/ar' + new_path
+            elif location.startswith('/'):
+                location = '/proxy/ar' + location
+            response_headers = [(k, v) for k, v in response_headers if k.lower() != 'location']
+            response_headers.append(('Location', location))
+
+    proxy_resp = Response(content, status=resp.status_code, headers=response_headers)
+    proxy_resp.headers['Content-Type'] = content_type
+    for cookie_name, cookie_val in resp.cookies.items():
+        proxy_resp.set_cookie(cookie_name, cookie_val, path='/proxy/ar/')
+
+    return proxy_resp
+
+
+# --- Email Report ---
+
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+GMAIL_USER = os.environ.get('GMAIL_USER', '')
+GMAIL_APP_PASSWORD = os.environ.get('GMAIL_APP_PASSWORD', '')
+REPORT_TO = 'anfobi@gmail.com'
+REPORT_BCC = 'shoaibhasnat@systemheuristics.com'
+
+
+def compute_kpis_for_range(start_dt, end_dt):
+    # GHL timestamps are full datetimes — compare in Pacific
+    start_local = start_dt.replace(tzinfo=LOCAL_TZ)
+    end_local = end_dt.replace(hour=23, minute=59, second=59, tzinfo=LOCAL_TZ)
+
+    # Monday.com fields are date-only strings parsed as midnight UTC — compare in UTC
+    start_utc = start_dt.replace(tzinfo=timezone.utc)
+    end_utc = end_dt.replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
+
+    leads_count = None
+    sales_count = None
+    total_revenue = None
+    churn_count = None
+    calls_count = None
+
+    try:
+        contacts = fetch_all_contacts()
+        leads_count = len([c for c in contacts if in_range(parse_date(c.get('dateAdded')), start_local, end_local)])
+    except Exception:
+        pass
+
+    try:
+        sales_data = fetch_sales_data()
+        sales = [s for s in sales_data if in_range(parse_date(s.get('first_payment')), start_utc, end_utc)]
+        sales_count = len(sales)
+        total_revenue = round(sum(s['fee'] for s in sales), 2)
+    except Exception:
+        pass
+
+    try:
+        churn_data_raw = fetch_churn_data()
+        churn_count = len([c for c in churn_data_raw if in_range(parse_date(c.get('end_date')), start_utc, end_utc)])
+    except Exception:
+        pass
+
+    try:
+        webhook_calls = load_calls()
+        if webhook_calls:
+            calls_count = len([c for c in webhook_calls if in_range(parse_date(c.get('timestamp')), start_local, end_local)])
+        else:
+            convos = fetch_conversations()
+            calls_count = len([c for c in convos if in_range(parse_date(c.get('dateAdded')), start_local, end_local)])
+    except Exception:
+        pass
+
+    if sales_count is not None and total_revenue is not None and sales_count > 0:
+        avg_per_sale = round(total_revenue / sales_count, 2)
+    elif sales_count == 0:
+        avg_per_sale = 0
+    else:
+        avg_per_sale = None
+
+    return {
+        'leads': leads_count,
+        'sales': sales_count,
+        'churn': churn_count,
+        'calls': calls_count,
+        'revenue': total_revenue,
+        'avg_per_sale': avg_per_sale
+    }
+
+
+def generate_report_html():
+    today = datetime.now(LOCAL_TZ).date()
+
+    # Current 7 days
+    cur7_start = today - timedelta(days=6)
+    cur7_end = today
+
+    # Previous 7 days
+    prev7_start = today - timedelta(days=13)
+    prev7_end = today - timedelta(days=7)
+
+    # Rolling 30 days: current = last 30 days, previous = 30 days before that
+    cur_month_start = today - timedelta(days=29)
+    cur_month_end = today
+    prev_month_start = today - timedelta(days=59)
+    prev_month_end = today - timedelta(days=30)
+
+    # Rolling 90 days: current = last 90 days, previous = 90 days before that
+    cur_q_start = today - timedelta(days=89)
+    cur_q_end = today
+    prev_q_start = today - timedelta(days=179)
+    prev_q_end = today - timedelta(days=90)
+
+    periods = {
+        'cur7': (cur7_start, cur7_end),
+        'prev7': (prev7_start, prev7_end),
+        'cur_month': (cur_month_start, cur_month_end),
+        'prev_month': (prev_month_start, prev_month_end),
+        'cur_quarter': (cur_q_start, cur_q_end),
+        'prev_quarter': (prev_q_start, prev_q_end),
+    }
+
+    data = {}
+    for key, (s, e) in periods.items():
+        data[key] = compute_kpis_for_range(datetime(s.year, s.month, s.day), datetime(e.year, e.month, e.day))
+
+    metrics = ['leads', 'sales', 'churn', 'calls', 'revenue', 'avg_per_sale']
+    labels = {'leads': 'Leads', 'sales': 'Sales', 'churn': 'Churn', 'calls': 'Calls',
+              'revenue': 'Revenue', 'avg_per_sale': 'Avg $ / Sale'}
+
+    def fd(d):
+        return d.strftime('%m/%d')
+
+    def fv(metric, val):
+        if val is None:
+            return "<span style='color:#ef4444;font-style:italic;'>Couldn't fetch</span>"
+        if metric in ('revenue', 'avg_per_sale'):
+            return f'${val:,.2f}'
+        return str(int(val))
+
+    def pct(curr, prev):
+        if curr is None or prev is None:
+            return "<span style='color:#94a3b8;'>N/A</span>"
+        if prev == 0:
+            return '+∞%' if curr > 0 else '0%'
+        change = ((curr - prev) / abs(prev)) * 100
+        sign = '+' if change >= 0 else ''
+        return f'{sign}{change:.1f}%'
+
+    html = f'''<html><body style="font-family:Arial,sans-serif;color:#333;max-width:750px;margin:0 auto;padding:20px;">
+<h2 style="color:#6366f1;">Daily Dashboard Performance Report</h2>
+<p style="color:#666;">Generated: {today.strftime("%B %d, %Y")} at 8:00 PM PT</p>
+<hr style="border:1px solid #e2e8f0;">'''
+
+    for metric in metrics:
+        cur7_val = data['cur7'][metric]
+        prev7_val = data['prev7'][metric]
+        cur_m_val = data['cur_month'][metric]
+        prev_m_val = data['prev_month'][metric]
+        cur_q_val = data['cur_quarter'][metric]
+        prev_q_val = data['prev_quarter'][metric]
+
+        c7 = '#94a3b8' if cur7_val is None or prev7_val is None else ('#10b981' if cur7_val >= prev7_val else '#ef4444')
+        cm = '#94a3b8' if cur_m_val is None or prev_m_val is None else ('#10b981' if cur_m_val >= prev_m_val else '#ef4444')
+        cq = '#94a3b8' if cur_q_val is None or prev_q_val is None else ('#10b981' if cur_q_val >= prev_q_val else '#ef4444')
+
+        html += f'''<h3 style="color:#1e293b;margin-top:24px;">{labels[metric]}</h3>
+<table style="width:100%;border-collapse:collapse;font-size:14px;">
+<tr style="background:#f8fafc;">
+<td style="padding:8px 12px;border:1px solid #e2e8f0;font-weight:bold;">Current 7 days ({fd(cur7_start)} - {fd(cur7_end)})</td>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;font-weight:bold;color:#6366f1;">{fv(metric, cur7_val)}</td>
+</tr>
+<tr>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;">Compared to Previous 7 days ({fd(prev7_start)} - {fd(prev7_end)})</td>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;">{fv(metric, prev7_val)} / <span style="color:{c7};font-weight:bold;">{pct(cur7_val, prev7_val)}</span></td>
+</tr>
+<tr>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;">Last 30 Days ({fv(metric, cur_m_val)}) ({fd(cur_month_start)} - {fd(cur_month_end)}) vs Previous 30 Days ({fv(metric, prev_m_val)}) ({fd(prev_month_start)} - {fd(prev_month_end)})</td>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;">{fv(metric, prev_m_val)} / <span style="color:{cm};font-weight:bold;">{pct(cur_m_val, prev_m_val)}</span></td>
+</tr>
+<tr>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;">Last 90 Days ({fv(metric, cur_q_val)}) ({fd(cur_q_start)} - {fd(cur_q_end)}) vs Previous 90 Days ({fv(metric, prev_q_val)}) ({fd(prev_q_start)} - {fd(prev_q_end)})</td>
+<td style="padding:8px 12px;border:1px solid #e2e8f0;">{fv(metric, prev_q_val)} / <span style="color:{cq};font-weight:bold;">{pct(cur_q_val, prev_q_val)}</span></td>
+</tr>
+</table>'''
+
+    html += '''<hr style="border:1px solid #e2e8f0;margin-top:30px;">
+<p style="color:#94a3b8;font-size:12px;">US Medical Directors — Automated Dashboard Report</p>
+</body></html>'''
+    return html
+
+
+def send_report_email():
+    if not GMAIL_USER or not GMAIL_APP_PASSWORD:
+        return {'success': False, 'error': 'GMAIL_USER and GMAIL_APP_PASSWORD env vars required'}
+
+    today_str = datetime.now(LOCAL_TZ).strftime('%B %d, %Y')
+    html_content = generate_report_html()
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = f'Daily Dashboard Performance Report {today_str}'
+    msg['From'] = GMAIL_USER
+    msg['To'] = REPORT_TO
+    msg['Bcc'] = REPORT_BCC
+    msg.attach(MIMEText(html_content, 'html'))
+
+    try:
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
+            recipients = [REPORT_TO] + [b.strip() for b in REPORT_BCC.split(',')]
+            server.sendmail(GMAIL_USER, recipients, msg.as_string())
+        return {'success': True, 'message': f'Report sent to {REPORT_TO}'}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+
+@app.route('/api/email-report', methods=['POST'])
+def email_report():
+    import threading
+
+    def _run():
+        cache.clear()
+        send_report_email()
+
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({'success': True, 'message': 'Report is being generated and sent in the background.'})
+
+
+@app.route('/api/email-report/preview')
+def email_report_preview():
+    try:
+        return generate_report_html(), 200, {'Content-Type': 'text/html'}
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# --- Scheduler (APScheduler) ---
+
+def trigger_ar_scrape():
+    """Trigger the AR scraper on its Heroku worker dyno via the Heroku API."""
+    heroku_api_key = os.environ.get('HEROKU_API_KEY', '')
+    heroku_app_name = os.environ.get('AR_SCRAPER_APP', 'scrape-aesthetic-record')
+    if not heroku_api_key:
+        print('[AR Scraper] No HEROKU_API_KEY set — skipping scrape trigger.')
+        return
+    try:
+        resp = requests.post(
+            f'https://api.heroku.com/apps/{heroku_app_name}/dynos',
+            headers={
+                'Authorization': f'Bearer {heroku_api_key}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.heroku+json; version=3',
+            },
+            json={'command': 'python scrape_AR.py', 'type': 'run'}
+        )
+        print(f'[AR Scraper] Triggered: {resp.status_code} {resp.text[:200]}')
+    except Exception as e:
+        print(f'[AR Scraper] Error triggering scrape: {e}')
+
+
+def init_scheduler():
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        from apscheduler.triggers.cron import CronTrigger
+        from apscheduler.triggers.interval import IntervalTrigger
+
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(
+            send_report_email,
+            CronTrigger(hour=8, minute=0, timezone='America/Los_Angeles'),
+            id='daily_email_report',
+            replace_existing=True
+        )
+        scheduler.add_job(
+            trigger_ar_scrape,
+            IntervalTrigger(days=30),
+            id='ar_scrape_30day',
+            replace_existing=True
+        )
+        scheduler.start()
+    except ImportError:
+        print('APScheduler not installed. Scheduled email report disabled.')
+
+
+init_scheduler()
+
+
+# --- MongoDB / Aesthetic Record ---
+
+MONGO_URI = os.environ.get(
+    'MONGO_URI',
+    'mongodb+srv://Bisma:Bisma123@cluster0.r1tthak.mongodb.net/'
+)
+mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+ar_db = mongo_client['aesthetic_record']
+ar_clients = ar_db['clients']
+
+NOTE_DATE_RE = re.compile(r'Date:\s*(\d{2}/\d{2}/\d{4})')
+
+
+def parse_procedure_notes(notes_str, start_date=None, end_date=None):
+    """Parse procedure_notes string, optionally filtering by date range."""
+    if not notes_str:
+        return []
+    blocks = [b.strip() for b in notes_str.split('||') if b.strip()]
+    results = []
+    for block in blocks:
+        m = NOTE_DATE_RE.search(block)
+        if m:
+            try:
+                note_date = datetime.strptime(m.group(1), '%m/%d/%Y')
+            except ValueError:
+                continue
+            if start_date and note_date < start_date:
+                continue
+            if end_date and note_date > end_date:
+                continue
+        elif start_date or end_date:
+            continue
+        results.append(block)
+    return results
+
+
+@app.route('/api/ar/clients')
+def ar_get_clients():
+    try:
+        start_str = request.args.get('start')
+        end_str = request.args.get('end')
+        start_date = datetime.strptime(start_str, '%Y-%m-%d') if start_str else None
+        end_date = datetime.strptime(end_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59) if end_str else None
+
+        docs = list(ar_clients.find({}, {'_id': 0}))
+
+        clients = []
+        for doc in docs:
+            notes_raw = doc.get('procedure_notes', '')
+            filtered_notes = parse_procedure_notes(notes_raw, start_date, end_date)
+            if start_date or end_date:
+                if not filtered_notes:
+                    continue
+            client = {
+                'clinic_name': doc.get('clinic_name', ''),
+                'name': doc.get('name', ''),
+                'client_url': doc.get('client_url', ''),
+                'dob': doc.get('dob', ''),
+                'age': doc.get('age', ''),
+                'address': doc.get('address', ''),
+                'email': doc.get('email', ''),
+                'phone': doc.get('phone', ''),
+                'primary_clinic': doc.get('primary_clinic', ''),
+                'creation_date': doc.get('creation_date', ''),
+                'customer_notes': doc.get('customer_notes', ''),
+                'procedure_notes_count': len(filtered_notes),
+                'procedure_notes': filtered_notes,
+            }
+            clients.append(client)
+        return jsonify({'success': True, 'count': len(clients), 'clients': clients})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/ar/refresh', methods=['POST'])
+def ar_refresh():
+    """Placeholder for manual refresh — triggers info message.
+    Actual scraping is done by the separate scrape_AR.py project on Heroku."""
+    return jsonify({
+        'success': True,
+        'message': 'Data refresh initiated. The scraper runs on a separate Heroku worker. New data will appear after the next scrape cycle completes.'
+    })
 
 
 if __name__ == '__main__':
