@@ -2021,6 +2021,7 @@ def ar_get_clients():
                 if not filtered_notes:
                     continue
             client = {
+                'scrape_date': doc.get('scrape_date', ''),
                 'clinic_name': doc.get('clinic_name', ''),
                 'name': doc.get('name', ''),
                 'client_url': doc.get('client_url', ''),

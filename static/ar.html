@@ -267,19 +267,7 @@
     </div>
 
     <script>
-        function getDefaultDates() {
-            const now = new Date();
-            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
-            function fmt(d) {
-                return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-            }
-            return { start: fmt(start), end: fmt(now) };
-        }
-
         function init() {
-            const defaults = getDefaultDates();
-            document.getElementById('startDate').value = defaults.start;
-            document.getElementById('endDate').value = defaults.end;
             loadClients();
         }
 
@@ -325,36 +313,51 @@
                 '<div class="stat-chip">Procedure Notes: <strong>' + totalNotes + '</strong></div>';
         }
 
+        const COLUMNS = [
+            'scrape_date', 'clinic_name', 'name', 'client_url', 'dob', 'age',
+            'address', 'email', 'phone', 'primary_clinic', 'creation_date',
+            'customer_notes', 'procedure_notes_count', 'procedure_notes'
+        ];
+        const COL_LABELS = {
+            scrape_date: 'Scrape Date', clinic_name: 'Clinic', name: 'Name',
+            client_url: 'Client URL', dob: 'DOB', age: 'Age', address: 'Address',
+            email: 'Email', phone: 'Phone', primary_clinic: 'Primary Clinic',
+            creation_date: 'Created', customer_notes: 'Customer Notes',
+            procedure_notes_count: 'Notes Count', procedure_notes: 'Procedure Notes'
+        };
+
         function renderTable(clients) {
             const container = document.getElementById('tableContainer');
-            if (!clients.length) {
-                container.innerHTML = '<div class="loading">No clients found for the selected date range.</div>';
-                return;
-            }
-            let html = '<div class="table-container"><table><thead><tr>' +
-                '<th>Clinic</th><th>Name</th><th>DOB</th><th>Age</th>' +
-                '<th>Email</th><th>Phone</th><th>Address</th>' +
-                '<th>Primary Clinic</th><th>Created</th><th>Notes Count</th><th>Procedure Notes</th>' +
-                '</tr></thead><tbody>';
+            let html = '<div class="table-container"><table><thead><tr>';
+            COLUMNS.forEach(col => { html += '<th>' + COL_LABELS[col] + '</th>'; });
+            html += '</tr></thead><tbody>';
 
-            clients.forEach((c, idx) => {
-                const nameCell = c.client_url
-                    ? '<a class="client-link" href="' + escHtml(c.client_url) + '" target="_blank">' + escHtml(c.name) + '</a>'
-                    : escHtml(c.name);
-                html += '<tr>' +
-                    '<td>' + escHtml(c.clinic_name) + '</td>' +
-                    '<td>' + nameCell + '</td>' +
-                    '<td>' + escHtml(c.dob) + '</td>' +
-                    '<td>' + escHtml(String(c.age || '')) + '</td>' +
-                    '<td>' + escHtml(c.email) + '</td>' +
-                    '<td>' + escHtml(c.phone) + '</td>' +
-                    '<td title="' + escAttr(c.address) + '">' + escHtml(c.address) + '</td>' +
-                    '<td>' + escHtml(c.primary_clinic) + '</td>' +
-                    '<td>' + escHtml(c.creation_date) + '</td>' +
-                    '<td>' + (c.procedure_notes_count || 0) + '</td>' +
-                    '<td class="notes-cell">' + renderNotes(c.procedure_notes, idx) + '</td>' +
-                    '</tr>';
-            });
+            if (!clients.length) {
+                html += '<tr><td colspan="' + COLUMNS.length + '" style="text-align:center;color:var(--text-secondary);padding:40px">No data available</td></tr>';
+            } else {
+                clients.forEach((c, idx) => {
+                    html += '<tr>';
+                    COLUMNS.forEach(col => {
+                        if (col === 'name') {
+                            const nameCell = c.client_url
+                                ? '<a class="client-link" href="' + escHtml(c.client_url) + '" target="_blank">' + escHtml(c.name) + '</a>'
+                                : escHtml(c.name);
+                            html += '<td>' + nameCell + '</td>';
+                        } else if (col === 'client_url') {
+                            html += '<td>' + (c.client_url ? '<a class="client-link" href="' + escHtml(c.client_url) + '" target="_blank">Link</a>' : '') + '</td>';
+                        } else if (col === 'procedure_notes') {
+                            html += '<td class="notes-cell">' + renderNotes(c.procedure_notes, idx) + '</td>';
+                        } else if (col === 'customer_notes') {
+                            html += '<td class="notes-cell">' + escHtml(String(c.customer_notes || '')) + '</td>';
+                        } else if (col === 'address') {
+                            html += '<td title="' + escAttr(c.address || '') + '">' + escHtml(c.address || '') + '</td>';
+                        } else {
+                            html += '<td>' + escHtml(String(c[col] != null ? c[col] : '')) + '</td>';
+                        }
+                    });
+                    html += '</tr>';
+                });
+            }
             html += '</tbody></table></div>';
             container.innerHTML = html;
         }
