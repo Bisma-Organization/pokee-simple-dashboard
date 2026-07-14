@@ -171,7 +171,8 @@
             background: rgba(99, 102, 241, 0.04);
         }
         td.notes-cell {
-            max-width: 350px;
+            min-width: 450px;
+            max-width: 600px;
             white-space: normal;
             word-break: break-word;
         }
@@ -314,16 +315,16 @@
         }
 
         const COLUMNS = [
-            'scrape_date', 'clinic_name', 'name', 'client_url', 'dob', 'age',
+            'clinic_name', 'name', 'client_url', 'dob', 'age',
             'address', 'email', 'phone', 'primary_clinic', 'creation_date',
             'customer_notes', 'procedure_notes_count', 'procedure_notes'
         ];
         const COL_LABELS = {
-            scrape_date: 'Scrape Date', clinic_name: 'Clinic', name: 'Name',
-            client_url: 'Client URL', dob: 'DOB', age: 'Age', address: 'Address',
+            clinic_name: 'Clinic', name: 'Client Name',
+            client_url: 'URL', dob: 'DOB', age: 'Age', address: 'Address',
             email: 'Email', phone: 'Phone', primary_clinic: 'Primary Clinic',
-            creation_date: 'Created', customer_notes: 'Customer Notes',
-            procedure_notes_count: 'Notes Count', procedure_notes: 'Procedure Notes'
+            creation_date: 'Client Creation Date', customer_notes: 'Customer Notes',
+            procedure_notes_count: 'Procedure Notes Count', procedure_notes: 'Procedure Notes'
         };
 
         function renderTable(clients) {
