@@ -6,137 +6,204 @@
     <title>Aesthetic Record — Workspaces</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%233b82f6'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='32' font-weight='bold' fill='white'>AR</text></svg>">
     <style>
-        :root {
-            --bg-primary: #1a1d23;
-            --bg-secondary: #22262e;
-            --bg-card: #2a2e37;
-            --border: rgba(255, 255, 255, 0.08);
-            --text-primary: #ffffff;
-            --text-secondary: #9ca3af;
-            --accent: #6366f1;
-            --accent-hover: #818cf8;
-            --green: #10b981;
-            --green-hover: #34d399;
-        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
+            background: #ffffff;
+            color: #333;
             min-height: 100vh;
         }
+
+        /* Header */
         .top-bar {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            padding: 12px 24px;
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 16px 32px;
             display: flex;
             align-items: center;
             gap: 16px;
         }
         .top-bar .logo {
-            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #333;
+            text-decoration: none;
+        }
+        .top-bar .logo svg {
+            width: 40px;
+            height: 40px;
+        }
+        .top-bar .logo-text {
+            font-size: 0.85rem;
             font-weight: 700;
-            color: var(--text-primary);
+            line-height: 1.1;
+            color: #1a1a1a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .top-bar .nav-links {
             display: flex;
-            gap: 8px;
+            gap: 16px;
             margin-left: auto;
+            align-items: center;
         }
         .top-bar .nav-links a {
-            color: var(--text-secondary);
+            color: #555;
             text-decoration: none;
-            font-size: 0.8rem;
-            padding: 6px 12px;
-            border: 1px solid var(--border);
+            font-size: 0.85rem;
+            padding: 8px 16px;
             border-radius: 6px;
             transition: all 0.2s;
         }
         .top-bar .nav-links a:hover {
-            border-color: var(--accent);
-            color: var(--text-primary);
+            background: #f3f4f6;
+            color: #111;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 32px 24px;
+        .top-bar .nav-links .btn-get-started {
+            border: 1px solid #d1d5db;
+            border-radius: 20px;
+            padding: 8px 20px;
+            font-weight: 500;
         }
-        .page-header {
-            margin-bottom: 32px;
-        }
-        .page-header h1 {
-            font-size: 1.6rem;
-            font-weight: 700;
-            margin-bottom: 6px;
-        }
-        .page-header p {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
+        .top-bar .nav-links .btn-get-started:hover {
+            border-color: #2196F3;
+            color: #2196F3;
         }
 
-        /* Workspaces Grid */
-        .workspaces-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 20px;
+        /* Container */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px 32px;
         }
-        .workspace-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 24px;
+
+        /* Back link */
+        .back-link {
+            color: #2196F3;
+            font-size: 0.85rem;
+            text-decoration: none;
+            cursor: pointer;
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Page header with count and search */
+        .page-header {
             display: flex;
             align-items: center;
-            gap: 16px;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .page-header h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+        .search-box {
+            position: relative;
+        }
+        .search-box input {
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 8px 14px 8px 34px;
+            font-size: 0.85rem;
+            width: 220px;
+            outline: none;
             transition: border-color 0.2s;
+            color: #333;
         }
-        .workspace-card:hover {
-            border-color: rgba(99, 102, 241, 0.3);
+        .search-box input:focus {
+            border-color: #2196F3;
         }
-        .workspace-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        .search-box input::placeholder {
+            color: #9ca3af;
+        }
+        .search-box .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Alphabet section headers */
+        .alpha-header {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            padding: 12px 0 8px 0;
+            border-bottom: none;
+        }
+
+        /* Workspace rows */
+        .workspace-row {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.15s;
+        }
+        .workspace-row:hover {
+            background: #f9fafb;
+        }
+        .workspace-logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            background: #f3f4f6;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            font-size: 1.2rem;
+            margin-right: 16px;
+            font-size: 0.65rem;
             font-weight: 700;
-            color: white;
-        }
-        .workspace-info {
-            flex: 1;
-            min-width: 0;
+            color: #555;
+            line-height: 1.1;
+            text-align: center;
+            border: 1px solid #e5e7eb;
         }
         .workspace-name {
-            font-size: 0.95rem;
-            font-weight: 600;
-            margin-bottom: 4px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #333;
+            flex: 1;
+            min-width: 0;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .workspace-meta {
-            color: var(--text-secondary);
-            font-size: 0.8rem;
+        .status-badge {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #10b981;
+            font-style: italic;
+            margin-left: 12px;
+            margin-right: auto;
+            padding-left: 16px;
         }
         .btn-launch {
-            background: var(--green);
+            background: #2196F3;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 8px 24px;
+            border-radius: 6px;
             font-size: 0.82rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
+            transition: background 0.2s;
             flex-shrink: 0;
         }
         .btn-launch:hover {
-            background: var(--green-hover);
-            transform: translateY(-1px);
+            background: #1976D2;
         }
 
         /* Clients View */
@@ -149,43 +216,83 @@
         .workspaces-view.hidden {
             display: none;
         }
-        .back-btn {
-            display: inline-flex;
+
+        /* Clients page header */
+        .clients-page-header {
+            display: flex;
             align-items: center;
-            gap: 6px;
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 0.85rem;
+            gap: 16px;
             margin-bottom: 20px;
-            cursor: pointer;
-            padding: 8px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background: none;
-            transition: all 0.2s;
+            flex-wrap: wrap;
         }
-        .back-btn:hover {
-            border-color: var(--accent);
-            color: var(--text-primary);
-        }
-        .clients-header {
-            margin-bottom: 24px;
-        }
-        .clients-header h2 {
+        .clients-page-header h2 {
             font-size: 1.3rem;
             font-weight: 700;
-            margin-bottom: 4px;
+            color: #1a1a1a;
         }
-        .clients-header .client-count {
-            color: var(--text-secondary);
+        .clients-search-box {
+            position: relative;
+        }
+        .clients-search-box input {
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 8px 14px 8px 34px;
             font-size: 0.85rem;
+            width: 200px;
+            outline: none;
+            transition: border-color 0.2s;
+            color: #333;
         }
+        .clients-search-box input:focus {
+            border-color: #2196F3;
+        }
+        .clients-search-box input::placeholder {
+            color: #9ca3af;
+        }
+        .clients-search-box .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Alphabet filter */
+        .alpha-filter {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+        .alpha-filter .alpha-btn {
+            background: none;
+            border: none;
+            padding: 4px 7px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.15s;
+        }
+        .alpha-filter .alpha-btn:hover {
+            color: #2196F3;
+            background: #eff6ff;
+        }
+        .alpha-filter .alpha-btn.active {
+            color: #2196F3;
+            font-weight: 700;
+        }
+
+        /* Clients table */
         .table-container {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
             overflow: auto;
-            max-height: calc(100vh - 280px);
+            max-height: calc(100vh - 320px);
         }
         table {
             width: 100%;
@@ -198,23 +305,21 @@
             z-index: 2;
         }
         th {
-            background: var(--bg-secondary);
-            color: var(--text-secondary);
+            background: #f9fafb;
+            color: #6b7280;
             font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
-            padding: 14px 20px;
+            font-size: 0.8rem;
+            padding: 12px 20px;
             text-align: left;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid #e5e7eb;
         }
         td {
-            padding: 14px 20px;
-            border-bottom: 1px solid var(--border);
-            color: var(--text-primary);
+            padding: 12px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #333;
         }
         tr:hover td {
-            background: rgba(99, 102, 241, 0.04);
+            background: #f9fafb;
         }
         tr:last-child td {
             border-bottom: none;
@@ -224,14 +329,14 @@
         .loading {
             text-align: center;
             padding: 60px;
-            color: var(--text-secondary);
+            color: #9ca3af;
         }
         .spinner {
             display: inline-block;
             width: 28px;
             height: 28px;
-            border: 3px solid var(--border);
-            border-top-color: var(--accent);
+            border: 3px solid #e5e7eb;
+            border-top-color: #2196F3;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
             margin-bottom: 12px;
@@ -241,25 +346,43 @@
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: var(--text-secondary);
+            color: #9ca3af;
         }
-        .empty-state svg {
-            width: 48px;
-            height: 48px;
+
+        /* Back button */
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #2196F3;
+            font-size: 0.85rem;
+            cursor: pointer;
+            background: none;
+            border: none;
             margin-bottom: 16px;
-            opacity: 0.5;
+            padding: 0;
+        }
+        .back-btn:hover {
+            text-decoration: underline;
         }
 
         @media (max-width: 768px) {
-            .container { padding: 20px 16px; }
-            .workspaces-grid { grid-template-columns: 1fr; }
-            .workspace-card { padding: 16px; }
+            .container { padding: 16px; }
+            .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .search-box input { width: 100%; }
+            .workspace-row { padding: 12px 8px; }
         }
     </style>
 </head>
 <body>
     <div class="top-bar">
-        <span class="logo">Aesthetic Record</span>
+        <a class="logo" href="/ar">
+            <svg viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5 40 L20 10 L25 22 L30 10 L45 40 L38 40 L30 22 L25 34 L20 22 L12 40 Z" fill="#1a1a1a"/>
+                <path d="M25 10 L45 40 L38 40 L25 16 Z" fill="#1a1a1a"/>
+            </svg>
+            <span class="logo-text">AESTHETIC<br>RECORD</span>
+        </a>
         <div class="nav-links">
             <a href="/">Dashboard</a>
             <a href="/monthly-summary">Monthly Summary</a>
@@ -270,11 +393,15 @@
     <div class="container">
         <!-- Workspaces View -->
         <div class="workspaces-view" id="workspacesView">
+            <a class="back-link" href="/">&#60; Back</a>
             <div class="page-header">
-                <h1>Workspaces</h1>
-                <p>Select a workspace to view its clients</p>
+                <h1 id="workspacesTitle">All Workspaces</h1>
+                <div class="search-box">
+                    <svg class="search-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    <input type="text" id="workspaceSearch" placeholder="Search..." oninput="filterWorkspaces()">
+                </div>
             </div>
-            <div id="workspacesGrid" class="workspaces-grid">
+            <div id="workspacesGrid">
                 <div class="loading">
                     <div class="spinner"></div>
                     <div>Loading workspaces...</div>
@@ -285,18 +412,25 @@
         <!-- Clients View -->
         <div class="clients-view" id="clientsView">
             <button class="back-btn" onclick="showWorkspaces()">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                Back to Workspaces
+                &#60; Back to Workspaces
             </button>
-            <div class="clients-header">
+            <div class="clients-page-header">
                 <h2 id="clinicTitle"></h2>
-                <div class="client-count" id="clientCount"></div>
+                <div class="clients-search-box">
+                    <svg class="search-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    <input type="text" id="clientSearch" placeholder="Search" oninput="filterClients()">
+                </div>
             </div>
+            <div class="alpha-filter" id="alphaFilter"></div>
             <div id="clientsTable"></div>
         </div>
     </div>
 
     <script>
+        let allWorkspaces = [];
+        let allClients = [];
+        let activeAlpha = 'All';
+
         async function loadWorkspaces() {
             const grid = document.getElementById('workspacesGrid');
             try {
@@ -310,30 +444,60 @@
                     grid.innerHTML = '<div class="empty-state">No workspaces found</div>';
                     return;
                 }
-                grid.innerHTML = data.workspaces.map(w => {
-                    const initials = w.name.split(' ').map(x => x[0]).join('').substring(0, 2).toUpperCase();
-                    return `
-                        <div class="workspace-card">
-                            <div class="workspace-icon">${initials}</div>
-                            <div class="workspace-info">
-                                <div class="workspace-name">${escHtml(w.name)}</div>
-                                <div class="workspace-meta">${w.client_count} client${w.client_count !== 1 ? 's' : ''}</div>
-                            </div>
-                            <button class="btn-launch" onclick="launchWorkspace('${escAttr(w.name)}')">Launch</button>
-                        </div>
-                    `;
-                }).join('');
+                allWorkspaces = data.workspaces;
+                document.getElementById('workspacesTitle').textContent = 'All Workspaces: ' + allWorkspaces.length;
+                renderWorkspaces(allWorkspaces);
             } catch (e) {
                 grid.innerHTML = '<div class="empty-state">Failed to load workspaces</div>';
             }
         }
 
+        function renderWorkspaces(workspaces) {
+            const grid = document.getElementById('workspacesGrid');
+            if (!workspaces.length) {
+                grid.innerHTML = '<div class="empty-state">No workspaces match your search</div>';
+                return;
+            }
+
+            let currentLetter = '';
+            let html = '';
+
+            workspaces.forEach(w => {
+                const firstLetter = w.name.charAt(0).toUpperCase();
+                if (firstLetter !== currentLetter) {
+                    currentLetter = firstLetter;
+                    html += '<div class="alpha-header">' + currentLetter + '</div>';
+                }
+                html += `
+                    <div class="workspace-row">
+                        <div class="workspace-logo">AES<br>REC</div>
+                        <div class="workspace-name">${escHtml(w.name)}</div>
+                        <span class="status-badge">Active</span>
+                        <button class="btn-launch" onclick="launchWorkspace('${escAttr(w.name)}')">Launch</button>
+                    </div>
+                `;
+            });
+
+            grid.innerHTML = html;
+        }
+
+        function filterWorkspaces() {
+            const query = document.getElementById('workspaceSearch').value.toLowerCase().trim();
+            if (!query) {
+                renderWorkspaces(allWorkspaces);
+                return;
+            }
+            const filtered = allWorkspaces.filter(w => w.name.toLowerCase().includes(query));
+            renderWorkspaces(filtered);
+        }
+
         async function launchWorkspace(clinicName) {
             document.getElementById('workspacesView').classList.add('hidden');
             document.getElementById('clientsView').classList.add('active');
-            document.getElementById('clinicTitle').textContent = clinicName;
+            document.getElementById('clinicTitle').textContent = 'Clients';
             document.getElementById('clientsTable').innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading clients...</div></div>';
-            document.getElementById('clientCount').textContent = '';
+            document.getElementById('clientSearch').value = '';
+            activeAlpha = 'All';
 
             try {
                 const resp = await fetch('/api/ar/clients?clinic=' + encodeURIComponent(clinicName));
@@ -342,17 +506,58 @@
                     document.getElementById('clientsTable').innerHTML = '<div class="empty-state">Error loading clients</div>';
                     return;
                 }
-                document.getElementById('clientCount').textContent = data.count + ' client' + (data.count !== 1 ? 's' : '');
-                renderClientsTable(data.clients);
+                allClients = data.clients;
+                document.getElementById('clinicTitle').textContent = 'Clients : ' + data.count;
+                buildAlphaFilter();
+                renderClientsTable(allClients);
             } catch (e) {
                 document.getElementById('clientsTable').innerHTML = '<div class="empty-state">Failed to load clients</div>';
             }
         }
 
+        function buildAlphaFilter() {
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            let html = '<button class="alpha-btn active" onclick="setAlphaFilter(\'All\')">All</button>';
+            letters.forEach(l => {
+                html += `<button class="alpha-btn" onclick="setAlphaFilter('${l}')">${l}</button>`;
+            });
+            document.getElementById('alphaFilter').innerHTML = html;
+        }
+
+        function setAlphaFilter(letter) {
+            activeAlpha = letter;
+            const btns = document.querySelectorAll('.alpha-filter .alpha-btn');
+            btns.forEach(btn => {
+                btn.classList.toggle('active', btn.textContent === letter);
+            });
+            filterClients();
+        }
+
+        function filterClients() {
+            const query = document.getElementById('clientSearch').value.toLowerCase().trim();
+            let filtered = allClients;
+
+            if (activeAlpha !== 'All') {
+                filtered = filtered.filter(c => {
+                    const fn = (c.first_name || '').charAt(0).toUpperCase();
+                    return fn === activeAlpha;
+                });
+            }
+
+            if (query) {
+                filtered = filtered.filter(c => {
+                    const full = ((c.first_name || '') + ' ' + (c.last_name || '')).toLowerCase();
+                    return full.includes(query);
+                });
+            }
+
+            renderClientsTable(filtered);
+        }
+
         function renderClientsTable(clients) {
             const container = document.getElementById('clientsTable');
             if (!clients.length) {
-                container.innerHTML = '<div class="empty-state">No clients in this workspace</div>';
+                container.innerHTML = '<div class="empty-state">No clients found</div>';
                 return;
             }
             let html = '<div class="table-container"><table><thead><tr><th>First Name</th><th>Last Name</th></tr></thead><tbody>';
