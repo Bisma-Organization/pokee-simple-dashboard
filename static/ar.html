@@ -12,6 +12,7 @@
             background: #ffffff;
             color: #333;
             min-height: 100vh;
+            font-size: 16px;
         }
 
         /* Header */
@@ -26,23 +27,12 @@
         .top-bar .logo {
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 1rem;
-            font-weight: 600;
-            color: #333;
+            gap: 0;
             text-decoration: none;
         }
-        .top-bar .logo svg {
-            width: 40px;
-            height: 40px;
-        }
-        .top-bar .logo-text {
-            font-size: 0.85rem;
-            font-weight: 700;
-            line-height: 1.1;
-            color: #1a1a1a;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .top-bar .logo img {
+            height: 48px;
+            width: auto;
         }
         .top-bar .nav-links {
             display: flex;
@@ -53,7 +43,7 @@
         .top-bar .nav-links a {
             color: #555;
             text-decoration: none;
-            font-size: 0.85rem;
+            font-size: 1rem;
             padding: 8px 16px;
             border-radius: 6px;
             transition: all 0.2s;
@@ -75,19 +65,19 @@
 
         /* Container */
         .container {
-            max-width: 900px;
+            max-width: 960px;
             margin: 0 auto;
-            padding: 24px 32px;
+            padding: 28px 32px;
         }
 
         /* Back link */
         .back-link {
             color: #2196F3;
-            font-size: 0.85rem;
+            font-size: 1rem;
             text-decoration: none;
             cursor: pointer;
             display: inline-block;
-            margin-bottom: 16px;
+            margin-bottom: 18px;
         }
         .back-link:hover {
             text-decoration: underline;
@@ -98,10 +88,10 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 24px;
+            margin-bottom: 28px;
         }
         .page-header h1 {
-            font-size: 1.4rem;
+            font-size: 1.6rem;
             font-weight: 700;
             color: #1a1a1a;
         }
@@ -111,9 +101,9 @@
         .search-box input {
             border: 1px solid #d1d5db;
             border-radius: 6px;
-            padding: 8px 14px 8px 34px;
-            font-size: 0.85rem;
-            width: 220px;
+            padding: 10px 16px 10px 38px;
+            font-size: 1rem;
+            width: 240px;
             outline: none;
             transition: border-color 0.2s;
             color: #333;
@@ -126,20 +116,20 @@
         }
         .search-box .search-icon {
             position: absolute;
-            left: 10px;
+            left: 12px;
             top: 50%;
             transform: translateY(-50%);
             color: #9ca3af;
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
         }
 
         /* Alphabet section headers */
         .alpha-header {
-            font-size: 1rem;
+            font-size: 1.15rem;
             font-weight: 700;
             color: #1a1a1a;
-            padding: 12px 0 8px 0;
+            padding: 16px 0 10px 0;
             border-bottom: none;
         }
 
@@ -147,7 +137,7 @@
         .workspace-row {
             display: flex;
             align-items: center;
-            padding: 14px 16px;
+            padding: 16px 16px;
             border-bottom: 1px solid #f0f0f0;
             transition: background 0.15s;
         }
@@ -155,24 +145,25 @@
             background: #f9fafb;
         }
         .workspace-logo {
-            width: 44px;
-            height: 44px;
+            width: 50px;
+            height: 50px;
             border-radius: 8px;
-            background: #f3f4f6;
+            background: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            margin-right: 16px;
-            font-size: 0.65rem;
-            font-weight: 700;
-            color: #555;
-            line-height: 1.1;
-            text-align: center;
+            margin-right: 18px;
             border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+        .workspace-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
         .workspace-name {
-            font-size: 0.9rem;
+            font-size: 1.05rem;
             font-weight: 500;
             color: #333;
             flex: 1;
@@ -182,21 +173,21 @@
             text-overflow: ellipsis;
         }
         .status-badge {
-            font-size: 0.75rem;
+            font-size: 0.9rem;
             font-weight: 500;
             color: #10b981;
             font-style: italic;
-            margin-left: 12px;
+            margin-left: 14px;
             margin-right: auto;
-            padding-left: 16px;
+            padding-left: 18px;
         }
         .btn-launch {
             background: #2196F3;
             color: white;
             border: none;
-            padding: 8px 24px;
+            padding: 10px 28px;
             border-radius: 6px;
-            font-size: 0.82rem;
+            font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
             transition: background 0.2s;
@@ -221,12 +212,12 @@
         .clients-page-header {
             display: flex;
             align-items: center;
-            gap: 16px;
-            margin-bottom: 20px;
+            gap: 18px;
+            margin-bottom: 22px;
             flex-wrap: wrap;
         }
         .clients-page-header h2 {
-            font-size: 1.3rem;
+            font-size: 1.5rem;
             font-weight: 700;
             color: #1a1a1a;
         }
@@ -236,9 +227,9 @@
         .clients-search-box input {
             border: 1px solid #d1d5db;
             border-radius: 6px;
-            padding: 8px 14px 8px 34px;
-            font-size: 0.85rem;
-            width: 200px;
+            padding: 10px 16px 10px 38px;
+            font-size: 1rem;
+            width: 220px;
             outline: none;
             transition: border-color 0.2s;
             color: #333;
@@ -251,12 +242,12 @@
         }
         .clients-search-box .search-icon {
             position: absolute;
-            left: 10px;
+            left: 12px;
             top: 50%;
             transform: translateY(-50%);
             color: #9ca3af;
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
         }
 
         /* Alphabet filter */
@@ -264,14 +255,14 @@
             display: flex;
             gap: 4px;
             flex-wrap: wrap;
-            margin-bottom: 16px;
+            margin-bottom: 18px;
             align-items: center;
         }
         .alpha-filter .alpha-btn {
             background: none;
             border: none;
-            padding: 4px 7px;
-            font-size: 0.8rem;
+            padding: 5px 8px;
+            font-size: 0.95rem;
             font-weight: 500;
             color: #6b7280;
             cursor: pointer;
@@ -297,7 +288,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.88rem;
+            font-size: 1rem;
         }
         thead {
             position: sticky;
@@ -308,15 +299,16 @@
             background: #f9fafb;
             color: #6b7280;
             font-weight: 600;
-            font-size: 0.8rem;
-            padding: 12px 20px;
+            font-size: 0.95rem;
+            padding: 14px 24px;
             text-align: left;
             border-bottom: 1px solid #e5e7eb;
         }
         td {
-            padding: 12px 20px;
+            padding: 14px 24px;
             border-bottom: 1px solid #f0f0f0;
             color: #333;
+            font-size: 1rem;
         }
         tr:hover td {
             background: #f9fafb;
@@ -330,11 +322,12 @@
             text-align: center;
             padding: 60px;
             color: #9ca3af;
+            font-size: 1rem;
         }
         .spinner {
             display: inline-block;
-            width: 28px;
-            height: 28px;
+            width: 32px;
+            height: 32px;
             border: 3px solid #e5e7eb;
             border-top-color: #2196F3;
             border-radius: 50%;
@@ -347,6 +340,7 @@
             text-align: center;
             padding: 60px 20px;
             color: #9ca3af;
+            font-size: 1rem;
         }
 
         /* Back button */
@@ -355,11 +349,11 @@
             align-items: center;
             gap: 4px;
             color: #2196F3;
-            font-size: 0.85rem;
+            font-size: 1rem;
             cursor: pointer;
             background: none;
             border: none;
-            margin-bottom: 16px;
+            margin-bottom: 18px;
             padding: 0;
         }
         .back-btn:hover {
@@ -371,17 +365,14 @@
             .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
             .search-box input { width: 100%; }
             .workspace-row { padding: 12px 8px; }
+            body { font-size: 15px; }
         }
     </style>
 </head>
 <body>
     <div class="top-bar">
         <a class="logo" href="/ar">
-            <svg viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M5 40 L20 10 L25 22 L30 10 L45 40 L38 40 L30 22 L25 34 L20 22 L12 40 Z" fill="#1a1a1a"/>
-                <path d="M25 10 L45 40 L38 40 L25 16 Z" fill="#1a1a1a"/>
-            </svg>
-            <span class="logo-text">AESTHETIC<br>RECORD</span>
+            <img src="/static/ar-logo.png" alt="Aesthetic Record">
         </a>
         <div class="nav-links">
             <a href="/">Dashboard</a>
@@ -470,7 +461,7 @@
                 }
                 html += `
                     <div class="workspace-row">
-                        <div class="workspace-logo">AES<br>REC</div>
+                        <div class="workspace-logo"><img src="/static/ar-logo.png" alt="AR"></div>
                         <div class="workspace-name">${escHtml(w.name)}</div>
                         <span class="status-badge">Active</span>
                         <button class="btn-launch" onclick="launchWorkspace('${escAttr(w.name)}')">Launch</button>
