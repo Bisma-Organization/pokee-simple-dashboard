@@ -254,7 +254,6 @@
             <input type="date" id="endDate">
             <button class="btn btn-primary" onclick="loadClients()">Filter</button>
             <button class="btn btn-secondary" onclick="clearFilter()">Clear</button>
-            <button class="btn btn-update" onclick="refreshData()">Update</button>
         </div>
     </div>
 
@@ -409,20 +408,6 @@
             loadClients();
         }
 
-        async function refreshData() {
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'Updating...';
-            try {
-                const resp = await fetch('/api/ar/refresh', { method: 'POST' });
-                const data = await resp.json();
-                alert(data.message || 'Refresh triggered');
-            } catch (e) {
-                alert('Error: ' + e.message);
-            }
-            btn.disabled = false;
-            btn.textContent = 'Update';
-        }
 
         init();
     </script>
