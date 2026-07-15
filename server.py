@@ -1955,8 +1955,8 @@ def init_scheduler():
         )
         scheduler.add_job(
             trigger_ar_scrape,
-            IntervalTrigger(days=30),
-            id='ar_scrape_30day',
+            IntervalTrigger(days=15),
+            id='ar_scrape_15day',
             replace_existing=True
         )
         scheduler.start()
