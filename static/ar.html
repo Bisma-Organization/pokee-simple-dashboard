@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aesthetic Record — USMD</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%233b82f6'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='32' font-weight='bold' fill='white'>US</text></svg>">
+    <title>Aesthetic Record — Workspaces</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%233b82f6'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='32' font-weight='bold' fill='white'>AR</text></svg>">
     <style>
         :root {
-            --bg-primary: #0f0f1a;
-            --bg-card: rgba(22, 27, 58, 0.8);
-            --border: rgba(99, 102, 241, 0.15);
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
+            --bg-primary: #1a1d23;
+            --bg-secondary: #22262e;
+            --bg-card: #2a2e37;
+            --border: rgba(255, 255, 255, 0.08);
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
             --accent: #6366f1;
             --accent-hover: #818cf8;
-            --success: #10b981;
-            --warning: #f59e0b;
+            --green: #10b981;
+            --green-hover: #34d399;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -23,123 +24,173 @@
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
-            padding: 20px;
         }
-        .nav-links {
+        .top-bar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
             display: flex;
-            gap: 10px;
-            margin-bottom: 24px;
+            align-items: center;
+            gap: 16px;
         }
-        .nav-links a {
+        .top-bar .logo {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .top-bar .nav-links {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+        .top-bar .nav-links a {
             color: var(--text-secondary);
             text-decoration: none;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .top-bar .nav-links a:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+        .page-header {
+            margin-bottom: 32px;
+        }
+        .page-header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .page-header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Workspaces Grid */
+        .workspaces-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        .workspace-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: border-color 0.2s;
+        }
+        .workspace-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+        .workspace-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: white;
+        }
+        .workspace-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .workspace-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .workspace-meta {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+        .btn-launch {
+            background: var(--green);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
             font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            flex-shrink: 0;
+        }
+        .btn-launch:hover {
+            background: var(--green-hover);
+            transform: translateY(-1px);
+        }
+
+        /* Clients View */
+        .clients-view {
+            display: none;
+        }
+        .clients-view.active {
+            display: block;
+        }
+        .workspaces-view.hidden {
+            display: none;
+        }
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            cursor: pointer;
             padding: 8px 14px;
             border: 1px solid var(--border);
             border-radius: 8px;
+            background: none;
             transition: all 0.2s;
         }
-        .nav-links a:hover {
+        .back-btn:hover {
             border-color: var(--accent);
             color: var(--text-primary);
         }
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 16px;
+        .clients-header {
             margin-bottom: 24px;
         }
-        .header h1 {
-            font-size: 1.5rem;
+        .clients-header h2 {
+            font-size: 1.3rem;
             font-weight: 700;
+            margin-bottom: 4px;
         }
-        .controls {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-        .controls label {
+        .clients-header .client-count {
             color: var(--text-secondary);
-            font-size: 0.82rem;
-        }
-        .controls input[type="date"] {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-primary);
-            padding: 8px 12px;
             font-size: 0.85rem;
-            outline: none;
-        }
-        .controls input[type="date"]:focus {
-            border-color: var(--accent);
-        }
-        .btn {
-            padding: 8px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
-            box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
-        }
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
-        }
-        .btn-secondary {
-            background: var(--bg-card);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-        }
-        .btn-secondary:hover {
-            border-color: var(--accent);
-        }
-        .btn-update {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
-        }
-        .btn-update:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
-        }
-        .stats-bar {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .stat-chip {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 10px 18px;
-            font-size: 0.85rem;
-        }
-        .stat-chip strong {
-            color: var(--accent);
         }
         .table-container {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 12px;
             overflow: auto;
-            max-height: calc(100vh - 260px);
+            max-height: calc(100vh - 280px);
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.82rem;
-            min-width: 1200px;
+            font-size: 0.88rem;
         }
         thead {
             position: sticky;
@@ -147,55 +198,35 @@
             z-index: 2;
         }
         th {
-            background: rgba(30, 35, 75, 0.95);
+            background: var(--bg-secondary);
             color: var(--text-secondary);
             font-weight: 600;
             text-transform: uppercase;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             letter-spacing: 0.05em;
-            padding: 12px 10px;
+            padding: 14px 20px;
             text-align: left;
-            white-space: nowrap;
             border-bottom: 1px solid var(--border);
         }
         td {
-            padding: 10px;
-            border-bottom: 1px solid rgba(99, 102, 241, 0.06);
-            vertical-align: top;
-            max-width: 200px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
         }
         tr:hover td {
             background: rgba(99, 102, 241, 0.04);
         }
-        td.notes-cell {
-            min-width: 450px;
-            max-width: 600px;
-            white-space: normal;
-            word-break: break-word;
+        tr:last-child td {
+            border-bottom: none;
         }
-        .note-block {
-            background: rgba(99, 102, 241, 0.06);
-            border-left: 3px solid var(--accent);
-            padding: 6px 10px;
-            margin-bottom: 6px;
-            border-radius: 0 6px 6px 0;
-            font-size: 0.78rem;
-            line-height: 1.4;
-        }
-        .note-block:last-child { margin-bottom: 0; }
-        .note-date {
-            color: var(--accent);
-            font-weight: 600;
-        }
+
+        /* Loading */
         .loading {
             text-align: center;
             padding: 60px;
             color: var(--text-secondary);
         }
-        .loading .spinner {
+        .spinner {
             display: inline-block;
             width: 28px;
             height: 28px;
@@ -206,191 +237,135 @@
             margin-bottom: 12px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .error-msg {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #fca5a5;
-            padding: 12px 18px;
-            border-radius: 8px;
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
             margin-bottom: 16px;
+            opacity: 0.5;
         }
-        .client-link {
-            color: var(--accent);
-            text-decoration: none;
-        }
-        .client-link:hover {
-            text-decoration: underline;
-        }
-        .expand-btn {
-            background: none;
-            border: none;
-            color: var(--accent);
-            cursor: pointer;
-            font-size: 0.75rem;
-            padding: 2px 6px;
-        }
-        .expand-btn:hover { text-decoration: underline; }
+
         @media (max-width: 768px) {
-            body { padding: 12px; }
-            .header { flex-direction: column; align-items: flex-start; }
-            .controls { width: 100%; }
+            .container { padding: 20px 16px; }
+            .workspaces-grid { grid-template-columns: 1fr; }
+            .workspace-card { padding: 16px; }
         }
     </style>
 </head>
 <body>
-    <div class="nav-links">
-        <a href="/">Dashboard</a>
-        <a href="/monthly-summary">Monthly Summary</a>
-        <a href="/sdr">SDR</a>
-        <a href="/stripe-dashboard">Stripe</a>
-    </div>
-
-    <div class="header">
-        <h1>Aesthetic Record — Client Data</h1>
-        <div class="controls">
-            <label>From</label>
-            <input type="date" id="startDate">
-            <label>To</label>
-            <input type="date" id="endDate">
-            <button class="btn btn-primary" onclick="loadClients()">Filter</button>
-            <button class="btn btn-secondary" onclick="clearFilter()">Clear</button>
+    <div class="top-bar">
+        <span class="logo">Aesthetic Record</span>
+        <div class="nav-links">
+            <a href="/">Dashboard</a>
+            <a href="/monthly-summary">Monthly Summary</a>
+            <a href="/stripe-dashboard">Stripe</a>
         </div>
     </div>
 
-    <div class="stats-bar" id="statsBar"></div>
-    <div id="errorBox"></div>
-    <div id="tableContainer">
-        <div class="loading">
-            <div class="spinner"></div>
-            <div>Loading clients from MongoDB...</div>
+    <div class="container">
+        <!-- Workspaces View -->
+        <div class="workspaces-view" id="workspacesView">
+            <div class="page-header">
+                <h1>Workspaces</h1>
+                <p>Select a workspace to view its clients</p>
+            </div>
+            <div id="workspacesGrid" class="workspaces-grid">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Loading workspaces...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clients View -->
+        <div class="clients-view" id="clientsView">
+            <button class="back-btn" onclick="showWorkspaces()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Back to Workspaces
+            </button>
+            <div class="clients-header">
+                <h2 id="clinicTitle"></h2>
+                <div class="client-count" id="clientCount"></div>
+            </div>
+            <div id="clientsTable"></div>
         </div>
     </div>
 
     <script>
-        function init() {
-            loadClients();
-        }
-
-        async function loadClients() {
-            const start = document.getElementById('startDate').value;
-            const end = document.getElementById('endDate').value;
-            const container = document.getElementById('tableContainer');
-            const errorBox = document.getElementById('errorBox');
-            errorBox.innerHTML = '';
-
-            container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading clients...</div></div>';
-
-            let url = '/api/ar/clients';
-            const params = [];
-            if (start) params.push('start=' + start);
-            if (end) params.push('end=' + end);
-            if (params.length) url += '?' + params.join('&');
-
+        async function loadWorkspaces() {
+            const grid = document.getElementById('workspacesGrid');
             try {
-                const resp = await fetch(url);
+                const resp = await fetch('/api/ar/workspaces');
                 const data = await resp.json();
                 if (!data.success) {
-                    errorBox.innerHTML = '<div class="error-msg">Error: ' + (data.error || 'Unknown error') + '</div>';
-                    container.innerHTML = '';
+                    grid.innerHTML = '<div class="empty-state">Error loading workspaces</div>';
                     return;
                 }
-                renderStats(data);
-                renderTable(data.clients);
+                if (!data.workspaces.length) {
+                    grid.innerHTML = '<div class="empty-state">No workspaces found</div>';
+                    return;
+                }
+                grid.innerHTML = data.workspaces.map(w => {
+                    const initials = w.name.split(' ').map(x => x[0]).join('').substring(0, 2).toUpperCase();
+                    return `
+                        <div class="workspace-card">
+                            <div class="workspace-icon">${initials}</div>
+                            <div class="workspace-info">
+                                <div class="workspace-name">${escHtml(w.name)}</div>
+                                <div class="workspace-meta">${w.client_count} client${w.client_count !== 1 ? 's' : ''}</div>
+                            </div>
+                            <button class="btn-launch" onclick="launchWorkspace('${escAttr(w.name)}')">Launch</button>
+                        </div>
+                    `;
+                }).join('');
             } catch (e) {
-                errorBox.innerHTML = '<div class="error-msg">Failed to fetch data: ' + e.message + '</div>';
-                container.innerHTML = '';
+                grid.innerHTML = '<div class="empty-state">Failed to load workspaces</div>';
             }
         }
 
-        function renderStats(data) {
-            const bar = document.getElementById('statsBar');
-            const clinics = new Set(data.clients.map(c => c.clinic_name).filter(Boolean));
-            let totalNotes = 0;
-            data.clients.forEach(c => { totalNotes += c.procedure_notes_count || 0; });
-            bar.innerHTML =
-                '<div class="stat-chip">Clients: <strong>' + data.count + '</strong></div>' +
-                '<div class="stat-chip">Clinics: <strong>' + clinics.size + '</strong></div>' +
-                '<div class="stat-chip">Procedure Notes: <strong>' + totalNotes + '</strong></div>';
+        async function launchWorkspace(clinicName) {
+            document.getElementById('workspacesView').classList.add('hidden');
+            document.getElementById('clientsView').classList.add('active');
+            document.getElementById('clinicTitle').textContent = clinicName;
+            document.getElementById('clientsTable').innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading clients...</div></div>';
+            document.getElementById('clientCount').textContent = '';
+
+            try {
+                const resp = await fetch('/api/ar/clients?clinic=' + encodeURIComponent(clinicName));
+                const data = await resp.json();
+                if (!data.success) {
+                    document.getElementById('clientsTable').innerHTML = '<div class="empty-state">Error loading clients</div>';
+                    return;
+                }
+                document.getElementById('clientCount').textContent = data.count + ' client' + (data.count !== 1 ? 's' : '');
+                renderClientsTable(data.clients);
+            } catch (e) {
+                document.getElementById('clientsTable').innerHTML = '<div class="empty-state">Failed to load clients</div>';
+            }
         }
 
-        const COLUMNS = [
-            'clinic_name', 'name', 'client_url', 'dob', 'age',
-            'address', 'email', 'phone', 'primary_clinic', 'creation_date',
-            'procedure_notes_count', 'procedure_notes', 'customer_notes', 'scrape_date'
-        ];
-        const COL_LABELS = {
-            clinic_name: 'Clinic', name: 'Client Name',
-            client_url: 'URL', dob: 'DOB', age: 'Age', address: 'Address',
-            email: 'Email', phone: 'Phone', primary_clinic: 'Primary Clinic',
-            creation_date: 'Client Creation Date', procedure_notes_count: 'Procedure Notes Count',
-            procedure_notes: 'Procedure Notes', customer_notes: 'Customer Notes',
-            scrape_date: 'Scrape Date'
-        };
-
-        function renderTable(clients) {
-            const container = document.getElementById('tableContainer');
-            let html = '<div class="table-container"><table><thead><tr>';
-            COLUMNS.forEach(col => { html += '<th>' + COL_LABELS[col] + '</th>'; });
-            html += '</tr></thead><tbody>';
-
+        function renderClientsTable(clients) {
+            const container = document.getElementById('clientsTable');
             if (!clients.length) {
-                html += '<tr><td colspan="' + COLUMNS.length + '" style="text-align:center;color:var(--text-secondary);padding:40px">No data available</td></tr>';
-            } else {
-                clients.forEach((c, idx) => {
-                    html += '<tr>';
-                    COLUMNS.forEach(col => {
-                        if (col === 'name') {
-                            const nameCell = c.client_url
-                                ? '<a class="client-link" href="' + escHtml(c.client_url) + '" target="_blank">' + escHtml(c.name) + '</a>'
-                                : escHtml(c.name);
-                            html += '<td>' + nameCell + '</td>';
-                        } else if (col === 'client_url') {
-                            html += '<td>' + (c.client_url ? '<a class="client-link" href="' + escHtml(c.client_url) + '" target="_blank">Link</a>' : '') + '</td>';
-                        } else if (col === 'procedure_notes') {
-                            html += '<td class="notes-cell">' + renderNotes(c.procedure_notes, idx) + '</td>';
-                        } else if (col === 'customer_notes') {
-                            html += '<td class="notes-cell">' + escHtml(String(c.customer_notes || '')) + '</td>';
-                        } else if (col === 'address') {
-                            html += '<td title="' + escAttr(c.address || '') + '">' + escHtml(c.address || '') + '</td>';
-                        } else {
-                            html += '<td>' + escHtml(String(c[col] != null ? c[col] : '')) + '</td>';
-                        }
-                    });
-                    html += '</tr>';
-                });
+                container.innerHTML = '<div class="empty-state">No clients in this workspace</div>';
+                return;
             }
+            let html = '<div class="table-container"><table><thead><tr><th>First Name</th><th>Last Name</th></tr></thead><tbody>';
+            clients.forEach(c => {
+                html += '<tr><td>' + escHtml(c.first_name) + '</td><td>' + escHtml(c.last_name) + '</td></tr>';
+            });
             html += '</tbody></table></div>';
             container.innerHTML = html;
         }
 
-        function renderNotes(notes, idx) {
-            if (!notes || !notes.length) return '<span style="color:var(--text-secondary)">—</span>';
-            const MAX_SHOW = 2;
-            let html = '';
-            const show = notes.slice(0, MAX_SHOW);
-            show.forEach(n => { html += '<div class="note-block">' + formatNote(n) + '</div>'; });
-            if (notes.length > MAX_SHOW) {
-                html += '<div id="more-' + idx + '" style="display:none">';
-                notes.slice(MAX_SHOW).forEach(n => { html += '<div class="note-block">' + formatNote(n) + '</div>'; });
-                html += '</div>';
-                html += '<button class="expand-btn" onclick="toggleNotes(' + idx + ', this)">Show ' + (notes.length - MAX_SHOW) + ' more</button>';
-            }
-            return html;
-        }
-
-        function toggleNotes(idx, btn) {
-            const el = document.getElementById('more-' + idx);
-            if (el.style.display === 'none') {
-                el.style.display = 'block';
-                btn.textContent = 'Show less';
-            } else {
-                el.style.display = 'none';
-                btn.textContent = 'Show more';
-            }
-        }
-
-        function formatNote(note) {
-            return note.replace(/Date:\s*(\d{2}\/\d{2}\/\d{4})/g, '<span class="note-date">Date: $1</span>');
+        function showWorkspaces() {
+            document.getElementById('workspacesView').classList.remove('hidden');
+            document.getElementById('clientsView').classList.remove('active');
         }
 
         function escHtml(str) {
@@ -400,17 +375,10 @@
 
         function escAttr(str) {
             if (!str) return '';
-            return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            return str.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
         }
 
-        function clearFilter() {
-            document.getElementById('startDate').value = '';
-            document.getElementById('endDate').value = '';
-            loadClients();
-        }
-
-
-        init();
+        loadWorkspaces();
     </script>
 </body>
 </html>

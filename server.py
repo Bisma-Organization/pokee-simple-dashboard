@@ -2003,15 +2003,35 @@ def parse_procedure_notes(notes_str, start_date=None, end_date=None):
     return results
 
 
+@app.route('/api/ar/workspaces')
+def ar_get_workspaces():
+    try:
+        clinics = ar_clients.distinct('clinic_name')
+        workspaces = []
+        for name in clinics:
+            if name:
+                count = ar_clients.count_documents({'clinic_name': name})
+                workspaces.append({'name': name, 'client_count': count})
+        workspaces.sort(key=lambda w: w['name'])
+        return jsonify({'success': True, 'workspaces': workspaces})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/ar/clients')
 def ar_get_clients():
     try:
         start_str = request.args.get('start')
         end_str = request.args.get('end')
+        clinic_filter = request.args.get('clinic')
         start_date = datetime.strptime(start_str, '%Y-%m-%d') if start_str else None
         end_date = datetime.strptime(end_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59) if end_str else None
 
-        docs = list(ar_clients.find({}, {'_id': 0}))
+        query = {}
+        if clinic_filter:
+            query['clinic_name'] = clinic_filter
+
+        docs = list(ar_clients.find(query, {'_id': 0}))
 
         clients = []
         for doc in docs:
@@ -2020,10 +2040,16 @@ def ar_get_clients():
             if start_date or end_date:
                 if not filtered_notes:
                     continue
+            name = doc.get('name', '')
+            parts = name.strip().split(' ', 1) if name else ['', '']
+            first_name = parts[0] if len(parts) > 0 else ''
+            last_name = parts[1] if len(parts) > 1 else ''
             client = {
                 'scrape_date': doc.get('scrape_date', ''),
                 'clinic_name': doc.get('clinic_name', ''),
-                'name': doc.get('name', ''),
+                'name': name,
+                'first_name': first_name,
+                'last_name': last_name,
                 'client_url': doc.get('client_url', ''),
                 'dob': doc.get('dob', ''),
                 'age': doc.get('age', ''),
