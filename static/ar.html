@@ -316,14 +316,15 @@
         const COLUMNS = [
             'clinic_name', 'name', 'client_url', 'dob', 'age',
             'address', 'email', 'phone', 'primary_clinic', 'creation_date',
-            'customer_notes', 'procedure_notes_count', 'procedure_notes'
+            'procedure_notes_count', 'procedure_notes', 'customer_notes', 'scrape_date'
         ];
         const COL_LABELS = {
             clinic_name: 'Clinic', name: 'Client Name',
             client_url: 'URL', dob: 'DOB', age: 'Age', address: 'Address',
             email: 'Email', phone: 'Phone', primary_clinic: 'Primary Clinic',
-            creation_date: 'Client Creation Date', customer_notes: 'Customer Notes',
-            procedure_notes_count: 'Procedure Notes Count', procedure_notes: 'Procedure Notes'
+            creation_date: 'Client Creation Date', procedure_notes_count: 'Procedure Notes Count',
+            procedure_notes: 'Procedure Notes', customer_notes: 'Customer Notes',
+            scrape_date: 'Scrape Date'
         };
 
         function renderTable(clients) {
