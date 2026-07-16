@@ -465,9 +465,9 @@
         let allWorkspaces = [];
         let allClients = [];
         let activeAlpha = 'All';
-        let currentClinic = '';
+        let currentClinic = sessionStorage.getItem('ar_currentClinic') || '';
         let currentClientData = null;
-        let currentClientId = '';
+        let currentClientId = sessionStorage.getItem('ar_currentClientId') || '';
 
         function navigate(path, pushState = true) {
             if (pushState) history.pushState({path: path}, '', path);
@@ -483,19 +483,22 @@
             } else if (path.match(/^\/ar\/workspaces\/clients\/([^/]+)\/customer-notes$/)) {
                 const cid = path.match(/^\/ar\/workspaces\/clients\/([^/]+)\/customer-notes$/)[1];
                 currentClientId = cid;
+                sessionStorage.setItem('ar_currentClientId', cid);
                 showCustomerNotesPage(cid);
             } else if (path.match(/^\/ar\/workspaces\/clients\/([^/]+)\/notes$/)) {
                 const cid = path.match(/^\/ar\/workspaces\/clients\/([^/]+)\/notes$/)[1];
                 currentClientId = cid;
+                sessionStorage.setItem('ar_currentClientId', cid);
                 showProcedureNotesPage(cid);
             } else if (path.match(/^\/ar\/workspaces\/clients\/([^/]+)$/)) {
                 const cid = path.match(/^\/ar\/workspaces\/clients\/([^/]+)$/)[1];
                 currentClientId = cid;
+                sessionStorage.setItem('ar_currentClientId', cid);
                 document.getElementById('clientDetailView').classList.add('active');
                 loadClientDetail(cid);
             } else if (path === '/ar/workspaces/clients') {
                 document.getElementById('clientsView').classList.add('active');
-                if (currentClinic && !allClients.length) loadClients(currentClinic);
+                if (currentClinic) loadClients(currentClinic);
             }
         }
 
@@ -539,6 +542,7 @@
 
         function launchWorkspace(clinicName) {
             currentClinic = clinicName; allClients = [];
+            sessionStorage.setItem('ar_currentClinic', clinicName);
             navigate('/ar/workspaces/clients');
             loadClients(clinicName);
         }
