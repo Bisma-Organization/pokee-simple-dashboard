@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aesthetic Record — Workspaces</title>
+    <title>Aesthetic Record</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%233b82f6'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='32' font-weight='bold' fill='white'>AR</text></svg>">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -19,7 +19,7 @@
         .top-bar {
             background: #ffffff;
             border-bottom: 1px solid #e5e7eb;
-            padding: 16px 32px;
+            padding: 14px 32px;
             display: flex;
             align-items: center;
             gap: 16px;
@@ -31,7 +31,7 @@
             text-decoration: none;
         }
         .top-bar .logo img {
-            height: 48px;
+            height: 56px;
             width: auto;
         }
         .top-bar .nav-links {
@@ -52,20 +52,10 @@
             background: #f3f4f6;
             color: #111;
         }
-        .top-bar .nav-links .btn-get-started {
-            border: 1px solid #d1d5db;
-            border-radius: 20px;
-            padding: 8px 20px;
-            font-weight: 500;
-        }
-        .top-bar .nav-links .btn-get-started:hover {
-            border-color: #2196F3;
-            color: #2196F3;
-        }
 
         /* Container */
         .container {
-            max-width: 960px;
+            max-width: 980px;
             margin: 0 auto;
             padding: 28px 32px;
         }
@@ -79,9 +69,7 @@
             display: inline-block;
             margin-bottom: 18px;
         }
-        .back-link:hover {
-            text-decoration: underline;
-        }
+        .back-link:hover { text-decoration: underline; }
 
         /* Page header with count and search */
         .page-header {
@@ -108,12 +96,8 @@
             transition: border-color 0.2s;
             color: #333;
         }
-        .search-box input:focus {
-            border-color: #2196F3;
-        }
-        .search-box input::placeholder {
-            color: #9ca3af;
-        }
+        .search-box input:focus { border-color: #2196F3; }
+        .search-box input::placeholder { color: #9ca3af; }
         .search-box .search-icon {
             position: absolute;
             left: 12px;
@@ -130,7 +114,6 @@
             font-weight: 700;
             color: #1a1a1a;
             padding: 16px 0 10px 0;
-            border-bottom: none;
         }
 
         /* Workspace rows */
@@ -141,9 +124,7 @@
             border-bottom: 1px solid #f0f0f0;
             transition: background 0.15s;
         }
-        .workspace-row:hover {
-            background: #f9fafb;
-        }
+        .workspace-row:hover { background: #f9fafb; }
         .workspace-logo {
             width: 50px;
             height: 50px;
@@ -192,63 +173,9 @@
             cursor: pointer;
             transition: background 0.2s;
             flex-shrink: 0;
+            text-decoration: none;
         }
-        .btn-launch:hover {
-            background: #1976D2;
-        }
-
-        /* Clients View */
-        .clients-view {
-            display: none;
-        }
-        .clients-view.active {
-            display: block;
-        }
-        .workspaces-view.hidden {
-            display: none;
-        }
-
-        /* Clients page header */
-        .clients-page-header {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            margin-bottom: 22px;
-            flex-wrap: wrap;
-        }
-        .clients-page-header h2 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1a1a1a;
-        }
-        .clients-search-box {
-            position: relative;
-        }
-        .clients-search-box input {
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            padding: 10px 16px 10px 38px;
-            font-size: 1rem;
-            width: 220px;
-            outline: none;
-            transition: border-color 0.2s;
-            color: #333;
-        }
-        .clients-search-box input:focus {
-            border-color: #2196F3;
-        }
-        .clients-search-box input::placeholder {
-            color: #9ca3af;
-        }
-        .clients-search-box .search-icon {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9ca3af;
-            width: 18px;
-            height: 18px;
-        }
+        .btn-launch:hover { background: #1976D2; }
 
         /* Alphabet filter */
         .alpha-filter {
@@ -269,32 +196,22 @@
             border-radius: 4px;
             transition: all 0.15s;
         }
-        .alpha-filter .alpha-btn:hover {
-            color: #2196F3;
-            background: #eff6ff;
-        }
-        .alpha-filter .alpha-btn.active {
-            color: #2196F3;
-            font-weight: 700;
-        }
+        .alpha-filter .alpha-btn:hover { color: #2196F3; background: #eff6ff; }
+        .alpha-filter .alpha-btn.active { color: #2196F3; font-weight: 700; }
 
-        /* Clients table */
+        /* Table */
         .table-container {
             border: 1px solid #e5e7eb;
             border-radius: 8px;
             overflow: auto;
-            max-height: calc(100vh - 320px);
+            max-height: calc(100vh - 340px);
         }
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 1rem;
         }
-        thead {
-            position: sticky;
-            top: 0;
-            z-index: 2;
-        }
+        thead { position: sticky; top: 0; z-index: 2; }
         th {
             background: #f9fafb;
             color: #6b7280;
@@ -310,12 +227,154 @@
             color: #333;
             font-size: 1rem;
         }
-        tr:hover td {
-            background: #f9fafb;
+        tr.clickable-row { cursor: pointer; }
+        tr.clickable-row:hover td { background: #f0f7ff; }
+        tr:last-child td { border-bottom: none; }
+
+        /* Client Detail Page */
+        .client-profile-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 24px;
         }
-        tr:last-child td {
-            border-bottom: none;
+        .client-profile-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
         }
+        .client-detail-container {
+            display: flex;
+            gap: 32px;
+            align-items: flex-start;
+        }
+        .client-sidebar {
+            width: 300px;
+            flex-shrink: 0;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 24px;
+            background: #fafbfc;
+        }
+        .client-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            margin: 0 auto 16px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .client-avatar svg {
+            width: 48px;
+            height: 48px;
+            color: #9ca3af;
+        }
+        .client-name-section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .client-name-section h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+        }
+        .client-name-section .dob {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+        .client-status-badge {
+            display: inline-block;
+            background: #dcfce7;
+            color: #16a34a;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 12px;
+        }
+        .client-info-section {
+            margin-top: 20px;
+        }
+        .client-info-row {
+            margin-bottom: 14px;
+        }
+        .client-info-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 3px;
+        }
+        .client-info-value {
+            font-size: 0.95rem;
+            color: #333;
+            word-break: break-word;
+        }
+        .client-main-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .client-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+        .client-tab {
+            padding: 10px 20px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            border: none;
+            background: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+        .client-tab.active {
+            color: #2196F3;
+            border-bottom-color: #2196F3;
+            font-weight: 600;
+        }
+        .client-tab:hover { color: #2196F3; }
+        .procedure-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            background: #fafbfc;
+        }
+        .procedure-card .proc-header {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+        }
+        .procedure-card .proc-date {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        .procedure-card .proc-clinic {
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+        .no-procedures {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+            font-size: 1rem;
+        }
+
+        /* Views */
+        .view { display: none; }
+        .view.active { display: block; }
 
         /* Loading */
         .loading {
@@ -335,7 +394,6 @@
             margin-bottom: 12px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -343,35 +401,20 @@
             font-size: 1rem;
         }
 
-        /* Back button */
-        .back-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            color: #2196F3;
-            font-size: 1rem;
-            cursor: pointer;
-            background: none;
-            border: none;
-            margin-bottom: 18px;
-            padding: 0;
-        }
-        .back-btn:hover {
-            text-decoration: underline;
-        }
-
         @media (max-width: 768px) {
             .container { padding: 16px; }
             .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
             .search-box input { width: 100%; }
             .workspace-row { padding: 12px 8px; }
+            .client-detail-container { flex-direction: column; }
+            .client-sidebar { width: 100%; }
             body { font-size: 15px; }
         }
     </style>
 </head>
 <body>
     <div class="top-bar">
-        <a class="logo" href="/ar">
+        <a class="logo" href="/ar/workspaces">
             <img src="/static/ar-logo.png" alt="Aesthetic Record">
         </a>
         <div class="nav-links">
@@ -383,7 +426,7 @@
 
     <div class="container">
         <!-- Workspaces View -->
-        <div class="workspaces-view" id="workspacesView">
+        <div class="view" id="workspacesView">
             <a class="back-link" href="/">&#60; Back</a>
             <div class="page-header">
                 <h1 id="workspacesTitle">All Workspaces</h1>
@@ -401,13 +444,11 @@
         </div>
 
         <!-- Clients View -->
-        <div class="clients-view" id="clientsView">
-            <button class="back-btn" onclick="showWorkspaces()">
-                &#60; Back to Workspaces
-            </button>
-            <div class="clients-page-header">
-                <h2 id="clinicTitle"></h2>
-                <div class="clients-search-box">
+        <div class="view" id="clientsView">
+            <a class="back-link" href="/ar/workspaces">&#60; Back to Workspaces</a>
+            <div class="page-header">
+                <h1 id="clinicTitle">Clients</h1>
+                <div class="search-box">
                     <svg class="search-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                     <input type="text" id="clientSearch" placeholder="Search" oninput="filterClients()">
                 </div>
@@ -415,12 +456,53 @@
             <div class="alpha-filter" id="alphaFilter"></div>
             <div id="clientsTable"></div>
         </div>
+
+        <!-- Client Detail View -->
+        <div class="view" id="clientDetailView">
+            <a class="back-link" id="backToClientsLink" href="/ar/workspaces/clients">&#60; Back to Clients</a>
+            <div class="client-profile-header">
+                <h1>Client Profile</h1>
+            </div>
+            <div class="client-detail-container">
+                <div class="client-sidebar" id="clientSidebar">
+                    <div class="loading"><div class="spinner"></div><div>Loading...</div></div>
+                </div>
+                <div class="client-main-content" id="clientMainContent">
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         let allWorkspaces = [];
         let allClients = [];
         let activeAlpha = 'All';
+        let currentClinic = '';
+
+        function navigate(path, pushState = true) {
+            if (pushState) {
+                history.pushState({path: path}, '', path);
+            }
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+
+            if (path === '/ar' || path === '/ar/workspaces') {
+                document.getElementById('workspacesView').classList.add('active');
+                if (!allWorkspaces.length) loadWorkspaces();
+            } else if (path.match(/^\/ar\/workspaces\/clients\/(.+)$/)) {
+                const clientId = path.match(/^\/ar\/workspaces\/clients\/(.+)$/)[1];
+                document.getElementById('clientDetailView').classList.add('active');
+                loadClientDetail(clientId);
+            } else if (path === '/ar/workspaces/clients') {
+                document.getElementById('clientsView').classList.add('active');
+                if (currentClinic && !allClients.length) {
+                    loadClients(currentClinic);
+                }
+            }
+        }
+
+        window.addEventListener('popstate', (e) => {
+            navigate(location.pathname, false);
+        });
 
         async function loadWorkspaces() {
             const grid = document.getElementById('workspacesGrid');
@@ -449,10 +531,8 @@
                 grid.innerHTML = '<div class="empty-state">No workspaces match your search</div>';
                 return;
             }
-
             let currentLetter = '';
             let html = '';
-
             workspaces.forEach(w => {
                 const firstLetter = w.name.charAt(0).toUpperCase();
                 if (firstLetter !== currentLetter) {
@@ -468,23 +548,24 @@
                     </div>
                 `;
             });
-
             grid.innerHTML = html;
         }
 
         function filterWorkspaces() {
             const query = document.getElementById('workspaceSearch').value.toLowerCase().trim();
-            if (!query) {
-                renderWorkspaces(allWorkspaces);
-                return;
-            }
+            if (!query) { renderWorkspaces(allWorkspaces); return; }
             const filtered = allWorkspaces.filter(w => w.name.toLowerCase().includes(query));
             renderWorkspaces(filtered);
         }
 
-        async function launchWorkspace(clinicName) {
-            document.getElementById('workspacesView').classList.add('hidden');
-            document.getElementById('clientsView').classList.add('active');
+        function launchWorkspace(clinicName) {
+            currentClinic = clinicName;
+            allClients = [];
+            navigate('/ar/workspaces/clients');
+            loadClients(clinicName);
+        }
+
+        async function loadClients(clinicName) {
             document.getElementById('clinicTitle').textContent = 'Clients';
             document.getElementById('clientsTable').innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading clients...</div></div>';
             document.getElementById('clientSearch').value = '';
@@ -517,8 +598,7 @@
 
         function setAlphaFilter(letter) {
             activeAlpha = letter;
-            const btns = document.querySelectorAll('.alpha-filter .alpha-btn');
-            btns.forEach(btn => {
+            document.querySelectorAll('.alpha-filter .alpha-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.textContent === letter);
             });
             filterClients();
@@ -527,21 +607,15 @@
         function filterClients() {
             const query = document.getElementById('clientSearch').value.toLowerCase().trim();
             let filtered = allClients;
-
             if (activeAlpha !== 'All') {
-                filtered = filtered.filter(c => {
-                    const fn = (c.first_name || '').charAt(0).toUpperCase();
-                    return fn === activeAlpha;
-                });
+                filtered = filtered.filter(c => (c.first_name || '').charAt(0).toUpperCase() === activeAlpha);
             }
-
             if (query) {
                 filtered = filtered.filter(c => {
                     const full = ((c.first_name || '') + ' ' + (c.last_name || '')).toLowerCase();
                     return full.includes(query);
                 });
             }
-
             renderClientsTable(filtered);
         }
 
@@ -553,15 +627,98 @@
             }
             let html = '<div class="table-container"><table><thead><tr><th>First Name</th><th>Last Name</th></tr></thead><tbody>';
             clients.forEach(c => {
-                html += '<tr><td>' + escHtml(c.first_name) + '</td><td>' + escHtml(c.last_name) + '</td></tr>';
+                const cid = c.client_id || '';
+                html += `<tr class="clickable-row" onclick="openClient('${escAttr(cid)}')"><td>${escHtml(c.first_name)}</td><td>${escHtml(c.last_name)}</td></tr>`;
             });
             html += '</tbody></table></div>';
             container.innerHTML = html;
         }
 
-        function showWorkspaces() {
-            document.getElementById('workspacesView').classList.remove('hidden');
-            document.getElementById('clientsView').classList.remove('active');
+        function openClient(clientId) {
+            if (!clientId) return;
+            navigate('/ar/workspaces/clients/' + clientId);
+        }
+
+        async function loadClientDetail(clientId) {
+            const sidebar = document.getElementById('clientSidebar');
+            const main = document.getElementById('clientMainContent');
+            sidebar.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading...</div></div>';
+            main.innerHTML = '';
+
+            try {
+                const resp = await fetch('/api/ar/client/' + clientId);
+                const data = await resp.json();
+                if (!data.success) {
+                    sidebar.innerHTML = '<div class="empty-state">Client not found</div>';
+                    return;
+                }
+                const c = data.client;
+                renderClientSidebar(c, sidebar);
+                renderClientMain(c, main);
+            } catch (e) {
+                sidebar.innerHTML = '<div class="empty-state">Failed to load client</div>';
+            }
+        }
+
+        function renderClientSidebar(c, el) {
+            el.innerHTML = `
+                <div class="client-avatar">
+                    <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg>
+                </div>
+                <div class="client-name-section">
+                    <h2>${escHtml(c.name)}</h2>
+                    <div class="dob">${c.dob ? 'DOB: ' + escHtml(c.dob) : ''}</div>
+                    <span class="client-status-badge">Active</span>
+                </div>
+                <div class="client-info-section">
+                    ${infoRow('ADDRESS', c.address)}
+                    ${infoRow('PHONE', c.phone)}
+                    ${infoRow('EMAIL', c.email)}
+                    ${infoRow('CLIENT CREATED ON', c.creation_date)}
+                    ${infoRow('PRIMARY CLINIC', c.primary_clinic || c.clinic_name)}
+                </div>
+            `;
+        }
+
+        function infoRow(label, value) {
+            if (!value) return '';
+            return `<div class="client-info-row">
+                <div class="client-info-label">${label}</div>
+                <div class="client-info-value">${escHtml(value)}</div>
+            </div>`;
+        }
+
+        function renderClientMain(c, el) {
+            let html = '<div class="client-tabs">';
+            html += '<button class="client-tab active">Procedures</button>';
+            html += '<button class="client-tab" onclick="showNotes(this)">Notes</button>';
+            html += '</div>';
+            html += '<div id="clientTabContent">';
+            html += renderProcedures(c.procedure_notes);
+            html += '</div>';
+            el.innerHTML = html;
+        }
+
+        function renderProcedures(notes) {
+            if (!notes || !notes.length) {
+                return '<div class="no-procedures">No procedures recorded</div>';
+            }
+            let html = '';
+            notes.forEach(n => {
+                html += `<div class="procedure-card">
+                    <div class="proc-header">${escHtml(n.procedure_name || 'Procedure')}</div>
+                    <div class="proc-date">${escHtml(n.date || '')}</div>
+                    <div class="proc-clinic">${escHtml(n.clinic || '')}</div>
+                </div>`;
+            });
+            return html;
+        }
+
+        function showNotes(btn) {
+            document.querySelectorAll('.client-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            const c = document.getElementById('clientTabContent');
+            c.innerHTML = '<div class="no-procedures">No notes available</div>';
         }
 
         function escHtml(str) {
@@ -574,7 +731,8 @@
             return str.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
         }
 
-        loadWorkspaces();
+        // Initialize based on current URL
+        navigate(location.pathname, false);
     </script>
 </body>
 </html>

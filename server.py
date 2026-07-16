@@ -1607,7 +1607,10 @@ _ar_session.headers.update({
 })
 
 @app.route('/ar')
-def ar_page():
+@app.route('/ar/workspaces')
+@app.route('/ar/workspaces/clients')
+@app.route('/ar/workspaces/clients/<path:client_id>')
+def ar_page(client_id=None):
     return send_from_directory('static', 'ar.html')
 
 
@@ -2044,13 +2047,19 @@ def ar_get_clients():
             parts = name.strip().split(' ', 1) if name else ['', '']
             first_name = parts[0] if len(parts) > 0 else ''
             last_name = parts[1] if len(parts) > 1 else ''
+            client_url = doc.get('client_url', '')
+            client_id = ''
+            if client_url:
+                url_parts = client_url.rstrip('/').split('/')
+                client_id = url_parts[-1] if url_parts else ''
             client = {
+                'client_id': client_id,
                 'scrape_date': doc.get('scrape_date', ''),
                 'clinic_name': doc.get('clinic_name', ''),
                 'name': name,
                 'first_name': first_name,
                 'last_name': last_name,
-                'client_url': doc.get('client_url', ''),
+                'client_url': client_url,
                 'dob': doc.get('dob', ''),
                 'age': doc.get('age', ''),
                 'address': doc.get('address', ''),
@@ -2064,6 +2073,52 @@ def ar_get_clients():
             }
             clients.append(client)
         return jsonify({'success': True, 'count': len(clients), 'clients': clients})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/ar/client/<path:client_id>')
+def ar_get_client(client_id):
+    try:
+        doc = ar_clients.find_one(
+            {'client_url': {'$regex': f'/clients/profile/{client_id}'}},
+            {'_id': 0}
+        )
+        if not doc:
+            doc = ar_clients.find_one(
+                {'client_url': {'$regex': client_id}},
+                {'_id': 0}
+            )
+        if not doc:
+            return jsonify({'success': False, 'error': 'Client not found'}), 404
+
+        name = doc.get('name', '')
+        parts = name.strip().split(' ', 1) if name else ['', '']
+        first_name = parts[0] if len(parts) > 0 else ''
+        last_name = parts[1] if len(parts) > 1 else ''
+
+        notes_raw = doc.get('procedure_notes', '')
+        filtered_notes = parse_procedure_notes(notes_raw, None, None)
+
+        client = {
+            'scrape_date': doc.get('scrape_date', ''),
+            'clinic_name': doc.get('clinic_name', ''),
+            'name': name,
+            'first_name': first_name,
+            'last_name': last_name,
+            'client_url': doc.get('client_url', ''),
+            'dob': doc.get('dob', ''),
+            'age': doc.get('age', ''),
+            'address': doc.get('address', ''),
+            'email': doc.get('email', ''),
+            'phone': doc.get('phone', ''),
+            'primary_clinic': doc.get('primary_clinic', ''),
+            'creation_date': doc.get('creation_date', ''),
+            'customer_notes': doc.get('customer_notes', ''),
+            'procedure_notes_count': len(filtered_notes),
+            'procedure_notes': filtered_notes,
+        }
+        return jsonify({'success': True, 'client': client})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
