@@ -148,9 +148,7 @@
             padding: 8px 0; border-top: 1px solid #f0f0f0;
         }
         .client-toggle-label { font-size: 0.82rem; font-weight: 600; color: #555; text-transform: uppercase; }
-        .toggle-switch {
-            width: 36px; height: 20px; background: #d1d5db; border-radius: 10px; position: relative;
-        }
+        .toggle-switch { width: 36px; height: 20px; background: #d1d5db; border-radius: 10px; position: relative; }
         .toggle-switch::after {
             content: ''; width: 16px; height: 16px; background: white;
             border-radius: 50%; position: absolute; top: 2px; left: 2px;
@@ -184,8 +182,6 @@
         .procedure-entry-top { padding: 16px 18px; }
         .procedure-entry-title { font-size: 1.05rem; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
         .procedure-entry-meta { font-size: 0.9rem; color: #6b7280; margin-bottom: 2px; }
-
-        /* Procedure bottom tabs - matching real AR */
         .procedure-bottom-tabs {
             display: flex; border-top: 1px solid #e5e7eb; background: #f9fafb;
         }
@@ -198,56 +194,116 @@
         .procedure-bottom-tab:last-child { border-right: none; }
         .procedure-bottom-tab:hover { background: #eff6ff; }
 
-        /* ===== NOTES PAGE (full page view) ===== */
-        .notes-page { display: none; }
+        /* ===== NOTES FULL PAGE (shared base) ===== */
+        .notes-page { display: none; position: fixed; inset: 0; z-index: 9999; overflow-y: auto; }
         .notes-page.active { display: block; }
-        .notes-page-bg {
-            background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 100%);
-            padding: 0; min-height: 100vh;
+
+        /* Procedure Notes - light blue gradient bg */
+        .notes-page--procedure { background: linear-gradient(180deg, #e1f0fa 0%, #bbdefb 60%, #e3f2fd 100%); }
+        .notes-page--procedure .notes-pg-header { background: #64b5f6; }
+
+        /* Customer Notes - white bg */
+        .notes-page--customer { background: #ffffff; }
+        .notes-page--customer .notes-pg-header { background: #4a4a4a; }
+
+        .notes-pg-header {
+            color: white; padding: 14px 24px; display: flex; align-items: center;
+            font-size: 0.92rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
         }
-        .notes-header {
-            background: #64b5f6; color: white;
-            padding: 14px 24px; display: flex; align-items: center;
-            font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-        }
-        .notes-header-close {
+        .notes-pg-close {
             background: none; border: none; color: white;
-            font-size: 1.4rem; cursor: pointer; padding: 4px 12px 4px 4px; line-height: 1; margin-right: 16px;
+            font-size: 1.5rem; cursor: pointer; padding: 2px 12px 2px 4px; line-height: 1; margin-right: 12px;
         }
-        .notes-header-title { flex: 1; text-align: center; }
-        .notes-body {
-            max-width: 780px; margin: 0 auto; padding: 32px 24px;
+        .notes-pg-title { flex: 1; text-align: center; }
+        .notes-pg-body { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
+
+        /* Add Note Section */
+        .add-note-section { margin-bottom: 28px; }
+        .add-note-title { font-size: 1.05rem; font-weight: 600; color: #333; margin-bottom: 16px; }
+        .add-note-label-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .add-note-label { font-size: 0.88rem; font-weight: 700; color: #333; }
+        .add-note-label sup { color: #ef4444; }
+        .add-note-edit {
+            font-size: 0.82rem; color: #2196F3; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
         }
-        .notes-list { }
+        .add-note-edit svg { width: 14px; height: 14px; }
+        .add-note-textarea {
+            width: 100%; min-height: 100px; border: 1px solid #d1d5db; border-radius: 6px;
+            padding: 14px; font-size: 0.95rem; resize: vertical; outline: none;
+            font-family: inherit; color: #333; margin-bottom: 10px;
+        }
+        .add-note-textarea:focus { border-color: #2196F3; }
+        .add-note-help {
+            font-size: 0.8rem; color: #6b7280; margin-bottom: 16px; line-height: 1.6;
+        }
+        .add-note-btns { display: flex; gap: 12px; align-items: center; }
+        .btn-save {
+            background: #2196F3; color: white; border: none;
+            padding: 9px 28px; border-radius: 6px; font-size: 0.9rem;
+            font-weight: 600; cursor: pointer; transition: background 0.2s;
+        }
+        .btn-save:hover { background: #1976D2; }
+        .btn-sticky {
+            background: white; color: #2196F3; border: 1.5px solid #2196F3;
+            padding: 8px 20px; border-radius: 6px; font-size: 0.9rem;
+            font-weight: 600; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-sticky:hover { background: #eff6ff; }
+        .btn-clear {
+            background: white; color: #555; border: 1.5px solid #d1d5db;
+            padding: 8px 24px; border-radius: 6px; font-size: 0.9rem;
+            font-weight: 500; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-clear:hover { background: #f9fafb; }
+
+        /* Start Dictation + ChartSmart buttons (procedure notes) */
+        .dictation-row { display: flex; gap: 12px; margin-bottom: 14px; }
+        .btn-dictation {
+            background: white; color: #2196F3; border: 1.5px solid #2196F3;
+            padding: 8px 18px; border-radius: 6px; font-size: 0.85rem;
+            font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-chartsmart {
+            background: white; color: #555; border: 1.5px solid #d1d5db;
+            padding: 8px 18px; border-radius: 6px; font-size: 0.85rem;
+            font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+        }
+
+        /* Note entries */
+        .notes-entries { border-top: 1px solid #e5e7eb; padding-top: 20px; }
         .note-entry {
-            display: flex; gap: 14px; padding: 20px 0; border-bottom: 1px solid #e0e0e0;
+            display: flex; gap: 14px; padding: 18px 0; border-bottom: 1px solid #f0f0f0;
+            align-items: flex-start;
         }
         .note-entry:last-child { border-bottom: none; }
         .note-avatar {
-            width: 38px; height: 38px; border-radius: 50%; background: #e5e7eb;
+            width: 40px; height: 40px; border-radius: 50%; background: #e5e7eb;
             flex-shrink: 0; display: flex; align-items: center; justify-content: center;
         }
-        .note-avatar svg { width: 20px; height: 20px; color: #9ca3af; }
-        .note-left { display: flex; flex-direction: column; min-width: 180px; }
-        .note-author {
-            font-size: 0.9rem; font-weight: 700; color: #2196F3;
-            text-transform: uppercase; margin-bottom: 2px;
+        .note-avatar svg { width: 22px; height: 22px; color: #9ca3af; }
+        .note-meta { min-width: 180px; flex-shrink: 0; }
+
+        /* Procedure notes: blue uppercase author */
+        .note-author--procedure {
+            font-size: 0.88rem; font-weight: 700; color: #2196F3;
+            text-transform: uppercase; margin-bottom: 2px; line-height: 1.4;
+        }
+        /* Customer notes: dark bold sentence case author */
+        .note-author--customer {
+            font-size: 0.95rem; font-weight: 700; color: #1a1a1a;
+            margin-bottom: 2px; line-height: 1.4;
         }
         .note-date { font-size: 0.82rem; color: #9ca3af; }
+        .note-body-wrapper { flex: 1; min-width: 0; }
+        .note-actions-row { display: flex; gap: 16px; justify-content: flex-end; margin-bottom: 6px; }
+        .note-action-link { font-size: 0.82rem; color: #2196F3; cursor: pointer; text-decoration: none; }
+        .note-action-link:hover { text-decoration: underline; }
         .note-text-box {
-            flex: 1; min-width: 0;
-            background: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px;
+            background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px;
             padding: 14px 16px; font-size: 0.92rem; color: #333;
             line-height: 1.7; white-space: pre-wrap; word-break: break-word;
         }
-        .note-actions-row {
-            display: flex; gap: 16px; justify-content: flex-end; margin-bottom: 4px;
-        }
-        .note-action-link {
-            font-size: 0.8rem; color: #2196F3; cursor: pointer; text-decoration: none;
-        }
-        .note-action-link:hover { text-decoration: underline; }
-        .note-content-wrapper { flex: 1; min-width: 0; }
 
         /* ===== VIEWS ===== */
         .view { display: none; }
@@ -272,12 +328,12 @@
             .client-layout { flex-direction: column; }
             .client-left { width: 100%; }
             .note-entry { flex-direction: column; gap: 8px; }
+            .note-meta { min-width: auto; }
             body { font-size: 15px; }
         }
     </style>
 </head>
 <body>
-    <!-- Top bar (hidden on notes page) -->
     <div class="top-bar" id="topBar">
         <a class="logo" href="/ar/workspaces">
             <img src="/static/ar-logo.png" alt="Aesthetic Record">
@@ -331,18 +387,72 @@
         </div>
     </div>
 
-    <!-- Notes Full Page View (replaces entire layout) -->
-    <div class="notes-page" id="notesPageView">
-        <div class="notes-page-bg">
-            <div class="notes-header">
-                <button class="notes-header-close" onclick="closeNotesPage()">&times;</button>
-                <span class="notes-header-title" id="notesPageTitle">PROCEDURE NOTES</span>
-            </div>
-            <div class="notes-body">
-                <div class="notes-list" id="notesPageList">
-                    <div class="loading"><div class="spinner"></div><div>Loading notes...</div></div>
+    <!-- Procedure Notes Full Page -->
+    <div class="notes-page notes-page--procedure" id="procedureNotesPage">
+        <div class="notes-pg-header">
+            <button class="notes-pg-close" onclick="closeNotesPage('procedure')">&times;</button>
+            <span class="notes-pg-title" id="procNotesTitle">PROCEDURE NOTES</span>
+        </div>
+        <div class="notes-pg-body">
+            <div class="add-note-section">
+                <div class="add-note-title">Add Note</div>
+                <div class="dictation-row">
+                    <button class="btn-dictation">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                        Start Dictation
+                    </button>
+                    <button class="btn-chartsmart">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        ChartSmart
+                    </button>
+                </div>
+                <div class="add-note-label-row">
+                    <span class="add-note-label">NOTE<sup>*</sup></span>
+                    <a class="add-note-edit">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Edit
+                    </a>
+                </div>
+                <textarea class="add-note-textarea" placeholder=""></textarea>
+                <div class="add-note-help">
+                    (Got Phrases - You can invoke them by typing .(dot) and making the selection)<br>
+                    (Got function - You can use @all function to fill in the client medical history (Allergies, Family history etc))
+                </div>
+                <div class="add-note-btns">
+                    <button class="btn-save">Save</button>
+                    <button class="btn-clear">Clear</button>
                 </div>
             </div>
+            <div class="notes-entries" id="procNotesList"></div>
+        </div>
+    </div>
+
+    <!-- Customer Notes Full Page -->
+    <div class="notes-page notes-page--customer" id="customerNotesPage">
+        <div class="notes-pg-header">
+            <button class="notes-pg-close" onclick="closeNotesPage('customer')">&times;</button>
+            <span class="notes-pg-title" id="custNotesTitle">CUSTOMER NOTES</span>
+        </div>
+        <div class="notes-pg-body">
+            <div class="add-note-section">
+                <div class="add-note-title">Add Note</div>
+                <div class="add-note-label-row">
+                    <span class="add-note-label">NOTE<sup>*</sup></span>
+                    <a class="add-note-edit">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Edit
+                    </a>
+                </div>
+                <textarea class="add-note-textarea" placeholder=""></textarea>
+                <div class="add-note-help">
+                    . (Dot) Phrases : You can invoke them by typing .(dot) and making the selection
+                </div>
+                <div class="add-note-btns">
+                    <button class="btn-save">Save</button>
+                    <button class="btn-sticky">Save as Sticky Note</button>
+                </div>
+            </div>
+            <div class="notes-entries" id="custNotesList"></div>
         </div>
     </div>
 
@@ -357,17 +467,22 @@
         function navigate(path, pushState = true) {
             if (pushState) history.pushState({path: path}, '', path);
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.getElementById('notesPageView').classList.remove('active');
+            document.getElementById('procedureNotesPage').classList.remove('active');
+            document.getElementById('customerNotesPage').classList.remove('active');
             document.getElementById('topBar').style.display = '';
             document.getElementById('mainContainer').style.display = '';
 
             if (path === '/ar' || path === '/ar/workspaces') {
                 document.getElementById('workspacesView').classList.add('active');
                 if (!allWorkspaces.length) loadWorkspaces();
+            } else if (path.match(/^\/ar\/workspaces\/clients\/([^/]+)\/customer-notes$/)) {
+                const cid = path.match(/^\/ar\/workspaces\/clients\/([^/]+)\/customer-notes$/)[1];
+                currentClientId = cid;
+                showCustomerNotesPage(cid);
             } else if (path.match(/^\/ar\/workspaces\/clients\/([^/]+)\/notes$/)) {
                 const cid = path.match(/^\/ar\/workspaces\/clients\/([^/]+)\/notes$/)[1];
                 currentClientId = cid;
-                showNotesPage(cid);
+                showProcedureNotesPage(cid);
             } else if (path.match(/^\/ar\/workspaces\/clients\/([^/]+)$/)) {
                 const cid = path.match(/^\/ar\/workspaces\/clients\/([^/]+)$/)[1];
                 currentClientId = cid;
@@ -418,8 +533,7 @@
         }
 
         function launchWorkspace(clinicName) {
-            currentClinic = clinicName;
-            allClients = [];
+            currentClinic = clinicName; allClients = [];
             navigate('/ar/workspaces/clients');
             loadClients(clinicName);
         }
@@ -472,10 +586,7 @@
             container.innerHTML = html;
         }
 
-        function openClient(clientId) {
-            if (!clientId) return;
-            navigate('/ar/workspaces/clients/' + clientId);
-        }
+        function openClient(clientId) { if (!clientId) return; navigate('/ar/workspaces/clients/' + clientId); }
 
         // ========== CLIENT DETAIL ==========
         async function loadClientDetail(clientId) {
@@ -503,49 +614,28 @@
                         <div class="client-profile-dob">${c.dob ? 'DOB: ' + escHtml(c.dob) : 'DOB: —'}</div>
                         <div class="client-active-badge">Active</div>
                     </div>
-                    <div class="client-detail-section">
-                        <div class="client-detail-label">ADDRESS</div>
-                        <div class="client-detail-value">${escHtml(c.address) || '—'}</div>
-                    </div>
-                    <div class="client-detail-section">
-                        <div class="client-detail-label">PHONE</div>
-                        <div class="client-detail-value">${escHtml(c.phone) || '—'}</div>
-                    </div>
-                    <div class="client-detail-section">
-                        <div class="client-detail-label">EMAIL</div>
-                        <div class="client-detail-value">${escHtml(c.email) || '—'}</div>
-                    </div>
-                    <div class="client-detail-section">
-                        <div class="client-detail-label">CLIENT CREATED ON</div>
-                        <div class="client-detail-value">${escHtml(c.creation_date) || '—'}</div>
-                    </div>
-                    <div class="client-detail-section">
-                        <div class="client-detail-label">PRIMARY CLINIC</div>
-                        <div class="client-detail-value">${escHtml(c.primary_clinic || c.clinic_name) || '—'}</div>
-                    </div>
-                    <div class="client-toggle-row">
-                        <span class="client-toggle-label">ACCESS CLIENT PORTAL</span>
-                        <div class="toggle-switch"></div>
-                    </div>
-                    <div class="client-toggle-row">
-                        <span class="client-toggle-label">COMMUNICATION CONSENT</span>
-                    </div>
+                    <div class="client-detail-section"><div class="client-detail-label">ADDRESS</div><div class="client-detail-value">${escHtml(c.address) || '—'}</div></div>
+                    <div class="client-detail-section"><div class="client-detail-label">PHONE</div><div class="client-detail-value">${escHtml(c.phone) || '—'}</div></div>
+                    <div class="client-detail-section"><div class="client-detail-label">EMAIL</div><div class="client-detail-value">${escHtml(c.email) || '—'}</div></div>
+                    <div class="client-detail-section"><div class="client-detail-label">CLIENT CREATED ON</div><div class="client-detail-value">${escHtml(c.creation_date) || '—'}</div></div>
+                    <div class="client-detail-section"><div class="client-detail-label">PRIMARY CLINIC</div><div class="client-detail-value">${escHtml(c.primary_clinic || c.clinic_name) || '—'}</div></div>
+                    <div class="client-toggle-row"><span class="client-toggle-label">ACCESS CLIENT PORTAL</span><div class="toggle-switch"></div></div>
+                    <div class="client-toggle-row"><span class="client-toggle-label">COMMUNICATION CONSENT</span></div>
                     <div class="consent-row">
                         <div class="consent-item"><span class="consent-checkbox"></span> Fine This Client</div>
                         <div class="consent-item"><span class="consent-checkbox"></span> Do Not Call</div>
                     </div>
                 </div>
-
                 <div class="client-right">
                     <div class="client-top-tabs">
                         <button class="client-top-tab active">Vitals</button>
                         <button class="client-top-tab">Create Appointment</button>
                         <button class="client-top-tab">Membership/Pkg</button>
                         <button class="client-top-tab">Medical History</button>
-                        <button class="client-top-tab">Customer Notes</button>
+                        <button class="client-top-tab" onclick="goToCustomerNotes()">Customer Notes</button>
                     </div>
                     <div class="procedures-section-header">Procedures</div>
-                    <div id="proceduresList">${renderProcedures(c.procedure_notes, c.name)}</div>
+                    <div id="proceduresList">${renderProcedures(c.procedure_notes)}</div>
                 </div>
             </div>`;
         }
@@ -561,9 +651,8 @@
             return obj;
         }
 
-        function renderProcedures(notes, clientName) {
+        function renderProcedures(notes) {
             if (!notes || !notes.length) return '<div class="no-data">No procedures recorded</div>';
-            const cid = currentClientId;
             let html = '';
             notes.forEach((n, i) => {
                 const parsed = parseNoteString(n);
@@ -579,73 +668,108 @@
                         <button class="procedure-bottom-tab">More Photos</button>
                         <button class="procedure-bottom-tab">Payment</button>
                         <button class="procedure-bottom-tab">More</button>
-                        <button class="procedure-bottom-tab" onclick="goToNotesPage()">Notes</button>
+                        <button class="procedure-bottom-tab" onclick="goToProcedureNotes()">Notes</button>
                     </div>
                 </div>`;
             });
             return html;
         }
 
-        // ========== NOTES PAGE ==========
-        function goToNotesPage() {
+        // ========== NAVIGATION TO NOTES PAGES ==========
+        function goToProcedureNotes() {
             if (!currentClientId) return;
             navigate('/ar/workspaces/clients/' + currentClientId + '/notes');
         }
 
-        async function showNotesPage(clientId) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.getElementById('topBar').style.display = 'none';
-            document.getElementById('mainContainer').style.display = 'none';
-            document.getElementById('notesPageView').classList.add('active');
-
-            const notesList = document.getElementById('notesPageList');
-            notesList.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading notes...</div></div>';
-
-            try {
-                let c = currentClientData;
-                if (!c) {
-                    const resp = await fetch('/api/ar/client/' + clientId);
-                    const data = await resp.json();
-                    if (!data.success) { notesList.innerHTML = '<div class="no-data">Client not found</div>'; return; }
-                    c = data.client;
-                    currentClientData = c;
-                }
-
-                document.getElementById('notesPageTitle').textContent = (c.name || 'CLIENT').toUpperCase() + ' - PROCEDURE NOTES';
-
-                const notes = c.procedure_notes || [];
-                if (!notes.length) {
-                    notesList.innerHTML = '<div class="no-data">No procedure notes available</div>';
-                    return;
-                }
-
-                let html = '';
-                notes.forEach(noteStr => {
-                    const parsed = parseNoteString(noteStr);
-                    const writer = parsed.writer || 'Provider';
-                    const noteContent = parsed.note || parsed.raw;
-                    html += `<div class="note-entry">
-                        <div class="note-avatar"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg></div>
-                        <div class="note-left">
-                            <div class="note-author">${escHtml(writer).toUpperCase()} LEFT A NOTE</div>
-                            <div class="note-date">${escHtml(parsed.date)}</div>
-                        </div>
-                        <div class="note-content-wrapper">
-                            <div class="note-actions-row">
-                                <span class="note-action-link">Copy</span>
-                                <span class="note-action-link">Note History</span>
-                            </div>
-                            <div class="note-text-box">${escHtml(noteContent)}</div>
-                        </div>
-                    </div>`;
-                });
-                notesList.innerHTML = html;
-            } catch (e) {
-                notesList.innerHTML = '<div class="no-data">Failed to load notes</div>';
-            }
+        function goToCustomerNotes() {
+            if (!currentClientId) return;
+            navigate('/ar/workspaces/clients/' + currentClientId + '/customer-notes');
         }
 
-        function closeNotesPage() {
+        // ========== PROCEDURE NOTES PAGE ==========
+        async function showProcedureNotesPage(clientId) {
+            document.getElementById('topBar').style.display = 'none';
+            document.getElementById('mainContainer').style.display = 'none';
+            document.getElementById('procedureNotesPage').classList.add('active');
+
+            const list = document.getElementById('procNotesList');
+            list.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading...</div></div>';
+
+            const c = await ensureClientData(clientId);
+            if (!c) { list.innerHTML = '<div class="no-data">Client not found</div>'; return; }
+
+            document.getElementById('procNotesTitle').textContent = (c.name || 'CLIENT').toUpperCase() + ' - PROCEDURE NOTES';
+
+            const notes = c.procedure_notes || [];
+            if (!notes.length) { list.innerHTML = '<div class="no-data">No procedure notes available</div>'; return; }
+
+            let html = '';
+            notes.forEach(noteStr => {
+                const parsed = parseNoteString(noteStr);
+                const writer = parsed.writer || 'Provider';
+                const noteContent = parsed.note || parsed.raw;
+                html += `<div class="note-entry">
+                    <div class="note-avatar"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg></div>
+                    <div class="note-meta">
+                        <div class="note-author--procedure">${escHtml(writer).toUpperCase()} LEFT A NOTE</div>
+                        <div class="note-date">${escHtml(parsed.date)}</div>
+                    </div>
+                    <div class="note-body-wrapper">
+                        <div class="note-actions-row">
+                            <span class="note-action-link">Copy</span>
+                            <span class="note-action-link">Note History</span>
+                        </div>
+                        <div class="note-text-box">${escHtml(noteContent)}</div>
+                    </div>
+                </div>`;
+            });
+            list.innerHTML = html;
+        }
+
+        // ========== CUSTOMER NOTES PAGE ==========
+        async function showCustomerNotesPage(clientId) {
+            document.getElementById('topBar').style.display = 'none';
+            document.getElementById('mainContainer').style.display = 'none';
+            document.getElementById('customerNotesPage').classList.add('active');
+
+            const list = document.getElementById('custNotesList');
+            list.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading...</div></div>';
+
+            const c = await ensureClientData(clientId);
+            if (!c) { list.innerHTML = '<div class="no-data">Client not found</div>'; return; }
+
+            document.getElementById('custNotesTitle').textContent = (c.name || 'CLIENT').toUpperCase() + ' - CUSTOMER NOTES';
+
+            const notesRaw = c.customer_notes || '';
+            if (!notesRaw) { list.innerHTML = '<div class="no-data">No customer notes available</div>'; return; }
+
+            const noteBlocks = notesRaw.split(' || ').filter(b => b.trim());
+            if (!noteBlocks.length) { list.innerHTML = '<div class="no-data">No customer notes available</div>'; return; }
+
+            let html = '';
+            noteBlocks.forEach(noteStr => {
+                const parsed = parseNoteString(noteStr);
+                const writer = parsed.writer || 'Provider';
+                const noteContent = parsed.note || parsed.raw;
+                html += `<div class="note-entry">
+                    <div class="note-avatar"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg></div>
+                    <div class="note-meta">
+                        <div class="note-author--customer">${escHtml(writer)} left a note</div>
+                        <div class="note-date">${escHtml(parsed.date)}</div>
+                    </div>
+                    <div class="note-body-wrapper">
+                        <div class="note-actions-row">
+                            <span class="note-action-link">Notes History</span>
+                        </div>
+                        <div class="note-text-box">${escHtml(noteContent)}</div>
+                    </div>
+                </div>`;
+            });
+            list.innerHTML = html;
+        }
+
+        // ========== CLOSE NOTES PAGES ==========
+        function closeNotesPage(type) {
             if (currentClientId) {
                 navigate('/ar/workspaces/clients/' + currentClientId);
             } else {
@@ -653,7 +777,19 @@
             }
         }
 
-        // ========== UTILS ==========
+        // ========== HELPERS ==========
+        async function ensureClientData(clientId) {
+            if (currentClientData && currentClientData.client_url && currentClientData.client_url.includes(clientId)) {
+                return currentClientData;
+            }
+            try {
+                const resp = await fetch('/api/ar/client/' + clientId);
+                const data = await resp.json();
+                if (data.success) { currentClientData = data.client; return data.client; }
+            } catch (e) {}
+            return null;
+        }
+
         function escHtml(str) {
             if (!str) return '';
             return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -663,7 +799,6 @@
             return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
         }
 
-        // Initialize
         navigate(location.pathname, false);
     </script>
 </body>
