@@ -198,9 +198,13 @@
         .notes-page { display: none; position: fixed; inset: 0; z-index: 9999; overflow-y: auto; }
         .notes-page.active { display: block; }
 
-        /* Procedure Notes - light blue gradient bg */
-        .notes-page--procedure { background: linear-gradient(180deg, #e1f0fa 0%, #bbdefb 60%, #e3f2fd 100%); }
-        .notes-page--procedure .notes-pg-header { background: #64b5f6; }
+        /* Procedure Notes - large sky-blue top area, white content */
+        .notes-page--procedure { background: #ffffff; }
+        .notes-page--procedure .notes-pg-top-bg {
+            background: linear-gradient(180deg, #d6eaf8 0%, #dceefb 100%);
+            height: 90px;
+        }
+        .notes-page--procedure .notes-pg-header { background: #85c1e9; }
 
         /* Customer Notes - white bg */
         .notes-page--customer { background: #ffffff; }
@@ -389,6 +393,7 @@
 
     <!-- Procedure Notes Full Page -->
     <div class="notes-page notes-page--procedure" id="procedureNotesPage">
+        <div class="notes-pg-top-bg"></div>
         <div class="notes-pg-header">
             <button class="notes-pg-close" onclick="closeNotesPage('procedure')">&times;</button>
             <span class="notes-pg-title" id="procNotesTitle">PROCEDURE NOTES</span>
