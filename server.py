@@ -1846,9 +1846,14 @@ def generate_report_html():
         cur_q_val = data['cur_quarter'][metric]
         prev_q_val = data['prev_quarter'][metric]
 
-        c7 = '#94a3b8' if cur7_val is None or prev7_val is None else ('#10b981' if cur7_val >= prev7_val else '#ef4444')
-        cm = '#94a3b8' if cur_m_val is None or prev_m_val is None else ('#10b981' if cur_m_val >= prev_m_val else '#ef4444')
-        cq = '#94a3b8' if cur_q_val is None or prev_q_val is None else ('#10b981' if cur_q_val >= prev_q_val else '#ef4444')
+        if metric == 'churn':
+            c7 = '#94a3b8' if cur7_val is None or prev7_val is None else ('#94a3b8' if cur7_val == prev7_val else '#10b981' if cur7_val < prev7_val else '#ef4444')
+            cm = '#94a3b8' if cur_m_val is None or prev_m_val is None else ('#94a3b8' if cur_m_val == prev_m_val else '#10b981' if cur_m_val < prev_m_val else '#ef4444')
+            cq = '#94a3b8' if cur_q_val is None or prev_q_val is None else ('#94a3b8' if cur_q_val == prev_q_val else '#10b981' if cur_q_val < prev_q_val else '#ef4444')
+        else:
+            c7 = '#94a3b8' if cur7_val is None or prev7_val is None else ('#10b981' if cur7_val >= prev7_val else '#ef4444')
+            cm = '#94a3b8' if cur_m_val is None or prev_m_val is None else ('#10b981' if cur_m_val >= prev_m_val else '#ef4444')
+            cq = '#94a3b8' if cur_q_val is None or prev_q_val is None else ('#10b981' if cur_q_val >= prev_q_val else '#ef4444')
 
         html += f'''<h3 style="color:#1e293b;margin-top:24px;">{labels[metric]}</h3>
 <table style="width:100%;border-collapse:collapse;font-size:14px;">
