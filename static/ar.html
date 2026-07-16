@@ -12,14 +12,14 @@
             background: #ffffff;
             color: #333;
             min-height: 100vh;
-            font-size: 16px;
+            font-size: 17px;
         }
 
         /* Header */
         .top-bar {
             background: #ffffff;
             border-bottom: 1px solid #e5e7eb;
-            padding: 14px 32px;
+            padding: 12px 32px;
             display: flex;
             align-items: center;
             gap: 16px;
@@ -27,16 +27,15 @@
         .top-bar .logo {
             display: flex;
             align-items: center;
-            gap: 0;
             text-decoration: none;
         }
         .top-bar .logo img {
-            height: 56px;
+            height: 60px;
             width: auto;
         }
         .top-bar .nav-links {
             display: flex;
-            gap: 16px;
+            gap: 12px;
             margin-left: auto;
             align-items: center;
         }
@@ -44,7 +43,7 @@
             color: #555;
             text-decoration: none;
             font-size: 1rem;
-            padding: 8px 16px;
+            padding: 8px 14px;
             border-radius: 6px;
             transition: all 0.2s;
         }
@@ -55,9 +54,9 @@
 
         /* Container */
         .container {
-            max-width: 980px;
+            max-width: 1100px;
             margin: 0 auto;
-            padding: 28px 32px;
+            padding: 24px 32px;
         }
 
         /* Back link */
@@ -66,32 +65,34 @@
             font-size: 1rem;
             text-decoration: none;
             cursor: pointer;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
             margin-bottom: 18px;
         }
         .back-link:hover { text-decoration: underline; }
 
-        /* Page header with count and search */
+        /* Page header */
         .page-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
         }
         .page-header h1 {
-            font-size: 1.6rem;
+            font-size: 1.7rem;
             font-weight: 700;
             color: #1a1a1a;
         }
-        .search-box {
-            position: relative;
-        }
+
+        /* Search box */
+        .search-box { position: relative; }
         .search-box input {
             border: 1px solid #d1d5db;
             border-radius: 6px;
-            padding: 10px 16px 10px 38px;
-            font-size: 1rem;
-            width: 240px;
+            padding: 11px 16px 11px 40px;
+            font-size: 1.05rem;
+            width: 250px;
             outline: none;
             transition: border-color 0.2s;
             color: #333;
@@ -108,12 +109,12 @@
             height: 18px;
         }
 
-        /* Alphabet section headers */
+        /* Alphabet section */
         .alpha-header {
-            font-size: 1.15rem;
+            font-size: 1.2rem;
             font-weight: 700;
             color: #1a1a1a;
-            padding: 16px 0 10px 0;
+            padding: 18px 0 10px 0;
         }
 
         /* Workspace rows */
@@ -126,10 +127,10 @@
         }
         .workspace-row:hover { background: #f9fafb; }
         .workspace-logo {
-            width: 50px;
-            height: 50px;
+            width: 52px;
+            height: 52px;
             border-radius: 8px;
-            background: #ffffff;
+            background: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -138,13 +139,9 @@
             border: 1px solid #e5e7eb;
             overflow: hidden;
         }
-        .workspace-logo img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
+        .workspace-logo img { width: 100%; height: 100%; object-fit: contain; }
         .workspace-name {
-            font-size: 1.05rem;
+            font-size: 1.1rem;
             font-weight: 500;
             color: #333;
             flex: 1;
@@ -154,7 +151,7 @@
             text-overflow: ellipsis;
         }
         .status-badge {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             font-weight: 500;
             color: #10b981;
             font-style: italic;
@@ -168,16 +165,15 @@
             border: none;
             padding: 10px 28px;
             border-radius: 6px;
-            font-size: 0.95rem;
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
             transition: background 0.2s;
             flex-shrink: 0;
-            text-decoration: none;
         }
         .btn-launch:hover { background: #1976D2; }
 
-        /* Alphabet filter */
+        /* Alpha filter */
         .alpha-filter {
             display: flex;
             gap: 4px;
@@ -189,7 +185,7 @@
             background: none;
             border: none;
             padding: 5px 8px;
-            font-size: 0.95rem;
+            font-size: 1rem;
             font-weight: 500;
             color: #6b7280;
             cursor: pointer;
@@ -206,17 +202,13 @@
             overflow: auto;
             max-height: calc(100vh - 340px);
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 1rem;
-        }
+        table { width: 100%; border-collapse: collapse; font-size: 1.05rem; }
         thead { position: sticky; top: 0; z-index: 2; }
         th {
             background: #f9fafb;
             color: #6b7280;
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 1rem;
             padding: 14px 24px;
             text-align: left;
             border-bottom: 1px solid #e5e7eb;
@@ -225,152 +217,407 @@
             padding: 14px 24px;
             border-bottom: 1px solid #f0f0f0;
             color: #333;
-            font-size: 1rem;
+            font-size: 1.05rem;
         }
         tr.clickable-row { cursor: pointer; }
         tr.clickable-row:hover td { background: #f0f7ff; }
         tr:last-child td { border-bottom: none; }
 
-        /* Client Detail Page */
-        .client-profile-header {
-            display: flex;
+        /* ========== CLIENT PROFILE PAGE ========== */
+        .client-profile-back {
+            color: #555;
+            font-size: 1rem;
+            text-decoration: none;
+            display: inline-flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 24px;
+            gap: 6px;
+            margin-bottom: 16px;
+            cursor: pointer;
         }
-        .client-profile-header h1 {
-            font-size: 1.5rem;
+        .client-profile-back:hover { color: #111; }
+        .client-profile-title {
+            font-size: 1.4rem;
             font-weight: 700;
             color: #1a1a1a;
+            margin-bottom: 20px;
         }
-        .client-detail-container {
+        .client-layout {
             display: flex;
-            gap: 32px;
+            gap: 28px;
             align-items: flex-start;
         }
-        .client-sidebar {
-            width: 300px;
+
+        /* Left sidebar */
+        .client-left {
+            width: 280px;
             flex-shrink: 0;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 24px;
-            background: #fafbfc;
+        }
+        .client-info-header {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #ef4444;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 8px 12px;
+            border-left: 3px solid #ef4444;
+            background: #fef2f2;
+            margin-bottom: 16px;
+        }
+        .client-avatar-section {
+            text-align: center;
+            margin-bottom: 16px;
         }
         .client-avatar {
-            width: 80px;
-            height: 80px;
+            width: 90px;
+            height: 90px;
             border-radius: 50%;
-            background: #e5e7eb;
-            margin: 0 auto 16px auto;
+            border: 2px solid #e5e7eb;
+            margin: 0 auto 12px auto;
             display: flex;
             align-items: center;
             justify-content: center;
+            background: #f9fafb;
             overflow: hidden;
         }
-        .client-avatar svg {
-            width: 48px;
-            height: 48px;
-            color: #9ca3af;
-        }
-        .client-name-section {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .client-name-section h2 {
+        .client-avatar svg { width: 50px; height: 50px; color: #9ca3af; }
+        .client-profile-name {
             font-size: 1.3rem;
             font-weight: 700;
             color: #1a1a1a;
             margin-bottom: 4px;
         }
-        .client-name-section .dob {
-            font-size: 0.9rem;
+        .client-profile-dob {
+            font-size: 0.92rem;
             color: #6b7280;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
-        .client-status-badge {
+        .client-active-badge {
             display: inline-block;
-            background: #dcfce7;
-            color: #16a34a;
-            font-size: 0.8rem;
+            border: 1.5px solid #10b981;
+            color: #10b981;
+            font-size: 0.82rem;
             font-weight: 600;
-            padding: 4px 12px;
-            border-radius: 12px;
+            padding: 3px 14px;
+            border-radius: 14px;
+            margin-bottom: 16px;
         }
-        .client-info-section {
-            margin-top: 20px;
-        }
-        .client-info-row {
+        .client-detail-section {
             margin-bottom: 14px;
+            padding-bottom: 0;
         }
-        .client-info-label {
-            font-size: 0.78rem;
-            font-weight: 600;
+        .client-detail-label {
+            font-size: 0.75rem;
+            font-weight: 700;
             color: #9ca3af;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.05em;
             margin-bottom: 3px;
         }
-        .client-info-value {
+        .client-detail-value {
             font-size: 0.95rem;
             color: #333;
             word-break: break-word;
+            min-height: 18px;
         }
-        .client-main-content {
+        .client-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-top: 1px solid #f0f0f0;
+        }
+        .client-toggle-label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+        }
+        .toggle-switch {
+            width: 36px;
+            height: 20px;
+            background: #d1d5db;
+            border-radius: 10px;
+            position: relative;
+            cursor: default;
+        }
+        .toggle-switch::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: left 0.2s;
+        }
+        .toggle-switch.on { background: #2196F3; }
+        .toggle-switch.on::after { left: 18px; }
+        .consent-row {
+            display: flex;
+            gap: 16px;
+            padding: 6px 0;
+        }
+        .consent-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.82rem;
+            color: #555;
+        }
+        .consent-checkbox {
+            width: 16px;
+            height: 16px;
+            border: 1.5px solid #d1d5db;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+        /* Right content */
+        .client-right {
             flex: 1;
             min-width: 0;
         }
-        .client-tabs {
+        .client-top-tabs {
             display: flex;
-            gap: 0;
-            border-bottom: 2px solid #e5e7eb;
+            gap: 8px;
+            flex-wrap: wrap;
             margin-bottom: 20px;
         }
-        .client-tab {
-            padding: 10px 20px;
-            font-size: 0.95rem;
-            font-weight: 500;
-            color: #6b7280;
-            cursor: pointer;
-            border: none;
-            background: none;
-            border-bottom: 2px solid transparent;
-            margin-bottom: -2px;
-            transition: all 0.2s;
-        }
-        .client-tab.active {
-            color: #2196F3;
-            border-bottom-color: #2196F3;
+        .client-top-tab {
+            padding: 8px 16px;
+            font-size: 0.88rem;
             font-weight: 600;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #f3f4f6;
+            color: #555;
         }
-        .client-tab:hover { color: #2196F3; }
-        .procedure-card {
+        .client-top-tab.active {
+            background: #2196F3;
+            color: white;
+        }
+        .client-top-tab:hover:not(.active) {
+            background: #e5e7eb;
+        }
+        .procedures-section-header {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .procedure-entry {
             border: 1px solid #e5e7eb;
             border-radius: 8px;
             padding: 16px;
             margin-bottom: 12px;
             background: #fafbfc;
         }
-        .procedure-card .proc-header {
-            font-size: 0.95rem;
-            font-weight: 600;
+        .procedure-entry-title {
+            font-size: 1rem;
+            font-weight: 700;
             color: #1a1a1a;
-            margin-bottom: 6px;
-        }
-        .procedure-card .proc-date {
-            font-size: 0.85rem;
-            color: #6b7280;
             margin-bottom: 4px;
         }
-        .procedure-card .proc-clinic {
-            font-size: 0.85rem;
+        .procedure-entry-meta {
+            font-size: 0.88rem;
             color: #6b7280;
+            margin-bottom: 2px;
         }
-        .no-procedures {
+        .procedure-entry-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 12px;
+        }
+        .procedure-action-btn {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #2196F3;
+            background: none;
+            border: 1px solid #2196F3;
+            border-radius: 6px;
+            padding: 6px 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .procedure-action-btn:hover {
+            background: #eff6ff;
+        }
+        .no-data {
             text-align: center;
             padding: 40px;
             color: #9ca3af;
             font-size: 1rem;
         }
+
+        /* ========== PROCEDURE NOTES MODAL ========== */
+        .notes-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 1000;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 40px 20px;
+            overflow-y: auto;
+        }
+        .notes-modal-overlay.active { display: flex; }
+        .notes-modal {
+            background: #fff;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 780px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .notes-modal-header {
+            background: #64b5f6;
+            color: white;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.92rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .notes-modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            line-height: 1;
+        }
+        .notes-modal-body {
+            padding: 24px;
+        }
+        .notes-add-section {
+            margin-bottom: 24px;
+        }
+        .notes-add-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        .notes-textarea {
+            width: 100%;
+            min-height: 80px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 0.95rem;
+            resize: vertical;
+            outline: none;
+            font-family: inherit;
+            margin-bottom: 12px;
+        }
+        .notes-textarea:focus { border-color: #2196F3; }
+        .notes-label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+        }
+        .notes-help-text {
+            font-size: 0.78rem;
+            color: #9ca3af;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+        .notes-btn-row {
+            display: flex;
+            gap: 12px;
+        }
+        .notes-btn-save {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 28px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .notes-btn-clear {
+            background: white;
+            color: #555;
+            border: 1px solid #d1d5db;
+            padding: 8px 28px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .notes-list {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 16px;
+        }
+        .note-entry {
+            display: flex;
+            gap: 14px;
+            padding: 16px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .note-entry:last-child { border-bottom: none; }
+        .note-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .note-avatar svg { width: 20px; height: 20px; color: #9ca3af; }
+        .note-content { flex: 1; min-width: 0; }
+        .note-author {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #2196F3;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        .note-date {
+            font-size: 0.8rem;
+            color: #9ca3af;
+            margin-bottom: 8px;
+        }
+        .note-text {
+            font-size: 0.9rem;
+            color: #333;
+            line-height: 1.6;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 12px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .note-actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 8px;
+            justify-content: flex-end;
+        }
+        .note-action-link {
+            font-size: 0.8rem;
+            color: #2196F3;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .note-action-link:hover { text-decoration: underline; }
 
         /* Views */
         .view { display: none; }
@@ -406,8 +653,8 @@
             .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
             .search-box input { width: 100%; }
             .workspace-row { padding: 12px 8px; }
-            .client-detail-container { flex-direction: column; }
-            .client-sidebar { width: 100%; }
+            .client-layout { flex-direction: column; }
+            .client-left { width: 100%; }
             body { font-size: 15px; }
         }
     </style>
@@ -436,10 +683,7 @@
                 </div>
             </div>
             <div id="workspacesGrid">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <div>Loading workspaces...</div>
-                </div>
+                <div class="loading"><div class="spinner"></div><div>Loading workspaces...</div></div>
             </div>
         </div>
 
@@ -459,16 +703,38 @@
 
         <!-- Client Detail View -->
         <div class="view" id="clientDetailView">
-            <a class="back-link" id="backToClientsLink" href="/ar/workspaces/clients">&#60; Back to Clients</a>
-            <div class="client-profile-header">
-                <h1>Client Profile</h1>
+            <a class="client-profile-back" id="backToClientsLink" href="/ar/workspaces/clients">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+                Client Profile
+            </a>
+            <div id="clientDetailContent">
+                <div class="loading"><div class="spinner"></div><div>Loading client...</div></div>
             </div>
-            <div class="client-detail-container">
-                <div class="client-sidebar" id="clientSidebar">
-                    <div class="loading"><div class="spinner"></div><div>Loading...</div></div>
+        </div>
+    </div>
+
+    <!-- Procedure Notes Modal -->
+    <div class="notes-modal-overlay" id="notesModal">
+        <div class="notes-modal">
+            <div class="notes-modal-header">
+                <span id="notesModalTitle">PROCEDURE NOTES</span>
+                <button class="notes-modal-close" onclick="closeNotesModal()">&times;</button>
+            </div>
+            <div class="notes-modal-body">
+                <div class="notes-add-section">
+                    <div class="notes-add-title">Add Note</div>
+                    <div class="notes-label">NOTE:</div>
+                    <textarea class="notes-textarea" placeholder="Enter note here..."></textarea>
+                    <div class="notes-help-text">
+                        (Got Phrases - You can invoke them by typing (dot) and making the selection)<br>
+                        (Got function - You can use @all function to fill in the client medical history (Allergies, Family history etc))
+                    </div>
+                    <div class="notes-btn-row">
+                        <button class="notes-btn-save">Save</button>
+                        <button class="notes-btn-clear">Clear</button>
+                    </div>
                 </div>
-                <div class="client-main-content" id="clientMainContent">
-                </div>
+                <div class="notes-list" id="notesList"></div>
             </div>
         </div>
     </div>
@@ -478,11 +744,10 @@
         let allClients = [];
         let activeAlpha = 'All';
         let currentClinic = '';
+        let currentClientData = null;
 
         function navigate(path, pushState = true) {
-            if (pushState) {
-                history.pushState({path: path}, '', path);
-            }
+            if (pushState) history.pushState({path: path}, '', path);
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
 
             if (path === '/ar' || path === '/ar/workspaces') {
@@ -494,68 +759,46 @@
                 loadClientDetail(clientId);
             } else if (path === '/ar/workspaces/clients') {
                 document.getElementById('clientsView').classList.add('active');
-                if (currentClinic && !allClients.length) {
-                    loadClients(currentClinic);
-                }
+                if (currentClinic && !allClients.length) loadClients(currentClinic);
             }
         }
 
-        window.addEventListener('popstate', (e) => {
-            navigate(location.pathname, false);
-        });
+        window.addEventListener('popstate', () => navigate(location.pathname, false));
 
+        // ========== WORKSPACES ==========
         async function loadWorkspaces() {
             const grid = document.getElementById('workspacesGrid');
             try {
                 const resp = await fetch('/api/ar/workspaces');
                 const data = await resp.json();
-                if (!data.success) {
-                    grid.innerHTML = '<div class="empty-state">Error loading workspaces</div>';
-                    return;
-                }
-                if (!data.workspaces.length) {
-                    grid.innerHTML = '<div class="empty-state">No workspaces found</div>';
-                    return;
-                }
+                if (!data.success) { grid.innerHTML = '<div class="empty-state">Error loading workspaces</div>'; return; }
+                if (!data.workspaces.length) { grid.innerHTML = '<div class="empty-state">No workspaces found</div>'; return; }
                 allWorkspaces = data.workspaces;
                 document.getElementById('workspacesTitle').textContent = 'All Workspaces: ' + allWorkspaces.length;
                 renderWorkspaces(allWorkspaces);
-            } catch (e) {
-                grid.innerHTML = '<div class="empty-state">Failed to load workspaces</div>';
-            }
+            } catch (e) { grid.innerHTML = '<div class="empty-state">Failed to load workspaces</div>'; }
         }
 
         function renderWorkspaces(workspaces) {
             const grid = document.getElementById('workspacesGrid');
-            if (!workspaces.length) {
-                grid.innerHTML = '<div class="empty-state">No workspaces match your search</div>';
-                return;
-            }
-            let currentLetter = '';
-            let html = '';
+            if (!workspaces.length) { grid.innerHTML = '<div class="empty-state">No workspaces match your search</div>'; return; }
+            let currentLetter = '', html = '';
             workspaces.forEach(w => {
-                const firstLetter = w.name.charAt(0).toUpperCase();
-                if (firstLetter !== currentLetter) {
-                    currentLetter = firstLetter;
-                    html += '<div class="alpha-header">' + currentLetter + '</div>';
-                }
-                html += `
-                    <div class="workspace-row">
-                        <div class="workspace-logo"><img src="/static/ar-logo.png" alt="AR"></div>
-                        <div class="workspace-name">${escHtml(w.name)}</div>
-                        <span class="status-badge">Active</span>
-                        <button class="btn-launch" onclick="launchWorkspace('${escAttr(w.name)}')">Launch</button>
-                    </div>
-                `;
+                const fl = w.name.charAt(0).toUpperCase();
+                if (fl !== currentLetter) { currentLetter = fl; html += '<div class="alpha-header">' + fl + '</div>'; }
+                html += `<div class="workspace-row">
+                    <div class="workspace-logo"><img src="/static/ar-logo.png" alt="AR"></div>
+                    <div class="workspace-name">${escHtml(w.name)}</div>
+                    <span class="status-badge">Active</span>
+                    <button class="btn-launch" onclick="launchWorkspace('${escAttr(w.name)}')">Launch</button>
+                </div>`;
             });
             grid.innerHTML = html;
         }
 
         function filterWorkspaces() {
-            const query = document.getElementById('workspaceSearch').value.toLowerCase().trim();
-            if (!query) { renderWorkspaces(allWorkspaces); return; }
-            const filtered = allWorkspaces.filter(w => w.name.toLowerCase().includes(query));
-            renderWorkspaces(filtered);
+            const q = document.getElementById('workspaceSearch').value.toLowerCase().trim();
+            renderWorkspaces(q ? allWorkspaces.filter(w => w.name.toLowerCase().includes(q)) : allWorkspaces);
         }
 
         function launchWorkspace(clinicName) {
@@ -565,70 +808,49 @@
             loadClients(clinicName);
         }
 
+        // ========== CLIENTS ==========
         async function loadClients(clinicName) {
             document.getElementById('clinicTitle').textContent = 'Clients';
             document.getElementById('clientsTable').innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading clients...</div></div>';
             document.getElementById('clientSearch').value = '';
             activeAlpha = 'All';
-
             try {
                 const resp = await fetch('/api/ar/clients?clinic=' + encodeURIComponent(clinicName));
                 const data = await resp.json();
-                if (!data.success) {
-                    document.getElementById('clientsTable').innerHTML = '<div class="empty-state">Error loading clients</div>';
-                    return;
-                }
+                if (!data.success) { document.getElementById('clientsTable').innerHTML = '<div class="empty-state">Error loading clients</div>'; return; }
                 allClients = data.clients;
                 document.getElementById('clinicTitle').textContent = 'Clients : ' + data.count;
                 buildAlphaFilter();
                 renderClientsTable(allClients);
-            } catch (e) {
-                document.getElementById('clientsTable').innerHTML = '<div class="empty-state">Failed to load clients</div>';
-            }
+            } catch (e) { document.getElementById('clientsTable').innerHTML = '<div class="empty-state">Failed to load clients</div>'; }
         }
 
         function buildAlphaFilter() {
-            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
             let html = '<button class="alpha-btn active" onclick="setAlphaFilter(\'All\')">All</button>';
-            letters.forEach(l => {
-                html += `<button class="alpha-btn" onclick="setAlphaFilter('${l}')">${l}</button>`;
-            });
+            'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(l => { html += `<button class="alpha-btn" onclick="setAlphaFilter('${l}')">${l}</button>`; });
             document.getElementById('alphaFilter').innerHTML = html;
         }
 
         function setAlphaFilter(letter) {
             activeAlpha = letter;
-            document.querySelectorAll('.alpha-filter .alpha-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.textContent === letter);
-            });
+            document.querySelectorAll('.alpha-filter .alpha-btn').forEach(btn => btn.classList.toggle('active', btn.textContent === letter));
             filterClients();
         }
 
         function filterClients() {
-            const query = document.getElementById('clientSearch').value.toLowerCase().trim();
+            const q = document.getElementById('clientSearch').value.toLowerCase().trim();
             let filtered = allClients;
-            if (activeAlpha !== 'All') {
-                filtered = filtered.filter(c => (c.first_name || '').charAt(0).toUpperCase() === activeAlpha);
-            }
-            if (query) {
-                filtered = filtered.filter(c => {
-                    const full = ((c.first_name || '') + ' ' + (c.last_name || '')).toLowerCase();
-                    return full.includes(query);
-                });
-            }
+            if (activeAlpha !== 'All') filtered = filtered.filter(c => (c.first_name || '').charAt(0).toUpperCase() === activeAlpha);
+            if (q) filtered = filtered.filter(c => ((c.first_name || '') + ' ' + (c.last_name || '')).toLowerCase().includes(q));
             renderClientsTable(filtered);
         }
 
         function renderClientsTable(clients) {
             const container = document.getElementById('clientsTable');
-            if (!clients.length) {
-                container.innerHTML = '<div class="empty-state">No clients found</div>';
-                return;
-            }
+            if (!clients.length) { container.innerHTML = '<div class="empty-state">No clients found</div>'; return; }
             let html = '<div class="table-container"><table><thead><tr><th>First Name</th><th>Last Name</th></tr></thead><tbody>';
             clients.forEach(c => {
-                const cid = c.client_id || '';
-                html += `<tr class="clickable-row" onclick="openClient('${escAttr(cid)}')"><td>${escHtml(c.first_name)}</td><td>${escHtml(c.last_name)}</td></tr>`;
+                html += `<tr class="clickable-row" onclick="openClient('${escAttr(c.client_id || '')}')"><td>${escHtml(c.first_name)}</td><td>${escHtml(c.last_name)}</td></tr>`;
             });
             html += '</tbody></table></div>';
             container.innerHTML = html;
@@ -639,99 +861,163 @@
             navigate('/ar/workspaces/clients/' + clientId);
         }
 
+        // ========== CLIENT DETAIL ==========
         async function loadClientDetail(clientId) {
-            const sidebar = document.getElementById('clientSidebar');
-            const main = document.getElementById('clientMainContent');
-            sidebar.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading...</div></div>';
-            main.innerHTML = '';
-
+            const content = document.getElementById('clientDetailContent');
+            content.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading client...</div></div>';
             try {
                 const resp = await fetch('/api/ar/client/' + clientId);
                 const data = await resp.json();
-                if (!data.success) {
-                    sidebar.innerHTML = '<div class="empty-state">Client not found</div>';
-                    return;
-                }
-                const c = data.client;
-                renderClientSidebar(c, sidebar);
-                renderClientMain(c, main);
-            } catch (e) {
-                sidebar.innerHTML = '<div class="empty-state">Failed to load client</div>';
-            }
+                if (!data.success) { content.innerHTML = '<div class="empty-state">Client not found</div>'; return; }
+                currentClientData = data.client;
+                renderClientProfile(data.client, content);
+            } catch (e) { content.innerHTML = '<div class="empty-state">Failed to load client</div>'; }
         }
 
-        function renderClientSidebar(c, el) {
+        function renderClientProfile(c, el) {
             el.innerHTML = `
-                <div class="client-avatar">
-                    <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg>
-                </div>
-                <div class="client-name-section">
-                    <h2>${escHtml(c.name)}</h2>
-                    <div class="dob">${c.dob ? 'DOB: ' + escHtml(c.dob) : ''}</div>
-                    <span class="client-status-badge">Active</span>
-                </div>
-                <div class="client-info-section">
-                    ${infoRow('ADDRESS', c.address)}
-                    ${infoRow('PHONE', c.phone)}
-                    ${infoRow('EMAIL', c.email)}
-                    ${infoRow('CLIENT CREATED ON', c.creation_date)}
-                    ${infoRow('PRIMARY CLINIC', c.primary_clinic || c.clinic_name)}
-                </div>
-            `;
-        }
+            <div class="client-layout">
+                <div class="client-left">
+                    <div class="client-info-header">CLIENT INFORMATION</div>
+                    <div class="client-avatar-section">
+                        <div class="client-avatar">
+                            <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg>
+                        </div>
+                        <div class="client-profile-name">${escHtml(c.name)}</div>
+                        <div class="client-profile-dob">${c.dob ? 'DOB: ' + escHtml(c.dob) : 'DOB: —'}</div>
+                        <div class="client-active-badge">Active</div>
+                    </div>
 
-        function infoRow(label, value) {
-            if (!value) return '';
-            return `<div class="client-info-row">
-                <div class="client-info-label">${label}</div>
-                <div class="client-info-value">${escHtml(value)}</div>
+                    <div class="client-detail-section">
+                        <div class="client-detail-label">ADDRESS</div>
+                        <div class="client-detail-value">${escHtml(c.address) || '—'}</div>
+                    </div>
+                    <div class="client-detail-section">
+                        <div class="client-detail-label">PHONE</div>
+                        <div class="client-detail-value">${escHtml(c.phone) || '—'}</div>
+                    </div>
+                    <div class="client-detail-section">
+                        <div class="client-detail-label">EMAIL</div>
+                        <div class="client-detail-value">${escHtml(c.email) || '—'}</div>
+                    </div>
+                    <div class="client-detail-section">
+                        <div class="client-detail-label">CLIENT CREATED ON</div>
+                        <div class="client-detail-value">${escHtml(c.creation_date) || '—'}</div>
+                    </div>
+                    <div class="client-detail-section">
+                        <div class="client-detail-label">PRIMARY CLINIC</div>
+                        <div class="client-detail-value">${escHtml(c.primary_clinic || c.clinic_name) || '—'}</div>
+                    </div>
+
+                    <div class="client-toggle-row">
+                        <span class="client-toggle-label">ACCESS CLIENT PORTAL</span>
+                        <div class="toggle-switch"></div>
+                    </div>
+                    <div class="client-toggle-row">
+                        <span class="client-toggle-label">COMMUNICATION CONSENT</span>
+                    </div>
+                    <div class="consent-row">
+                        <div class="consent-item"><span class="consent-checkbox"></span> Fine This Client</div>
+                        <div class="consent-item"><span class="consent-checkbox"></span> Do Not Call</div>
+                    </div>
+                </div>
+
+                <div class="client-right">
+                    <div class="client-top-tabs">
+                        <button class="client-top-tab active">Vitals</button>
+                        <button class="client-top-tab">Create Appointment</button>
+                        <button class="client-top-tab">Membership/Pkg</button>
+                        <button class="client-top-tab">Medical History</button>
+                        <button class="client-top-tab">Customer Notes</button>
+                    </div>
+
+                    <div class="procedures-section-header">Procedures</div>
+                    <div id="proceduresList">${renderProcedures(c.procedure_notes, c.name)}</div>
+                </div>
             </div>`;
         }
 
-        function renderClientMain(c, el) {
-            let html = '<div class="client-tabs">';
-            html += '<button class="client-tab active">Procedures</button>';
-            html += '<button class="client-tab" onclick="showNotes(this)">Notes</button>';
-            html += '</div>';
-            html += '<div id="clientTabContent">';
-            html += renderProcedures(c.procedure_notes);
-            html += '</div>';
-            el.innerHTML = html;
+        function parseNoteString(noteStr) {
+            const parts = noteStr.split(' | ');
+            const obj = { date: '', writer: '', note: '', raw: noteStr };
+            parts.forEach(p => {
+                if (p.startsWith('Date: ')) obj.date = p.substring(6);
+                else if (p.startsWith('Writer: ')) obj.writer = p.substring(8);
+                else if (p.startsWith('Note: ')) obj.note = p.substring(6);
+            });
+            return obj;
         }
 
-        function renderProcedures(notes) {
-            if (!notes || !notes.length) {
-                return '<div class="no-procedures">No procedures recorded</div>';
-            }
+        function renderProcedures(notes, clientName) {
+            if (!notes || !notes.length) return '<div class="no-data">No procedures recorded</div>';
             let html = '';
-            notes.forEach(n => {
-                html += `<div class="procedure-card">
-                    <div class="proc-header">${escHtml(n.procedure_name || 'Procedure')}</div>
-                    <div class="proc-date">${escHtml(n.date || '')}</div>
-                    <div class="proc-clinic">${escHtml(n.clinic || '')}</div>
+            notes.forEach((n, i) => {
+                const parsed = parseNoteString(n);
+                const title = 'Cosmetic Procedures #' + (i + 1);
+                html += `<div class="procedure-entry">
+                    <div class="procedure-entry-title">${escHtml(title)}</div>
+                    <div class="procedure-entry-meta">${escHtml(parsed.date)}</div>
+                    ${parsed.writer ? '<div class="procedure-entry-meta">Provider: ' + escHtml(parsed.writer) + '</div>' : ''}
+                    <div class="procedure-entry-actions">
+                        <button class="procedure-action-btn" onclick="openNotesModal(${i})">View Notes</button>
+                    </div>
                 </div>`;
             });
             return html;
         }
 
-        function showNotes(btn) {
-            document.querySelectorAll('.client-tab').forEach(t => t.classList.remove('active'));
-            btn.classList.add('active');
-            const c = document.getElementById('clientTabContent');
-            c.innerHTML = '<div class="no-procedures">No notes available</div>';
+        // ========== NOTES MODAL ==========
+        function openNotesModal(procIndex) {
+            const c = currentClientData;
+            if (!c) return;
+            const modal = document.getElementById('notesModal');
+            const titleEl = document.getElementById('notesModalTitle');
+            titleEl.textContent = (c.name || 'CLIENT').toUpperCase() + ' - PROCEDURE NOTES';
+
+            const notesList = document.getElementById('notesList');
+            const notes = c.procedure_notes || [];
+            const noteStr = notes[procIndex];
+
+            let html = '';
+            if (noteStr) {
+                const parsed = parseNoteString(noteStr);
+                const writer = parsed.writer || 'Provider';
+                const noteContent = parsed.note || parsed.raw;
+                html += `<div class="note-entry">
+                    <div class="note-avatar"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg></div>
+                    <div class="note-content">
+                        <div class="note-actions">
+                            <span class="note-action-link">Copy</span>
+                            <span class="note-action-link">Note History</span>
+                        </div>
+                        <div class="note-author">${escHtml(writer).toUpperCase()} LEFT A NOTE</div>
+                        <div class="note-date">${escHtml(parsed.date)}</div>
+                        <div class="note-text">${escHtml(noteContent)}</div>
+                    </div>
+                </div>`;
+            } else {
+                html = '<div class="no-data">No notes available for this procedure</div>';
+            }
+
+            notesList.innerHTML = html;
+            modal.classList.add('active');
         }
 
+        function closeNotesModal() {
+            document.getElementById('notesModal').classList.remove('active');
+        }
+
+        // ========== UTILS ==========
         function escHtml(str) {
             if (!str) return '';
-            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
-
         function escAttr(str) {
             if (!str) return '';
-            return str.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+            return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
         }
 
-        // Initialize based on current URL
+        // Initialize
         navigate(location.pathname, false);
     </script>
 </body>
