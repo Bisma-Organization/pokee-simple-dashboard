@@ -1609,7 +1609,8 @@ _ar_session.headers.update({
 @app.route('/ar')
 @app.route('/ar/workspaces')
 @app.route('/ar/workspaces/clients')
-@app.route('/ar/workspaces/clients/<path:client_id>')
+@app.route('/ar/workspaces/clients/<client_id>')
+@app.route('/ar/workspaces/clients/<client_id>/notes')
 def ar_page(client_id=None):
     return send_from_directory('static', 'ar.html')
 

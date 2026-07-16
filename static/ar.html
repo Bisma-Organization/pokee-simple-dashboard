@@ -15,638 +15,254 @@
             font-size: 17px;
         }
 
-        /* Header */
+        /* ===== HEADER ===== */
         .top-bar {
             background: #ffffff;
             border-bottom: 1px solid #e5e7eb;
-            padding: 12px 32px;
+            padding: 10px 32px;
             display: flex;
             align-items: center;
             gap: 16px;
         }
-        .top-bar .logo {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-        }
-        .top-bar .logo img {
-            height: 60px;
-            width: auto;
-        }
-        .top-bar .nav-links {
-            display: flex;
-            gap: 12px;
-            margin-left: auto;
-            align-items: center;
-        }
+        .top-bar .logo { display: flex; align-items: center; text-decoration: none; }
+        .top-bar .logo img { height: 60px; width: auto; }
+        .top-bar .nav-links { display: flex; gap: 12px; margin-left: auto; align-items: center; }
         .top-bar .nav-links a {
-            color: #555;
-            text-decoration: none;
-            font-size: 1rem;
-            padding: 8px 14px;
-            border-radius: 6px;
-            transition: all 0.2s;
+            color: #555; text-decoration: none; font-size: 1rem;
+            padding: 8px 14px; border-radius: 6px; transition: all 0.2s;
         }
-        .top-bar .nav-links a:hover {
-            background: #f3f4f6;
-            color: #111;
-        }
+        .top-bar .nav-links a:hover { background: #f3f4f6; color: #111; }
 
-        /* Container */
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 24px 32px;
-        }
+        /* ===== CONTAINER ===== */
+        .container { max-width: 1100px; margin: 0 auto; padding: 24px 32px; }
 
-        /* Back link */
+        /* ===== BACK LINK ===== */
         .back-link {
-            color: #2196F3;
-            font-size: 1rem;
-            text-decoration: none;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            margin-bottom: 18px;
+            color: #2196F3; font-size: 1rem; text-decoration: none;
+            cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 18px;
         }
         .back-link:hover { text-decoration: underline; }
 
-        /* Page header */
-        .page-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 24px;
-        }
-        .page-header h1 {
-            font-size: 1.7rem;
-            font-weight: 700;
-            color: #1a1a1a;
-        }
+        /* ===== PAGE HEADER ===== */
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+        .page-header h1 { font-size: 1.7rem; font-weight: 700; color: #1a1a1a; }
 
-        /* Search box */
+        /* ===== SEARCH ===== */
         .search-box { position: relative; }
         .search-box input {
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            padding: 11px 16px 11px 40px;
-            font-size: 1.05rem;
-            width: 250px;
-            outline: none;
-            transition: border-color 0.2s;
-            color: #333;
+            border: 1px solid #d1d5db; border-radius: 6px;
+            padding: 11px 16px 11px 40px; font-size: 1.05rem;
+            width: 250px; outline: none; color: #333; transition: border-color 0.2s;
         }
         .search-box input:focus { border-color: #2196F3; }
         .search-box input::placeholder { color: #9ca3af; }
         .search-box .search-icon {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9ca3af;
-            width: 18px;
-            height: 18px;
+            position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+            color: #9ca3af; width: 18px; height: 18px;
         }
 
-        /* Alphabet section */
-        .alpha-header {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #1a1a1a;
-            padding: 18px 0 10px 0;
-        }
-
-        /* Workspace rows */
+        /* ===== WORKSPACE ROWS ===== */
+        .alpha-header { font-size: 1.2rem; font-weight: 700; color: #1a1a1a; padding: 18px 0 10px 0; }
         .workspace-row {
-            display: flex;
-            align-items: center;
-            padding: 16px 16px;
-            border-bottom: 1px solid #f0f0f0;
-            transition: background 0.15s;
+            display: flex; align-items: center; padding: 16px;
+            border-bottom: 1px solid #f0f0f0; transition: background 0.15s;
         }
         .workspace-row:hover { background: #f9fafb; }
         .workspace-logo {
-            width: 52px;
-            height: 52px;
-            border-radius: 8px;
-            background: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            margin-right: 18px;
-            border: 1px solid #e5e7eb;
-            overflow: hidden;
+            width: 52px; height: 52px; border-radius: 8px; background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-right: 18px; border: 1px solid #e5e7eb; overflow: hidden;
         }
         .workspace-logo img { width: 100%; height: 100%; object-fit: contain; }
         .workspace-name {
-            font-size: 1.1rem;
-            font-weight: 500;
-            color: #333;
-            flex: 1;
-            min-width: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-size: 1.1rem; font-weight: 500; color: #333; flex: 1;
+            min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .status-badge {
-            font-size: 0.95rem;
-            font-weight: 500;
-            color: #10b981;
-            font-style: italic;
-            margin-left: 14px;
-            margin-right: auto;
-            padding-left: 18px;
+            font-size: 0.95rem; font-weight: 500; color: #10b981;
+            font-style: italic; margin-left: 14px; margin-right: auto; padding-left: 18px;
         }
         .btn-launch {
-            background: #2196F3;
-            color: white;
-            border: none;
-            padding: 10px 28px;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-            flex-shrink: 0;
+            background: #2196F3; color: white; border: none;
+            padding: 10px 28px; border-radius: 6px; font-size: 1rem;
+            font-weight: 600; cursor: pointer; transition: background 0.2s; flex-shrink: 0;
         }
         .btn-launch:hover { background: #1976D2; }
 
-        /* Alpha filter */
-        .alpha-filter {
-            display: flex;
-            gap: 4px;
-            flex-wrap: wrap;
-            margin-bottom: 18px;
-            align-items: center;
-        }
+        /* ===== ALPHA FILTER ===== */
+        .alpha-filter { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 18px; align-items: center; }
         .alpha-filter .alpha-btn {
-            background: none;
-            border: none;
-            padding: 5px 8px;
-            font-size: 1rem;
-            font-weight: 500;
-            color: #6b7280;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.15s;
+            background: none; border: none; padding: 5px 8px; font-size: 1rem;
+            font-weight: 500; color: #6b7280; cursor: pointer; border-radius: 4px; transition: all 0.15s;
         }
         .alpha-filter .alpha-btn:hover { color: #2196F3; background: #eff6ff; }
         .alpha-filter .alpha-btn.active { color: #2196F3; font-weight: 700; }
 
-        /* Table */
-        .table-container {
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            overflow: auto;
-            max-height: calc(100vh - 340px);
-        }
+        /* ===== TABLE ===== */
+        .table-container { border: 1px solid #e5e7eb; border-radius: 8px; overflow: auto; max-height: calc(100vh - 340px); }
         table { width: 100%; border-collapse: collapse; font-size: 1.05rem; }
         thead { position: sticky; top: 0; z-index: 2; }
-        th {
-            background: #f9fafb;
-            color: #6b7280;
-            font-weight: 600;
-            font-size: 1rem;
-            padding: 14px 24px;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        td {
-            padding: 14px 24px;
-            border-bottom: 1px solid #f0f0f0;
-            color: #333;
-            font-size: 1.05rem;
-        }
+        th { background: #f9fafb; color: #6b7280; font-weight: 600; font-size: 1rem; padding: 14px 24px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        td { padding: 14px 24px; border-bottom: 1px solid #f0f0f0; color: #333; font-size: 1.05rem; }
         tr.clickable-row { cursor: pointer; }
         tr.clickable-row:hover td { background: #f0f7ff; }
         tr:last-child td { border-bottom: none; }
 
-        /* ========== CLIENT PROFILE PAGE ========== */
+        /* ===== CLIENT PROFILE ===== */
         .client-profile-back {
-            color: #555;
-            font-size: 1rem;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 16px;
-            cursor: pointer;
+            color: #555; font-size: 1rem; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px; cursor: pointer;
         }
         .client-profile-back:hover { color: #111; }
-        .client-profile-title {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: #1a1a1a;
-            margin-bottom: 20px;
-        }
-        .client-layout {
-            display: flex;
-            gap: 28px;
-            align-items: flex-start;
-        }
+        .client-profile-title { font-size: 1.4rem; font-weight: 700; color: #1a1a1a; margin-bottom: 20px; }
+        .client-layout { display: flex; gap: 28px; align-items: flex-start; }
 
         /* Left sidebar */
-        .client-left {
-            width: 280px;
-            flex-shrink: 0;
-        }
+        .client-left { width: 280px; flex-shrink: 0; }
         .client-info-header {
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: #ef4444;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            padding: 8px 12px;
-            border-left: 3px solid #ef4444;
-            background: #fef2f2;
-            margin-bottom: 16px;
+            font-size: 0.8rem; font-weight: 700; color: #ef4444;
+            text-transform: uppercase; letter-spacing: 0.04em;
+            padding: 8px 12px; border-left: 3px solid #ef4444; background: #fef2f2; margin-bottom: 16px;
         }
-        .client-avatar-section {
-            text-align: center;
-            margin-bottom: 16px;
-        }
+        .client-avatar-section { text-align: center; margin-bottom: 16px; }
         .client-avatar {
-            width: 90px;
-            height: 90px;
-            border-radius: 50%;
-            border: 2px solid #e5e7eb;
-            margin: 0 auto 12px auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #f9fafb;
-            overflow: hidden;
+            width: 90px; height: 90px; border-radius: 50%; border: 2px solid #e5e7eb;
+            margin: 0 auto 12px auto; display: flex; align-items: center;
+            justify-content: center; background: #f9fafb; overflow: hidden;
         }
         .client-avatar svg { width: 50px; height: 50px; color: #9ca3af; }
-        .client-profile-name {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #1a1a1a;
-            margin-bottom: 4px;
-        }
-        .client-profile-dob {
-            font-size: 0.92rem;
-            color: #6b7280;
-            margin-bottom: 10px;
-        }
+        .client-profile-name { font-size: 1.3rem; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
+        .client-profile-dob { font-size: 0.92rem; color: #6b7280; margin-bottom: 10px; }
         .client-active-badge {
-            display: inline-block;
-            border: 1.5px solid #10b981;
-            color: #10b981;
-            font-size: 0.82rem;
-            font-weight: 600;
-            padding: 3px 14px;
-            border-radius: 14px;
-            margin-bottom: 16px;
+            display: inline-block; border: 1.5px solid #10b981; color: #10b981;
+            font-size: 0.82rem; font-weight: 600; padding: 3px 14px; border-radius: 14px; margin-bottom: 16px;
         }
-        .client-detail-section {
-            margin-bottom: 14px;
-            padding-bottom: 0;
-        }
+        .client-detail-section { margin-bottom: 14px; }
         .client-detail-label {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #9ca3af;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 3px;
+            font-size: 0.75rem; font-weight: 700; color: #9ca3af;
+            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px;
         }
-        .client-detail-value {
-            font-size: 0.95rem;
-            color: #333;
-            word-break: break-word;
-            min-height: 18px;
-        }
+        .client-detail-value { font-size: 0.95rem; color: #333; word-break: break-word; min-height: 18px; }
         .client-toggle-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-top: 1px solid #f0f0f0;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 0; border-top: 1px solid #f0f0f0;
         }
-        .client-toggle-label {
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: #555;
-            text-transform: uppercase;
-        }
+        .client-toggle-label { font-size: 0.82rem; font-weight: 600; color: #555; text-transform: uppercase; }
         .toggle-switch {
-            width: 36px;
-            height: 20px;
-            background: #d1d5db;
-            border-radius: 10px;
-            position: relative;
-            cursor: default;
+            width: 36px; height: 20px; background: #d1d5db; border-radius: 10px; position: relative;
         }
         .toggle-switch::after {
-            content: '';
-            width: 16px;
-            height: 16px;
-            background: white;
-            border-radius: 50%;
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            transition: left 0.2s;
+            content: ''; width: 16px; height: 16px; background: white;
+            border-radius: 50%; position: absolute; top: 2px; left: 2px;
         }
-        .toggle-switch.on { background: #2196F3; }
-        .toggle-switch.on::after { left: 18px; }
-        .consent-row {
-            display: flex;
-            gap: 16px;
-            padding: 6px 0;
-        }
-        .consent-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.82rem;
-            color: #555;
-        }
-        .consent-checkbox {
-            width: 16px;
-            height: 16px;
-            border: 1.5px solid #d1d5db;
-            border-radius: 3px;
-            display: inline-block;
-        }
+        .consent-row { display: flex; gap: 16px; padding: 6px 0; }
+        .consent-item { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: #555; }
+        .consent-checkbox { width: 16px; height: 16px; border: 1.5px solid #d1d5db; border-radius: 3px; display: inline-block; }
 
         /* Right content */
-        .client-right {
-            flex: 1;
-            min-width: 0;
-        }
-        .client-top-tabs {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-        }
+        .client-right { flex: 1; min-width: 0; }
+        .client-top-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
         .client-top-tab {
-            padding: 8px 16px;
-            font-size: 0.88rem;
-            font-weight: 600;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: #f3f4f6;
-            color: #555;
+            padding: 8px 16px; font-size: 0.9rem; font-weight: 600;
+            border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s;
+            background: #f3f4f6; color: #555;
         }
-        .client-top-tab.active {
-            background: #2196F3;
-            color: white;
-        }
-        .client-top-tab:hover:not(.active) {
-            background: #e5e7eb;
-        }
+        .client-top-tab.active { background: #2196F3; color: white; }
+        .client-top-tab:hover:not(.active) { background: #e5e7eb; }
+
         .procedures-section-header {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #555;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .procedure-entry {
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 12px;
-            background: #fafbfc;
-        }
-        .procedure-entry-title {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #1a1a1a;
-            margin-bottom: 4px;
-        }
-        .procedure-entry-meta {
-            font-size: 0.88rem;
-            color: #6b7280;
-            margin-bottom: 2px;
-        }
-        .procedure-entry-actions {
-            margin-top: 10px;
-            display: flex;
-            gap: 12px;
-        }
-        .procedure-action-btn {
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: #2196F3;
-            background: none;
-            border: 1px solid #2196F3;
-            border-radius: 6px;
-            padding: 6px 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .procedure-action-btn:hover {
-            background: #eff6ff;
-        }
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: #9ca3af;
-            font-size: 1rem;
+            font-size: 0.88rem; font-weight: 600; color: #555;
+            text-transform: uppercase; letter-spacing: 0.04em;
+            margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;
         }
 
-        /* ========== PROCEDURE NOTES MODAL ========== */
-        .notes-modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.4);
-            z-index: 1000;
-            align-items: flex-start;
-            justify-content: center;
-            padding: 40px 20px;
-            overflow-y: auto;
+        /* Procedure entry */
+        .procedure-entry {
+            border: 1px solid #e5e7eb; border-radius: 10px;
+            margin-bottom: 16px; background: #fff; overflow: hidden;
         }
-        .notes-modal-overlay.active { display: flex; }
-        .notes-modal {
-            background: #fff;
-            border-radius: 12px;
-            width: 100%;
-            max-width: 780px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-            overflow: hidden;
+        .procedure-entry-top { padding: 16px 18px; }
+        .procedure-entry-title { font-size: 1.05rem; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
+        .procedure-entry-meta { font-size: 0.9rem; color: #6b7280; margin-bottom: 2px; }
+
+        /* Procedure bottom tabs - matching real AR */
+        .procedure-bottom-tabs {
+            display: flex; border-top: 1px solid #e5e7eb; background: #f9fafb;
         }
-        .notes-modal-header {
-            background: #64b5f6;
-            color: white;
-            padding: 14px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 0.92rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
+        .procedure-bottom-tab {
+            flex: 1; padding: 10px 8px; text-align: center;
+            font-size: 0.82rem; font-weight: 600; color: #2196F3;
+            border: none; background: none; cursor: pointer;
+            border-right: 1px solid #e5e7eb; transition: background 0.15s;
         }
-        .notes-modal-close {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.3rem;
-            cursor: pointer;
-            padding: 4px 8px;
-            line-height: 1;
+        .procedure-bottom-tab:last-child { border-right: none; }
+        .procedure-bottom-tab:hover { background: #eff6ff; }
+
+        /* ===== NOTES PAGE (full page view) ===== */
+        .notes-page { display: none; }
+        .notes-page.active { display: block; }
+        .notes-page-bg {
+            background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 100%);
+            padding: 0; min-height: 100vh;
         }
-        .notes-modal-body {
-            padding: 24px;
+        .notes-header {
+            background: #64b5f6; color: white;
+            padding: 14px 24px; display: flex; align-items: center;
+            font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
         }
-        .notes-add-section {
-            margin-bottom: 24px;
+        .notes-header-close {
+            background: none; border: none; color: white;
+            font-size: 1.4rem; cursor: pointer; padding: 4px 12px 4px 4px; line-height: 1; margin-right: 16px;
         }
-        .notes-add-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 12px;
+        .notes-header-title { flex: 1; text-align: center; }
+        .notes-body {
+            max-width: 780px; margin: 0 auto; padding: 32px 24px;
         }
-        .notes-textarea {
-            width: 100%;
-            min-height: 80px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            padding: 12px;
-            font-size: 0.95rem;
-            resize: vertical;
-            outline: none;
-            font-family: inherit;
-            margin-bottom: 12px;
-        }
-        .notes-textarea:focus { border-color: #2196F3; }
-        .notes-label {
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: #555;
-            margin-bottom: 6px;
-        }
-        .notes-help-text {
-            font-size: 0.78rem;
-            color: #9ca3af;
-            margin-bottom: 12px;
-            line-height: 1.5;
-        }
-        .notes-btn-row {
-            display: flex;
-            gap: 12px;
-        }
-        .notes-btn-save {
-            background: #2196F3;
-            color: white;
-            border: none;
-            padding: 8px 28px;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .notes-btn-clear {
-            background: white;
-            color: #555;
-            border: 1px solid #d1d5db;
-            padding: 8px 28px;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-        }
-        .notes-list {
-            border-top: 1px solid #e5e7eb;
-            padding-top: 16px;
-        }
+        .notes-list { }
         .note-entry {
-            display: flex;
-            gap: 14px;
-            padding: 16px 0;
-            border-bottom: 1px solid #f0f0f0;
+            display: flex; gap: 14px; padding: 20px 0; border-bottom: 1px solid #e0e0e0;
         }
         .note-entry:last-child { border-bottom: none; }
         .note-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: #e5e7eb;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 38px; height: 38px; border-radius: 50%; background: #e5e7eb;
+            flex-shrink: 0; display: flex; align-items: center; justify-content: center;
         }
         .note-avatar svg { width: 20px; height: 20px; color: #9ca3af; }
-        .note-content { flex: 1; min-width: 0; }
+        .note-left { display: flex; flex-direction: column; min-width: 180px; }
         .note-author {
-            font-size: 0.88rem;
-            font-weight: 700;
-            color: #2196F3;
-            text-transform: uppercase;
-            margin-bottom: 2px;
+            font-size: 0.9rem; font-weight: 700; color: #2196F3;
+            text-transform: uppercase; margin-bottom: 2px;
         }
-        .note-date {
-            font-size: 0.8rem;
-            color: #9ca3af;
-            margin-bottom: 8px;
+        .note-date { font-size: 0.82rem; color: #9ca3af; }
+        .note-text-box {
+            flex: 1; min-width: 0;
+            background: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px;
+            padding: 14px 16px; font-size: 0.92rem; color: #333;
+            line-height: 1.7; white-space: pre-wrap; word-break: break-word;
         }
-        .note-text {
-            font-size: 0.9rem;
-            color: #333;
-            line-height: 1.6;
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            padding: 12px;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-        .note-actions {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 8px;
-            justify-content: flex-end;
+        .note-actions-row {
+            display: flex; gap: 16px; justify-content: flex-end; margin-bottom: 4px;
         }
         .note-action-link {
-            font-size: 0.8rem;
-            color: #2196F3;
-            cursor: pointer;
-            text-decoration: none;
+            font-size: 0.8rem; color: #2196F3; cursor: pointer; text-decoration: none;
         }
         .note-action-link:hover { text-decoration: underline; }
+        .note-content-wrapper { flex: 1; min-width: 0; }
 
-        /* Views */
+        /* ===== VIEWS ===== */
         .view { display: none; }
         .view.active { display: block; }
 
-        /* Loading */
-        .loading {
-            text-align: center;
-            padding: 60px;
-            color: #9ca3af;
-            font-size: 1rem;
-        }
+        /* ===== LOADING ===== */
+        .loading { text-align: center; padding: 60px; color: #9ca3af; font-size: 1rem; }
         .spinner {
-            display: inline-block;
-            width: 32px;
-            height: 32px;
-            border: 3px solid #e5e7eb;
-            border-top-color: #2196F3;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-bottom: 12px;
+            display: inline-block; width: 32px; height: 32px;
+            border: 3px solid #e5e7eb; border-top-color: #2196F3;
+            border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #9ca3af;
-            font-size: 1rem;
-        }
+        .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 1rem; }
+        .no-data { text-align: center; padding: 40px; color: #9ca3af; font-size: 1rem; }
 
         @media (max-width: 768px) {
             .container { padding: 16px; }
@@ -655,12 +271,14 @@
             .workspace-row { padding: 12px 8px; }
             .client-layout { flex-direction: column; }
             .client-left { width: 100%; }
+            .note-entry { flex-direction: column; gap: 8px; }
             body { font-size: 15px; }
         }
     </style>
 </head>
 <body>
-    <div class="top-bar">
+    <!-- Top bar (hidden on notes page) -->
+    <div class="top-bar" id="topBar">
         <a class="logo" href="/ar/workspaces">
             <img src="/static/ar-logo.png" alt="Aesthetic Record">
         </a>
@@ -671,7 +289,7 @@
         </div>
     </div>
 
-    <div class="container">
+    <div class="container" id="mainContainer">
         <!-- Workspaces View -->
         <div class="view" id="workspacesView">
             <a class="back-link" href="/">&#60; Back</a>
@@ -713,28 +331,17 @@
         </div>
     </div>
 
-    <!-- Procedure Notes Modal -->
-    <div class="notes-modal-overlay" id="notesModal">
-        <div class="notes-modal">
-            <div class="notes-modal-header">
-                <span id="notesModalTitle">PROCEDURE NOTES</span>
-                <button class="notes-modal-close" onclick="closeNotesModal()">&times;</button>
+    <!-- Notes Full Page View (replaces entire layout) -->
+    <div class="notes-page" id="notesPageView">
+        <div class="notes-page-bg">
+            <div class="notes-header">
+                <button class="notes-header-close" onclick="closeNotesPage()">&times;</button>
+                <span class="notes-header-title" id="notesPageTitle">PROCEDURE NOTES</span>
             </div>
-            <div class="notes-modal-body">
-                <div class="notes-add-section">
-                    <div class="notes-add-title">Add Note</div>
-                    <div class="notes-label">NOTE:</div>
-                    <textarea class="notes-textarea" placeholder="Enter note here..."></textarea>
-                    <div class="notes-help-text">
-                        (Got Phrases - You can invoke them by typing (dot) and making the selection)<br>
-                        (Got function - You can use @all function to fill in the client medical history (Allergies, Family history etc))
-                    </div>
-                    <div class="notes-btn-row">
-                        <button class="notes-btn-save">Save</button>
-                        <button class="notes-btn-clear">Clear</button>
-                    </div>
+            <div class="notes-body">
+                <div class="notes-list" id="notesPageList">
+                    <div class="loading"><div class="spinner"></div><div>Loading notes...</div></div>
                 </div>
-                <div class="notes-list" id="notesList"></div>
             </div>
         </div>
     </div>
@@ -745,18 +352,27 @@
         let activeAlpha = 'All';
         let currentClinic = '';
         let currentClientData = null;
+        let currentClientId = '';
 
         function navigate(path, pushState = true) {
             if (pushState) history.pushState({path: path}, '', path);
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById('notesPageView').classList.remove('active');
+            document.getElementById('topBar').style.display = '';
+            document.getElementById('mainContainer').style.display = '';
 
             if (path === '/ar' || path === '/ar/workspaces') {
                 document.getElementById('workspacesView').classList.add('active');
                 if (!allWorkspaces.length) loadWorkspaces();
-            } else if (path.match(/^\/ar\/workspaces\/clients\/(.+)$/)) {
-                const clientId = path.match(/^\/ar\/workspaces\/clients\/(.+)$/)[1];
+            } else if (path.match(/^\/ar\/workspaces\/clients\/([^/]+)\/notes$/)) {
+                const cid = path.match(/^\/ar\/workspaces\/clients\/([^/]+)\/notes$/)[1];
+                currentClientId = cid;
+                showNotesPage(cid);
+            } else if (path.match(/^\/ar\/workspaces\/clients\/([^/]+)$/)) {
+                const cid = path.match(/^\/ar\/workspaces\/clients\/([^/]+)$/)[1];
+                currentClientId = cid;
                 document.getElementById('clientDetailView').classList.add('active');
-                loadClientDetail(clientId);
+                loadClientDetail(cid);
             } else if (path === '/ar/workspaces/clients') {
                 document.getElementById('clientsView').classList.add('active');
                 if (currentClinic && !allClients.length) loadClients(currentClinic);
@@ -887,7 +503,6 @@
                         <div class="client-profile-dob">${c.dob ? 'DOB: ' + escHtml(c.dob) : 'DOB: —'}</div>
                         <div class="client-active-badge">Active</div>
                     </div>
-
                     <div class="client-detail-section">
                         <div class="client-detail-label">ADDRESS</div>
                         <div class="client-detail-value">${escHtml(c.address) || '—'}</div>
@@ -908,7 +523,6 @@
                         <div class="client-detail-label">PRIMARY CLINIC</div>
                         <div class="client-detail-value">${escHtml(c.primary_clinic || c.clinic_name) || '—'}</div>
                     </div>
-
                     <div class="client-toggle-row">
                         <span class="client-toggle-label">ACCESS CLIENT PORTAL</span>
                         <div class="toggle-switch"></div>
@@ -930,7 +544,6 @@
                         <button class="client-top-tab">Medical History</button>
                         <button class="client-top-tab">Customer Notes</button>
                     </div>
-
                     <div class="procedures-section-header">Procedures</div>
                     <div id="proceduresList">${renderProcedures(c.procedure_notes, c.name)}</div>
                 </div>
@@ -950,61 +563,94 @@
 
         function renderProcedures(notes, clientName) {
             if (!notes || !notes.length) return '<div class="no-data">No procedures recorded</div>';
+            const cid = currentClientId;
             let html = '';
             notes.forEach((n, i) => {
                 const parsed = parseNoteString(n);
                 const title = 'Cosmetic Procedures #' + (i + 1);
                 html += `<div class="procedure-entry">
-                    <div class="procedure-entry-title">${escHtml(title)}</div>
-                    <div class="procedure-entry-meta">${escHtml(parsed.date)}</div>
-                    ${parsed.writer ? '<div class="procedure-entry-meta">Provider: ' + escHtml(parsed.writer) + '</div>' : ''}
-                    <div class="procedure-entry-actions">
-                        <button class="procedure-action-btn" onclick="openNotesModal(${i})">View Notes</button>
+                    <div class="procedure-entry-top">
+                        <div class="procedure-entry-title">${escHtml(title)}</div>
+                        <div class="procedure-entry-meta">${escHtml(parsed.date)}</div>
+                        ${parsed.writer ? '<div class="procedure-entry-meta">' + escHtml(parsed.writer) + '</div>' : ''}
+                    </div>
+                    <div class="procedure-bottom-tabs">
+                        <button class="procedure-bottom-tab">Questionnaire</button>
+                        <button class="procedure-bottom-tab">More Photos</button>
+                        <button class="procedure-bottom-tab">Payment</button>
+                        <button class="procedure-bottom-tab">More</button>
+                        <button class="procedure-bottom-tab" onclick="goToNotesPage()">Notes</button>
                     </div>
                 </div>`;
             });
             return html;
         }
 
-        // ========== NOTES MODAL ==========
-        function openNotesModal(procIndex) {
-            const c = currentClientData;
-            if (!c) return;
-            const modal = document.getElementById('notesModal');
-            const titleEl = document.getElementById('notesModalTitle');
-            titleEl.textContent = (c.name || 'CLIENT').toUpperCase() + ' - PROCEDURE NOTES';
-
-            const notesList = document.getElementById('notesList');
-            const notes = c.procedure_notes || [];
-            const noteStr = notes[procIndex];
-
-            let html = '';
-            if (noteStr) {
-                const parsed = parseNoteString(noteStr);
-                const writer = parsed.writer || 'Provider';
-                const noteContent = parsed.note || parsed.raw;
-                html += `<div class="note-entry">
-                    <div class="note-avatar"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg></div>
-                    <div class="note-content">
-                        <div class="note-actions">
-                            <span class="note-action-link">Copy</span>
-                            <span class="note-action-link">Note History</span>
-                        </div>
-                        <div class="note-author">${escHtml(writer).toUpperCase()} LEFT A NOTE</div>
-                        <div class="note-date">${escHtml(parsed.date)}</div>
-                        <div class="note-text">${escHtml(noteContent)}</div>
-                    </div>
-                </div>`;
-            } else {
-                html = '<div class="no-data">No notes available for this procedure</div>';
-            }
-
-            notesList.innerHTML = html;
-            modal.classList.add('active');
+        // ========== NOTES PAGE ==========
+        function goToNotesPage() {
+            if (!currentClientId) return;
+            navigate('/ar/workspaces/clients/' + currentClientId + '/notes');
         }
 
-        function closeNotesModal() {
-            document.getElementById('notesModal').classList.remove('active');
+        async function showNotesPage(clientId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById('topBar').style.display = 'none';
+            document.getElementById('mainContainer').style.display = 'none';
+            document.getElementById('notesPageView').classList.add('active');
+
+            const notesList = document.getElementById('notesPageList');
+            notesList.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading notes...</div></div>';
+
+            try {
+                let c = currentClientData;
+                if (!c) {
+                    const resp = await fetch('/api/ar/client/' + clientId);
+                    const data = await resp.json();
+                    if (!data.success) { notesList.innerHTML = '<div class="no-data">Client not found</div>'; return; }
+                    c = data.client;
+                    currentClientData = c;
+                }
+
+                document.getElementById('notesPageTitle').textContent = (c.name || 'CLIENT').toUpperCase() + ' - PROCEDURE NOTES';
+
+                const notes = c.procedure_notes || [];
+                if (!notes.length) {
+                    notesList.innerHTML = '<div class="no-data">No procedure notes available</div>';
+                    return;
+                }
+
+                let html = '';
+                notes.forEach(noteStr => {
+                    const parsed = parseNoteString(noteStr);
+                    const writer = parsed.writer || 'Provider';
+                    const noteContent = parsed.note || parsed.raw;
+                    html += `<div class="note-entry">
+                        <div class="note-avatar"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg></div>
+                        <div class="note-left">
+                            <div class="note-author">${escHtml(writer).toUpperCase()} LEFT A NOTE</div>
+                            <div class="note-date">${escHtml(parsed.date)}</div>
+                        </div>
+                        <div class="note-content-wrapper">
+                            <div class="note-actions-row">
+                                <span class="note-action-link">Copy</span>
+                                <span class="note-action-link">Note History</span>
+                            </div>
+                            <div class="note-text-box">${escHtml(noteContent)}</div>
+                        </div>
+                    </div>`;
+                });
+                notesList.innerHTML = html;
+            } catch (e) {
+                notesList.innerHTML = '<div class="no-data">Failed to load notes</div>';
+            }
+        }
+
+        function closeNotesPage() {
+            if (currentClientId) {
+                navigate('/ar/workspaces/clients/' + currentClientId);
+            } else {
+                navigate('/ar/workspaces');
+            }
         }
 
         // ========== UTILS ==========
