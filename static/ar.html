@@ -25,7 +25,7 @@
             gap: 16px;
         }
         .top-bar .logo { display: flex; align-items: center; text-decoration: none; }
-        .top-bar .logo img { height: 60px; width: auto; }
+        .top-bar .logo img { height: 180px; width: auto; }
         .top-bar .nav-links { display: flex; gap: 12px; margin-left: auto; align-items: center; }
         .top-bar .nav-links a {
             color: #555; text-decoration: none; font-size: 1rem;
@@ -221,59 +221,6 @@
         .notes-pg-title { flex: 1; text-align: center; }
         .notes-pg-body { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
 
-        /* Add Note Section */
-        .add-note-section { margin-bottom: 28px; }
-        .add-note-title { font-size: 1.05rem; font-weight: 600; color: #333; margin-bottom: 16px; }
-        .add-note-label-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-        .add-note-label { font-size: 0.88rem; font-weight: 700; color: #333; }
-        .add-note-label sup { color: #ef4444; }
-        .add-note-edit {
-            font-size: 0.82rem; color: #2196F3; text-decoration: none;
-            display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
-        }
-        .add-note-edit svg { width: 14px; height: 14px; }
-        .add-note-textarea {
-            width: 100%; min-height: 100px; border: 1px solid #d1d5db; border-radius: 6px;
-            padding: 14px; font-size: 0.95rem; resize: vertical; outline: none;
-            font-family: inherit; color: #333; margin-bottom: 10px;
-        }
-        .add-note-textarea:focus { border-color: #2196F3; }
-        .add-note-help {
-            font-size: 0.8rem; color: #6b7280; margin-bottom: 16px; line-height: 1.6;
-        }
-        .add-note-btns { display: flex; gap: 12px; align-items: center; }
-        .btn-save {
-            background: #2196F3; color: white; border: none;
-            padding: 9px 28px; border-radius: 6px; font-size: 0.9rem;
-            font-weight: 600; cursor: pointer; transition: background 0.2s;
-        }
-        .btn-save:hover { background: #1976D2; }
-        .btn-sticky {
-            background: white; color: #2196F3; border: 1.5px solid #2196F3;
-            padding: 8px 20px; border-radius: 6px; font-size: 0.9rem;
-            font-weight: 600; cursor: pointer; transition: all 0.2s;
-        }
-        .btn-sticky:hover { background: #eff6ff; }
-        .btn-clear {
-            background: white; color: #555; border: 1.5px solid #d1d5db;
-            padding: 8px 24px; border-radius: 6px; font-size: 0.9rem;
-            font-weight: 500; cursor: pointer; transition: all 0.2s;
-        }
-        .btn-clear:hover { background: #f9fafb; }
-
-        /* Start Dictation + ChartSmart buttons (procedure notes) */
-        .dictation-row { display: flex; gap: 12px; margin-bottom: 14px; }
-        .btn-dictation {
-            background: white; color: #2196F3; border: 1.5px solid #2196F3;
-            padding: 8px 18px; border-radius: 6px; font-size: 0.85rem;
-            font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
-        }
-        .btn-chartsmart {
-            background: white; color: #555; border: 1.5px solid #d1d5db;
-            padding: 8px 18px; border-radius: 6px; font-size: 0.85rem;
-            font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
-        }
-
         /* Note entries */
         .notes-entries { border-top: 1px solid #e5e7eb; padding-top: 20px; }
         .note-entry {
@@ -343,9 +290,7 @@
             <img src="/static/ar-logo.png" alt="Aesthetic Record">
         </a>
         <div class="nav-links">
-            <a href="/">Dashboard</a>
-            <a href="/monthly-summary">Monthly Summary</a>
-            <a href="/stripe-dashboard">Stripe</a>
+            <a href="/ar/workspaces">Workspaces</a>
         </div>
     </div>
 
@@ -399,35 +344,6 @@
             <span class="notes-pg-title" id="procNotesTitle">PROCEDURE NOTES</span>
         </div>
         <div class="notes-pg-body">
-            <div class="add-note-section">
-                <div class="add-note-title">Add Note</div>
-                <div class="dictation-row">
-                    <button class="btn-dictation">
-                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-                        Start Dictation
-                    </button>
-                    <button class="btn-chartsmart">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                        ChartSmart
-                    </button>
-                </div>
-                <div class="add-note-label-row">
-                    <span class="add-note-label">NOTE<sup>*</sup></span>
-                    <a class="add-note-edit">
-                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        Edit
-                    </a>
-                </div>
-                <textarea class="add-note-textarea" placeholder=""></textarea>
-                <div class="add-note-help">
-                    (Got Phrases - You can invoke them by typing .(dot) and making the selection)<br>
-                    (Got function - You can use @all function to fill in the client medical history (Allergies, Family history etc))
-                </div>
-                <div class="add-note-btns">
-                    <button class="btn-save">Save</button>
-                    <button class="btn-clear">Clear</button>
-                </div>
-            </div>
             <div class="notes-entries" id="procNotesList"></div>
         </div>
     </div>
@@ -439,24 +355,6 @@
             <span class="notes-pg-title" id="custNotesTitle">CUSTOMER NOTES</span>
         </div>
         <div class="notes-pg-body">
-            <div class="add-note-section">
-                <div class="add-note-title">Add Note</div>
-                <div class="add-note-label-row">
-                    <span class="add-note-label">NOTE<sup>*</sup></span>
-                    <a class="add-note-edit">
-                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        Edit
-                    </a>
-                </div>
-                <textarea class="add-note-textarea" placeholder=""></textarea>
-                <div class="add-note-help">
-                    . (Dot) Phrases : You can invoke them by typing .(dot) and making the selection
-                </div>
-                <div class="add-note-btns">
-                    <button class="btn-save">Save</button>
-                    <button class="btn-sticky">Save as Sticky Note</button>
-                </div>
-            </div>
             <div class="notes-entries" id="custNotesList"></div>
         </div>
     </div>
@@ -637,10 +535,6 @@
                 </div>
                 <div class="client-right">
                     <div class="client-top-tabs">
-                        <button class="client-top-tab active">Vitals</button>
-                        <button class="client-top-tab">Create Appointment</button>
-                        <button class="client-top-tab">Membership/Pkg</button>
-                        <button class="client-top-tab">Medical History</button>
                         <button class="client-top-tab" onclick="goToCustomerNotes()">Customer Notes</button>
                     </div>
                     <div class="procedures-section-header">Procedures</div>
@@ -673,10 +567,6 @@
                         ${parsed.writer ? '<div class="procedure-entry-meta">' + escHtml(parsed.writer) + '</div>' : ''}
                     </div>
                     <div class="procedure-bottom-tabs">
-                        <button class="procedure-bottom-tab">Questionnaire</button>
-                        <button class="procedure-bottom-tab">More Photos</button>
-                        <button class="procedure-bottom-tab">Payment</button>
-                        <button class="procedure-bottom-tab">More</button>
                         <button class="procedure-bottom-tab" onclick="goToProcedureNotes()">Notes</button>
                     </div>
                 </div>`;
