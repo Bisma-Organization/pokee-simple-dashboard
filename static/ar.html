@@ -18,6 +18,7 @@
         /* ===== HEADER ===== */
         /* ===== CONTAINER ===== */
         .container { max-width: 1100px; margin: 0 auto; padding: 0 32px 24px 32px; }
+        .container.full-width { max-width: 100%; padding: 0 32px 24px 32px; }
 
         /* ===== PAGE LOGO ===== */
         .page-logo { display: flex; align-items: center; padding: 20px 0 24px 0; }
@@ -272,6 +273,9 @@
 
         <!-- Clients View -->
         <div class="view" id="clientsView">
+            <div class="page-logo">
+                <a href="/ar/workspaces"><img src="/static/ar-logo.png" alt="Aesthetic Record"></a>
+            </div>
             <a class="back-link" href="/ar/workspaces">&#60; Back to Workspaces</a>
             <div class="page-header">
                 <h1 id="clinicTitle">Clients</h1>
@@ -286,6 +290,9 @@
 
         <!-- Client Detail View -->
         <div class="view" id="clientDetailView">
+            <div class="page-logo">
+                <a href="/ar/workspaces"><img src="/static/ar-logo.png" alt="Aesthetic Record"></a>
+            </div>
             <a class="client-profile-back" id="backToClientsLink" href="/ar/workspaces/clients">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
                 Client Profile
@@ -333,6 +340,7 @@
             document.getElementById('procedureNotesPage').classList.remove('active');
             document.getElementById('customerNotesPage').classList.remove('active');
             document.getElementById('mainContainer').style.display = '';
+            document.getElementById('mainContainer').classList.remove('full-width');
 
             if (path === '/ar' || path === '/ar/workspaces') {
                 document.getElementById('workspacesView').classList.add('active');
@@ -355,6 +363,7 @@
                 loadClientDetail(cid);
             } else if (path === '/ar/workspaces/clients') {
                 document.getElementById('clientsView').classList.add('active');
+                document.getElementById('mainContainer').classList.add('full-width');
                 if (currentClinic) loadClients(currentClinic);
             }
         }
