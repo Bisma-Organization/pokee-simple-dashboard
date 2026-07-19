@@ -16,25 +16,12 @@
         }
 
         /* ===== HEADER ===== */
-        .top-bar {
-            background: #ffffff;
-            border-bottom: 1px solid #e5e7eb;
-            padding: 4px 32px;
-            display: flex;
-            align-items: flex-start;
-            gap: 16px;
-        }
-        .top-bar .logo { display: flex; align-items: center; text-decoration: none; padding-top: 0; }
-        .top-bar .logo img { height: 180px; width: auto; }
-        .top-bar .nav-links { display: flex; gap: 12px; margin-left: auto; align-items: center; }
-        .top-bar .nav-links a {
-            color: #555; text-decoration: none; font-size: 1rem;
-            padding: 8px 14px; border-radius: 6px; transition: all 0.2s;
-        }
-        .top-bar .nav-links a:hover { background: #f3f4f6; color: #111; }
-
         /* ===== CONTAINER ===== */
-        .container { max-width: 1100px; margin: 0 auto; padding: 12px 32px; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 32px 24px 32px; }
+
+        /* ===== PAGE LOGO ===== */
+        .page-logo { display: flex; align-items: center; padding: 20px 0 24px 0; }
+        .page-logo img { height: 120px; width: auto; }
 
         /* ===== BACK LINK ===== */
         .back-link {
@@ -264,17 +251,12 @@
     </style>
 </head>
 <body>
-    <div class="top-bar" id="topBar">
-        <a class="logo" href="/ar/workspaces">
-            <img src="/static/ar-logo.png" alt="Aesthetic Record">
-        </a>
-        <div class="nav-links">
-        </div>
-    </div>
-
     <div class="container" id="mainContainer">
         <!-- Workspaces View -->
         <div class="view" id="workspacesView">
+            <div class="page-logo">
+                <a href="/ar/workspaces"><img src="/static/ar-logo.png" alt="Aesthetic Record"></a>
+            </div>
             <a class="back-link" href="/">&#60; Back</a>
             <div class="page-header">
                 <h1 id="workspacesTitle">All Workspaces</h1>
@@ -350,7 +332,6 @@
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById('procedureNotesPage').classList.remove('active');
             document.getElementById('customerNotesPage').classList.remove('active');
-            document.getElementById('topBar').style.display = '';
             document.getElementById('mainContainer').style.display = '';
 
             if (path === '/ar' || path === '/ar/workspaces') {
@@ -557,7 +538,6 @@
 
         // ========== PROCEDURE NOTES PAGE ==========
         async function showProcedureNotesPage(clientId) {
-            document.getElementById('topBar').style.display = 'none';
             document.getElementById('mainContainer').style.display = 'none';
             document.getElementById('procedureNotesPage').classList.add('active');
 
@@ -597,7 +577,6 @@
 
         // ========== CUSTOMER NOTES PAGE ==========
         async function showCustomerNotesPage(clientId) {
-            document.getElementById('topBar').style.display = 'none';
             document.getElementById('mainContainer').style.display = 'none';
             document.getElementById('customerNotesPage').classList.add('active');
 
