@@ -19,12 +19,12 @@
         .top-bar {
             background: #ffffff;
             border-bottom: 1px solid #e5e7eb;
-            padding: 10px 32px;
+            padding: 4px 32px;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 16px;
         }
-        .top-bar .logo { display: flex; align-items: center; text-decoration: none; }
+        .top-bar .logo { display: flex; align-items: center; text-decoration: none; padding-top: 0; }
         .top-bar .logo img { height: 180px; width: auto; }
         .top-bar .nav-links { display: flex; gap: 12px; margin-left: auto; align-items: center; }
         .top-bar .nav-links a {
@@ -34,7 +34,7 @@
         .top-bar .nav-links a:hover { background: #f3f4f6; color: #111; }
 
         /* ===== CONTAINER ===== */
-        .container { max-width: 1100px; margin: 0 auto; padding: 24px 32px; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 12px 32px; }
 
         /* ===== BACK LINK ===== */
         .back-link {
@@ -77,10 +77,6 @@
         .workspace-name {
             font-size: 1.1rem; font-weight: 500; color: #333; flex: 1;
             min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .status-badge {
-            font-size: 0.95rem; font-weight: 500; color: #10b981;
-            font-style: italic; margin-left: 14px; margin-right: auto; padding-left: 18px;
         }
         .btn-launch {
             background: #2196F3; color: white; border: none;
@@ -133,29 +129,12 @@
         .client-avatar svg { width: 50px; height: 50px; color: #9ca3af; }
         .client-profile-name { font-size: 1.3rem; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
         .client-profile-dob { font-size: 0.92rem; color: #6b7280; margin-bottom: 10px; }
-        .client-active-badge {
-            display: inline-block; border: 1.5px solid #10b981; color: #10b981;
-            font-size: 0.82rem; font-weight: 600; padding: 3px 14px; border-radius: 14px; margin-bottom: 16px;
-        }
         .client-detail-section { margin-bottom: 14px; }
         .client-detail-label {
             font-size: 0.75rem; font-weight: 700; color: #9ca3af;
             text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px;
         }
         .client-detail-value { font-size: 0.95rem; color: #333; word-break: break-word; min-height: 18px; }
-        .client-toggle-row {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 8px 0; border-top: 1px solid #f0f0f0;
-        }
-        .client-toggle-label { font-size: 0.82rem; font-weight: 600; color: #555; text-transform: uppercase; }
-        .toggle-switch { width: 36px; height: 20px; background: #d1d5db; border-radius: 10px; position: relative; }
-        .toggle-switch::after {
-            content: ''; width: 16px; height: 16px; background: white;
-            border-radius: 50%; position: absolute; top: 2px; left: 2px;
-        }
-        .consent-row { display: flex; gap: 16px; padding: 6px 0; }
-        .consent-item { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: #555; }
-        .consent-checkbox { width: 16px; height: 16px; border: 1.5px solid #d1d5db; border-radius: 3px; display: inline-block; }
 
         /* Right content */
         .client-right { flex: 1; min-width: 0; }
@@ -290,7 +269,6 @@
             <img src="/static/ar-logo.png" alt="Aesthetic Record">
         </a>
         <div class="nav-links">
-            <a href="/ar/workspaces">Workspaces</a>
         </div>
     </div>
 
@@ -426,7 +404,6 @@
                 html += `<div class="workspace-row">
                     <div class="workspace-logo"><img src="/static/ar-logo.png" alt="AR"></div>
                     <div class="workspace-name">${escHtml(w.name)}</div>
-                    <span class="status-badge">Active</span>
                     <button class="btn-launch" onclick="launchWorkspace('${escAttr(w.name)}')">Launch</button>
                 </div>`;
             });
@@ -519,19 +496,12 @@
                         </div>
                         <div class="client-profile-name">${escHtml(c.name)}</div>
                         <div class="client-profile-dob">${c.dob ? 'DOB: ' + escHtml(c.dob) : 'DOB: —'}</div>
-                        <div class="client-active-badge">Active</div>
                     </div>
                     <div class="client-detail-section"><div class="client-detail-label">ADDRESS</div><div class="client-detail-value">${escHtml(c.address) || '—'}</div></div>
                     <div class="client-detail-section"><div class="client-detail-label">PHONE</div><div class="client-detail-value">${escHtml(c.phone) || '—'}</div></div>
                     <div class="client-detail-section"><div class="client-detail-label">EMAIL</div><div class="client-detail-value">${escHtml(c.email) || '—'}</div></div>
                     <div class="client-detail-section"><div class="client-detail-label">CLIENT CREATED ON</div><div class="client-detail-value">${escHtml(c.creation_date) || '—'}</div></div>
                     <div class="client-detail-section"><div class="client-detail-label">PRIMARY CLINIC</div><div class="client-detail-value">${escHtml(c.primary_clinic || c.clinic_name) || '—'}</div></div>
-                    <div class="client-toggle-row"><span class="client-toggle-label">ACCESS CLIENT PORTAL</span><div class="toggle-switch"></div></div>
-                    <div class="client-toggle-row"><span class="client-toggle-label">COMMUNICATION CONSENT</span></div>
-                    <div class="consent-row">
-                        <div class="consent-item"><span class="consent-checkbox"></span> Fine This Client</div>
-                        <div class="consent-item"><span class="consent-checkbox"></span> Do Not Call</div>
-                    </div>
                 </div>
                 <div class="client-right">
                     <div class="client-top-tabs">
