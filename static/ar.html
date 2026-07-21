@@ -486,6 +486,7 @@
                         </div>
                         <div class="client-profile-name">${escHtml(c.name)}</div>
                         <div class="client-profile-dob">${c.dob ? 'DOB: ' + escHtml(c.dob) : 'DOB: —'}</div>
+                        <div class="client-profile-dob">${c.age ? 'Age: ' + escHtml(c.age) : ''}</div>
                     </div>
                     <div class="client-detail-section"><div class="client-detail-label">ADDRESS</div><div class="client-detail-value">${escHtml(c.address) || '—'}</div></div>
                     <div class="client-detail-section"><div class="client-detail-label">PHONE</div><div class="client-detail-value">${escHtml(c.phone) || '—'}</div></div>
