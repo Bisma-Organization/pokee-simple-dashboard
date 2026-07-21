@@ -2272,13 +2272,13 @@ def ar_query():
         context = f"Total clients: {total}\nClinics: {', '.join(sorted(clinics))}\n\n"
 
         # Parse the question and execute the query
-        answer = _answer_ar_question(question, all_clients, clinics)
+        answer = _answer_ar_question(question, all_clients, clinics, total)
         return jsonify({'success': True, 'question': question, 'answer': answer})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-def _answer_ar_question(question, all_clients, clinics):
+def _answer_ar_question(question, all_clients, clinics, total):
     """Parse a natural language question and return an answer with data."""
     q = question.lower().strip()
 
