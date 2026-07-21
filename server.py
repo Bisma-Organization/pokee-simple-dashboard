@@ -2021,7 +2021,19 @@ def ar_get_workspaces():
         for name in clinics:
             if name:
                 count = ar_clients.count_documents({'clinic_name': name})
-                workspaces.append({'name': name, 'client_count': count})
+                # Count clients with more than 1 procedure
+                multi_proc = 0
+                for doc in ar_clients.find({'clinic_name': name}, {'_id': 0, 'procedure_notes': 1}):
+                    notes_raw = doc.get('procedure_notes', '')
+                    if notes_raw:
+                        blocks = [b.strip() for b in notes_raw.split(' || ') if b.strip()]
+                        if len(blocks) > 1:
+                            multi_proc += 1
+                workspaces.append({
+                    'name': name,
+                    'client_count': count,
+                    'multi_procedure_count': multi_proc,
+                })
         workspaces.sort(key=lambda w: w['name'])
         return jsonify({'success': True, 'workspaces': workspaces})
     except Exception as e:
@@ -2183,6 +2195,33 @@ def ar_refresh():
         'success': True,
         'message': 'Data refresh initiated. The scraper runs on a separate Heroku worker. New data will appear after the next scrape cycle completes.'
     })
+
+
+@app.route('/api/ar/clinic-stats')
+def ar_clinic_stats():
+    """Get stats for a specific clinic: total clients and clients with >1 procedure."""
+    try:
+        clinic_name = request.args.get('clinic', '')
+        if not clinic_name:
+            return jsonify({'success': False, 'error': 'Missing clinic parameter'}), 400
+
+        total = ar_clients.count_documents({'clinic_name': clinic_name})
+        multi_proc = 0
+        for doc in ar_clients.find({'clinic_name': clinic_name}, {'_id': 0, 'procedure_notes': 1}):
+            notes_raw = doc.get('procedure_notes', '')
+            if notes_raw:
+                blocks = [b.strip() for b in notes_raw.split(' || ') if b.strip()]
+                if len(blocks) > 1:
+                    multi_proc += 1
+
+        return jsonify({
+            'success': True,
+            'clinic': clinic_name,
+            'total_clients': total,
+            'clients_with_multiple_procedures': multi_proc,
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 if __name__ == '__main__':
