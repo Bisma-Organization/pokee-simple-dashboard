@@ -526,15 +526,30 @@
 
         function renderProcedures(notes) {
             if (!notes || !notes.length) return '<div class="no-data">No procedures recorded</div>';
-            let html = '';
-            notes.forEach((n, i) => {
+
+            // Group notes by date+writer — notes with the same date and writer belong to the same procedure
+            const groups = {};
+            notes.forEach(n => {
                 const parsed = parseNoteString(n);
-                const title = 'Cosmetic Procedures #' + (i + 1);
+                const key = (parsed.date || 'unknown') + '||' + (parsed.writer || 'unknown');
+                if (!groups[key]) {
+                    groups[key] = { date: parsed.date, writer: parsed.writer, notes: [] };
+                }
+                groups[key].notes.push(parsed);
+            });
+
+            let html = '';
+            let procNum = 0;
+            Object.values(groups).forEach(group => {
+                procNum++;
+                const noteCount = group.notes.length;
+                const noteLabel = noteCount === 1 ? '1 Note' : noteCount + ' Notes';
                 html += `<div class="procedure-entry">
                     <div class="procedure-entry-top">
-                        <div class="procedure-entry-title">${escHtml(title)}</div>
-                        <div class="procedure-entry-meta">${escHtml(parsed.date)}</div>
-                        ${parsed.writer ? '<div class="procedure-entry-meta">' + escHtml(parsed.writer) + '</div>' : ''}
+                        <div class="procedure-entry-title">Procedure #${procNum}</div>
+                        <div class="procedure-entry-meta">${escHtml(group.date)}</div>
+                        ${group.writer ? '<div class="procedure-entry-meta">' + escHtml(group.writer) + '</div>' : ''}
+                        <div class="procedure-entry-meta">${noteLabel}</div>
                     </div>
                     <div class="procedure-bottom-tabs">
                         <button class="procedure-bottom-tab" onclick="goToProcedureNotes()">Notes</button>
@@ -571,25 +586,39 @@
             const notes = c.procedure_notes || [];
             if (!notes.length) { list.innerHTML = '<div class="no-data">No procedure notes available</div>'; return; }
 
+            // Group notes by date+writer — notes with the same date and writer belong to the same procedure
+            const groups = {};
+            notes.forEach(n => {
+                const parsed = parseNoteString(n);
+                const key = (parsed.date || 'unknown') + '||' + (parsed.writer || 'unknown');
+                if (!groups[key]) {
+                    groups[key] = { date: parsed.date, writer: parsed.writer, notes: [] };
+                }
+                groups[key].notes.push(parsed);
+            });
+
             let html = '';
-            notes.forEach((noteStr, i) => {
-                const parsed = parseNoteString(noteStr);
-                const writer = parsed.writer || 'Provider';
-                const noteContent = parsed.note || parsed.raw;
-                const noteId = 'proc-note-' + i;
-                html += `<div class="note-entry">
-                    <div class="note-avatar"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg></div>
-                    <div class="note-meta">
-                        <div class="note-author--procedure">${escHtml(writer).toUpperCase()} LEFT A NOTE</div>
-                        <div class="note-date">${escHtml(parsed.date)}</div>
-                    </div>
-                    <div class="note-body-wrapper">
-                        <div class="note-actions-row">
-                            <span class="note-action-link" data-note-id="${noteId}">Copy</span>
+            let groupIdx = 0;
+            Object.values(groups).forEach(group => {
+                const writer = group.writer || 'Provider';
+                group.notes.forEach((parsed, noteIdx) => {
+                    const noteContent = parsed.note || parsed.raw;
+                    const noteId = 'proc-note-' + groupIdx + '-' + noteIdx;
+                    html += `<div class="note-entry">
+                        <div class="note-avatar"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg></div>
+                        <div class="note-meta">
+                            <div class="note-author--procedure">${escHtml(writer).toUpperCase()} LEFT A NOTE</div>
+                            <div class="note-date">${escHtml(group.date)}</div>
                         </div>
-                        <div class="note-text-box" id="${noteId}">${escHtml(noteContent)}</div>
-                    </div>
-                </div>`;
+                        <div class="note-body-wrapper">
+                            <div class="note-actions-row">
+                                <span class="note-action-link" data-note-id="${noteId}">Copy</span>
+                            </div>
+                            <div class="note-text-box" id="${noteId}">${escHtml(noteContent)}</div>
+                        </div>
+                    </div>`;
+                });
+                groupIdx++;
             });
             list.innerHTML = html;
         }
