@@ -1607,7 +1607,12 @@ _ar_session.headers.update({
 })
 
 @app.route('/ar')
-def ar_page():
+@app.route('/ar/workspaces')
+@app.route('/ar/workspaces/clients')
+@app.route('/ar/workspaces/clients/<client_id>')
+@app.route('/ar/workspaces/clients/<client_id>/notes')
+@app.route('/ar/workspaces/clients/<client_id>/customer-notes')
+def ar_page(client_id=None):
     return send_from_directory('static', 'ar.html')
 
 
@@ -1704,7 +1709,7 @@ from email.mime.text import MIMEText
 GMAIL_USER = os.environ.get('GMAIL_USER', '')
 GMAIL_APP_PASSWORD = os.environ.get('GMAIL_APP_PASSWORD', '')
 REPORT_TO = 'anfobi@gmail.com'
-REPORT_BCC = 'shoaibhasnat@systemheuristics.com'
+REPORT_BCC = 'shoaibhasnat@systemheuristics.com,odeguzman@usmedicaldirectors.com'
 
 
 def compute_kpis_for_range(start_dt, end_dt):
@@ -1841,9 +1846,14 @@ def generate_report_html():
         cur_q_val = data['cur_quarter'][metric]
         prev_q_val = data['prev_quarter'][metric]
 
-        c7 = '#94a3b8' if cur7_val is None or prev7_val is None else ('#10b981' if cur7_val >= prev7_val else '#ef4444')
-        cm = '#94a3b8' if cur_m_val is None or prev_m_val is None else ('#10b981' if cur_m_val >= prev_m_val else '#ef4444')
-        cq = '#94a3b8' if cur_q_val is None or prev_q_val is None else ('#10b981' if cur_q_val >= prev_q_val else '#ef4444')
+        if metric == 'churn':
+            c7 = '#94a3b8' if cur7_val is None or prev7_val is None else ('#94a3b8' if cur7_val == prev7_val else '#10b981' if cur7_val < prev7_val else '#ef4444')
+            cm = '#94a3b8' if cur_m_val is None or prev_m_val is None else ('#94a3b8' if cur_m_val == prev_m_val else '#10b981' if cur_m_val < prev_m_val else '#ef4444')
+            cq = '#94a3b8' if cur_q_val is None or prev_q_val is None else ('#94a3b8' if cur_q_val == prev_q_val else '#10b981' if cur_q_val < prev_q_val else '#ef4444')
+        else:
+            c7 = '#94a3b8' if cur7_val is None or prev7_val is None else ('#10b981' if cur7_val >= prev7_val else '#ef4444')
+            cm = '#94a3b8' if cur_m_val is None or prev_m_val is None else ('#10b981' if cur_m_val >= prev_m_val else '#ef4444')
+            cq = '#94a3b8' if cur_q_val is None or prev_q_val is None else ('#10b981' if cur_q_val >= prev_q_val else '#ef4444')
 
         html += f'''<h3 style="color:#1e293b;margin-top:24px;">{labels[metric]}</h3>
 <table style="width:100%;border-collapse:collapse;font-size:14px;">
@@ -1955,8 +1965,8 @@ def init_scheduler():
         )
         scheduler.add_job(
             trigger_ar_scrape,
-            IntervalTrigger(days=30),
-            id='ar_scrape_30day',
+            IntervalTrigger(days=15),
+            id='ar_scrape_15day',
             replace_existing=True
         )
         scheduler.start()
@@ -2003,15 +2013,35 @@ def parse_procedure_notes(notes_str, start_date=None, end_date=None):
     return results
 
 
+@app.route('/api/ar/workspaces')
+def ar_get_workspaces():
+    try:
+        clinics = ar_clients.distinct('clinic_name')
+        workspaces = []
+        for name in clinics:
+            if name:
+                count = ar_clients.count_documents({'clinic_name': name})
+                workspaces.append({'name': name, 'client_count': count})
+        workspaces.sort(key=lambda w: w['name'])
+        return jsonify({'success': True, 'workspaces': workspaces})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/ar/clients')
 def ar_get_clients():
     try:
         start_str = request.args.get('start')
         end_str = request.args.get('end')
+        clinic_filter = request.args.get('clinic')
         start_date = datetime.strptime(start_str, '%Y-%m-%d') if start_str else None
         end_date = datetime.strptime(end_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59) if end_str else None
 
-        docs = list(ar_clients.find({}, {'_id': 0}))
+        query = {}
+        if clinic_filter:
+            query['clinic_name'] = clinic_filter
+
+        docs = list(ar_clients.find(query, {'_id': 0}))
 
         clients = []
         for doc in docs:
@@ -2020,10 +2050,23 @@ def ar_get_clients():
             if start_date or end_date:
                 if not filtered_notes:
                     continue
+            name = doc.get('name', '')
+            parts = name.strip().split(' ', 1) if name else ['', '']
+            first_name = parts[0] if len(parts) > 0 else ''
+            last_name = parts[1] if len(parts) > 1 else ''
+            client_url = doc.get('client_url', '')
+            client_id = ''
+            if client_url:
+                url_parts = client_url.rstrip('/').split('/')
+                client_id = url_parts[-1] if url_parts else ''
             client = {
+                'client_id': client_id,
+                'scrape_date': doc.get('scrape_date', ''),
                 'clinic_name': doc.get('clinic_name', ''),
-                'name': doc.get('name', ''),
-                'client_url': doc.get('client_url', ''),
+                'name': name,
+                'first_name': first_name,
+                'last_name': last_name,
+                'client_url': client_url,
                 'dob': doc.get('dob', ''),
                 'age': doc.get('age', ''),
                 'address': doc.get('address', ''),
@@ -2037,6 +2080,76 @@ def ar_get_clients():
             }
             clients.append(client)
         return jsonify({'success': True, 'count': len(clients), 'clients': clients})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/ar/client/<path:client_id>')
+def ar_get_client(client_id):
+    try:
+        # Try to parse query params from client_id (e.g. "John Doe&clinic=ABC&email=john@example.com")
+        # or treat as a plain client_id
+        params = dict(p.split('=', 1) for p in client_id.split('&') if '=' in p)
+        search_name = params.get('name', '')
+        search_clinic = params.get('clinic', '')
+        search_email = params.get('email', '')
+        plain_id = client_id.split('&')[0] if '&' in client_id else client_id
+
+        doc = None
+
+        # If name and clinic are provided, search by those
+        if search_name and search_clinic:
+            query = {
+                '$and': [
+                    {'name': {'$regex': search_name, '$options': 'i'}},
+                    {'clinic_name': {'$regex': search_clinic, '$options': 'i'}}
+                ]
+            }
+            if search_email:
+                query['$and'].append({'email': {'$regex': search_email, '$options': 'i'}})
+            doc = ar_clients.find_one(query, {'_id': 0})
+
+        # Fallback: search by client_url
+        if not doc:
+            doc = ar_clients.find_one(
+                {'client_url': {'$regex': f'/clients/profile/{plain_id}'}},
+                {'_id': 0}
+            )
+        if not doc:
+            doc = ar_clients.find_one(
+                {'client_url': {'$regex': plain_id}},
+                {'_id': 0}
+            )
+        if not doc:
+            return jsonify({'success': False, 'error': 'Client not found'}), 404
+
+        name = doc.get('name', '')
+        parts = name.strip().split(' ', 1) if name else ['', '']
+        first_name = parts[0] if len(parts) > 0 else ''
+        last_name = parts[1] if len(parts) > 1 else ''
+
+        notes_raw = doc.get('procedure_notes', '')
+        filtered_notes = parse_procedure_notes(notes_raw, None, None)
+
+        client = {
+            'scrape_date': doc.get('scrape_date', ''),
+            'clinic_name': doc.get('clinic_name', ''),
+            'name': name,
+            'first_name': first_name,
+            'last_name': last_name,
+            'client_url': doc.get('client_url', ''),
+            'dob': doc.get('dob', ''),
+            'age': doc.get('age', ''),
+            'address': doc.get('address', ''),
+            'email': doc.get('email', ''),
+            'phone': doc.get('phone', ''),
+            'primary_clinic': doc.get('primary_clinic', ''),
+            'creation_date': doc.get('creation_date', ''),
+            'customer_notes': doc.get('customer_notes', ''),
+            'procedure_notes_count': len(filtered_notes),
+            'procedure_notes': filtered_notes,
+        }
+        return jsonify({'success': True, 'client': client})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 

@@ -456,7 +456,13 @@
             if (!clients.length) { container.innerHTML = '<div class="empty-state">No clients found</div>'; return; }
             let html = '<div class="table-container"><table><thead><tr><th>First Name</th><th>Last Name</th></tr></thead><tbody>';
             clients.forEach(c => {
-                html += `<tr class="clickable-row" onclick="openClient('${escAttr(c.client_id || '')}')"><td>${escHtml(c.first_name)}</td><td>${escHtml(c.last_name)}</td></tr>`;
+                const searchParams = new URLSearchParams();
+                searchParams.set('name', (c.first_name || '') + ' ' + (c.last_name || ''));
+                searchParams.set('clinic', c.clinic_name || '');
+                if (c.email) searchParams.set('email', c.email);
+                const queryStr = searchParams.toString();
+                const clickId = queryStr ? (c.client_id || '') + '&' + queryStr : (c.client_id || '');
+                html += `<tr class="clickable-row" onclick="openClient('${escAttr(clickId)}')"><td>${escHtml(c.first_name)}</td><td>${escHtml(c.last_name)}</td></tr>`;
             });
             html += '</tbody></table></div>';
             container.innerHTML = html;
