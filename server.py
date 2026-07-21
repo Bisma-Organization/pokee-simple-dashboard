@@ -2087,13 +2087,37 @@ def ar_get_clients():
 @app.route('/api/ar/client/<path:client_id>')
 def ar_get_client(client_id):
     try:
-        doc = ar_clients.find_one(
-            {'client_url': {'$regex': f'/clients/profile/{client_id}'}},
-            {'_id': 0}
-        )
+        # Try to parse query params from client_id (e.g. "John Doe&clinic=ABC&email=john@example.com")
+        # or treat as a plain client_id
+        params = dict(p.split('=', 1) for p in client_id.split('&') if '=' in p)
+        search_name = params.get('name', '')
+        search_clinic = params.get('clinic', '')
+        search_email = params.get('email', '')
+        plain_id = client_id.split('&')[0] if '&' in client_id else client_id
+
+        doc = None
+
+        # If name and clinic are provided, search by those
+        if search_name and search_clinic:
+            query = {
+                '$and': [
+                    {'name': {'$regex': search_name, '$options': 'i'}},
+                    {'clinic_name': {'$regex': search_clinic, '$options': 'i'}}
+                ]
+            }
+            if search_email:
+                query['$and'].append({'email': {'$regex': search_email, '$options': 'i'}})
+            doc = ar_clients.find_one(query, {'_id': 0})
+
+        # Fallback: search by client_url
         if not doc:
             doc = ar_clients.find_one(
-                {'client_url': {'$regex': client_id}},
+                {'client_url': {'$regex': f'/clients/profile/{plain_id}'}},
+                {'_id': 0}
+            )
+        if not doc:
+            doc = ar_clients.find_one(
+                {'client_url': {'$regex': plain_id}},
                 {'_id': 0}
             )
         if not doc:
