@@ -2290,6 +2290,12 @@ def _answer_ar_question(question, all_clients, clinics, total):
         clinic_match = re.search(r'(["\']?[A-Za-z][A-Za-z\s&.,]+?["\']?)\s+(?:has|have)\s+(\d+)\s*(?:clients|patients|people)', q)
     if not clinic_match:
         clinic_match = re.search(r'(?:clients|patients|people)\s+(?:in|from|at)\s+["\']?([A-Za-z][A-Za-z\s&.,]+?)["\']?', q)
+    if not clinic_match:
+        # Try matching "how many clients in X" pattern
+        clinic_match = re.search(r'(?:how many|howmuch)\s+(?:clients|patients|people)\s+(?:in|from|at)\s+["\']?([A-Za-z][A-Za-z\s&.,]+?)["\']?', q)
+    if not clinic_match:
+        # Try matching "X clinic" or "X aesthetic" pattern
+        clinic_match = re.search(r'(["\']?[A-Za-z][A-Za-z\s&.,]+?(?:clinic|aesthetic|medical|spa|center|institute|surgery|dermatology|plastic)?)["\']?', q)
 
     if clinic_match:
         clinic_name = clinic_match.group(1).strip().strip('"\'')
