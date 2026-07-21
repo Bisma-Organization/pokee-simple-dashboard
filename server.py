@@ -2285,35 +2285,87 @@ def _answer_ar_question(question, all_clients, clinics, total):
     # --- Clinic client count ---
     # "how many clients in soo faced", "does soo faced have 112 clients", "client count for soo faced"
     import re
-    clinic_match = re.search(r'(?:in|from|at|for)\s+["\']?([A-Za-z][A-Za-z\s&.,]+?)["\']?\s*(?:clients|patients|people)?', q)
-    if not clinic_match:
-        clinic_match = re.search(r'(["\']?[A-Za-z][A-Za-z\s&.,]+?["\']?)\s+(?:has|have)\s+(\d+)\s*(?:clients|patients|people)', q)
-    if not clinic_match:
-        clinic_match = re.search(r'(?:clients|patients|people)\s+(?:in|from|at)\s+["\']?([A-Za-z][A-Za-z\s&.,]+?)["\']?', q)
-    if not clinic_match:
-        # Try matching "how many clients in X" pattern
-        clinic_match = re.search(r'(?:how many|howmuch)\s+(?:clients|patients|people)\s+(?:in|from|at)\s+["\']?([A-Za-z][A-Za-z\s&.,]+?)["\']?', q)
-    if not clinic_match:
-        # Try matching "X clinic" or "X aesthetic" pattern
-        clinic_match = re.search(r'(["\']?[A-Za-z][A-Za-z\s&.,]+?(?:clinic|aesthetic|medical|spa|center|institute|surgery|dermatology|plastic)?)["\']?', q)
 
-    if clinic_match:
-        clinic_name = clinic_match.group(1).strip().strip('"\'')
-        # Check if it's a "does X have N clients" question
-        has_count_match = re.search(r'(?:has|have)\s+(\d+)\s*(?:clients|patients|people)', q)
-        count = sum(1 for c in all_clients if c.get('clinic_name', '') == clinic_name)
-        if has_count_match:
-            expected = int(has_count_match.group(1))
-            if count == expected:
-                return {'type': 'clinic_count', 'clinic': clinic_name, 'count': count, 'answer': f"Yes, {clinic_name} has exactly {count} clients."}
+    # Try to extract clinic name using multiple patterns
+    clinic_name = None
+    expected_count = None
+
+    # Pattern 1: "how many clients in X" / "how many patients at X"
+    m = re.search(r'(?:how many|howmuch)\s+(?:clients|patients|people)\s+(?:in|from|at|for)\s+["\']?([A-Za-z][A-Za-z\s&.,]+?)["\']?', q)
+    if m:
+        clinic_name = m.group(1).strip().strip('"\'')
+
+    # Pattern 2: "does X have N clients" / "does X have N patients"
+    if not clinic_name:
+        m = re.search(r'(?:does|do|did)\s+["\']?([A-Za-z][A-Za-z\s&.,]+?)["\']?\s+(?:has|have|had)\s+(\d+)\s*(?:clients|patients|people)', q)
+        if m:
+            clinic_name = m.group(1).strip().strip('"\'')
+            expected_count = int(m.group(2))
+
+    # Pattern 3: "X has how many clients" / "X clinic client count"
+    if not clinic_name:
+        m = re.search(r'["\']?([A-Za-z][A-Za-z\s&.,]+?(?:clinic|aesthetic|medical|spa|center|institute|surgery|dermatology|plastic|beauty|skin|face|body|laser|botox|injectable|cosmetic)?)["\']?\s+(?:has|have|had)\s+(?:how many|howmuch)\s+(?:clients|patients|people)', q)
+        if m:
+            clinic_name = m.group(1).strip().strip('"\'')
+
+    # Pattern 4: "client count for X" / "number of clients in X"
+    if not clinic_name:
+        m = re.search(r'(?:client count|patient count|number of clients|number of patients)\s+(?:for|in|at)\s+["\']?([A-Za-z][A-Za-z\s&.,]+?)["\']?', q)
+        if m:
+            clinic_name = m.group(1).strip().strip('"\'')
+
+    # Pattern 5: "X clinic" / "X aesthetic" — just a clinic name mentioned
+    if not clinic_name:
+        m = re.search(r'["\']?([A-Za-z][A-Za-z\s&.,]+?(?:clinic|aesthetic|medical|spa|center|institute|surgery|dermatology|plastic|beauty|skin|face|body|laser|botox|injectable|cosmetic)?)["\']?', q)
+        if m:
+            clinic_name = m.group(1).strip().strip('"\'')
+
+    # Pattern 6: "how many in X" (short form)
+    if not clinic_name:
+        m = re.search(r'(?:how many|howmuch)\s+(?:clients|patients|people)?\s+(?:in|from|at)\s+["\']?([A-Za-z][A-Za-z\s&.,]+?)["\']?', q)
+        if m:
+            clinic_name = m.group(1).strip().strip('"\'')
+
+    # Pattern 7: "X has how many" (short form)
+    if not clinic_name:
+        m = re.search(r'["\']?([A-Za-z][A-Za-z\s&.,]+?)["\']?\s+(?:has|have|had)\s+(?:how many|howmuch)\s+(?:clients|patients|people)?', q)
+        if m:
+            clinic_name = m.group(1).strip().strip('"\'')
+
+    # Pattern 8: "how many clients" (no clinic specified — return all)
+    if not clinic_name:
+        m = re.search(r'(?:how many|howmuch)\s+(?:clients|patients|people)', q)
+        if m:
+            return {'type': 'total_count', 'count': total, 'answer': f"There are {total} total clients across all {len(clinics)} clinics."}
+
+    if clinic_name:
+        # Case-insensitive match against known clinics
+        matched_clinic = None
+        for c in clinics:
+            if c.lower() == clinic_name.lower():
+                matched_clinic = c
+                break
+        if not matched_clinic:
+            # Try partial match
+            for c in clinics:
+                if clinic_name.lower() in c.lower() or c.lower() in clinic_name.lower():
+                    matched_clinic = c
+                    break
+        if not matched_clinic:
+            return {'type': 'clinic_not_found', 'clinic': clinic_name, 'answer': f"I couldn't find a clinic named '{clinic_name}'. Available clinics are: {', '.join(sorted(clinics))}"}
+
+        count = sum(1 for c in all_clients if c.get('clinic_name', '') == matched_clinic)
+        if expected_count is not None:
+            if count == expected_count:
+                return {'type': 'clinic_count', 'clinic': matched_clinic, 'count': count, 'expected': expected_count, 'answer': f"Yes, {matched_clinic} has exactly {count} clients."}
             else:
-                return {'type': 'clinic_count', 'clinic': clinic_name, 'count': count, 'expected': expected, 'answer': f"No, {clinic_name} has {count} clients, not {expected}."}
+                return {'type': 'clinic_count', 'clinic': matched_clinic, 'count': count, 'expected': expected_count, 'answer': f"No, {matched_clinic} has {count} clients, not {expected_count}."}
         else:
-            return {'type': 'clinic_count', 'clinic': clinic_name, 'count': count, 'answer': f"{clinic_name} has {count} clients."}
+            return {'type': 'clinic_count', 'clinic': matched_clinic, 'count': count, 'answer': f"{matched_clinic} has {count} clients."}
 
     # --- Common clients across clinics ---
     # "which clients are in multiple clinics", "common clients", "clients in more than one clinic"
-    if any(phrase in q for phrase in ['common client', 'multiple clinic', 'more than one clinic', 'same client', 'duplicate client', 'shared client', 'in both', 'in all']):
+    if any(phrase in q for phrase in ['common client', 'multiple clinic', 'more than one clinic', 'same client', 'duplicate client', 'shared client', 'in both', 'in all', 'overlap']):
         client_map = {}
         for c in all_clients:
             name = c.get('name', '').strip()
@@ -2359,16 +2411,28 @@ def _answer_ar_question(question, all_clients, clinics, total):
 
     # --- Clients by clinic ---
     # "show me clients from soo faced", "list clients in clinic X"
-    list_match = re.search(r'(?:show|list|get|find|tell me)\s+(?:all\s+)?(?:clients|patients|people)\s+(?:in|from|at)\s+["\']?([A-Z][A-Za-z\s&.,]+?)["\']?', q)
+    list_match = re.search(r'(?:show|list|get|find|tell me)\s+(?:all\s+)?(?:clients|patients|people)\s+(?:in|from|at)\s+["\']?([A-Za-z][A-Za-z\s&.,]+?)["\']?', q)
     if list_match:
         clinic_name = list_match.group(1).strip().strip('"\'')
-        clients = [c for c in all_clients if c.get('clinic_name', '') == clinic_name]
+        matched_clinic = None
+        for c in clinics:
+            if c.lower() == clinic_name.lower():
+                matched_clinic = c
+                break
+        if not matched_clinic:
+            for c in clinics:
+                if clinic_name.lower() in c.lower() or c.lower() in clinic_name.lower():
+                    matched_clinic = c
+                    break
+        if not matched_clinic:
+            return {'type': 'clinic_not_found', 'clinic': clinic_name, 'answer': f"I couldn't find a clinic named '{clinic_name}'. Available clinics are: {', '.join(sorted(clinics))}"}
+        clients = [c for c in all_clients if c.get('clinic_name', '') == matched_clinic]
         clients.sort(key=lambda c: c.get('name', ''))
         names = [c.get('name', '') for c in clients[:30]]
         if len(clients) > 30:
-            return {'type': 'clinic_clients', 'clinic': clinic_name, 'count': len(clients), 'clients': names, 'answer': f"{clinic_name} has {len(clients)} clients. First 30:\n\n" + '\n'.join([f'{i+1}. {n}' for i, n in enumerate(names)])}
+            return {'type': 'clinic_clients', 'clinic': matched_clinic, 'count': len(clients), 'clients': names, 'answer': f"{matched_clinic} has {len(clients)} clients. First 30:\n\n" + '\n'.join([f'{i+1}. {n}' for i, n in enumerate(names)])}
         else:
-            return {'type': 'clinic_clients', 'clinic': clinic_name, 'count': len(clients), 'clients': names, 'answer': f"{clinic_name} has {len(clients)} clients:\n\n" + '\n'.join([f'{i+1}. {n}' for i, n in enumerate(names)])}
+            return {'type': 'clinic_clients', 'clinic': matched_clinic, 'count': len(clients), 'clients': names, 'answer': f"{matched_clinic} has {len(clients)} clients:\n\n" + '\n'.join([f'{i+1}. {n}' for i, n in enumerate(names)])}
 
     # --- Search by name ---
     # "find john doe", "search for sarah", "is there a client named..."
