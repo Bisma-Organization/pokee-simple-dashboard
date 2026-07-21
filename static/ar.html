@@ -575,8 +575,7 @@
                     </div>
                     <div class="note-body-wrapper">
                         <div class="note-actions-row">
-                            <span class="note-action-link">Copy</span>
-                            <span class="note-action-link">Note History</span>
+                            <span class="note-action-link" onclick="copyNote(this, '${escAttr(noteContent)}')">Copy</span>
                         </div>
                         <div class="note-text-box">${escHtml(noteContent)}</div>
                     </div>
@@ -617,7 +616,7 @@
                     </div>
                     <div class="note-body-wrapper">
                         <div class="note-actions-row">
-                            <span class="note-action-link">Notes History</span>
+                            <span class="note-action-link" onclick="copyNote(this, '${escAttr(noteContent)}')">Copy</span>
                         </div>
                         <div class="note-text-box">${escHtml(noteContent)}</div>
                     </div>
@@ -655,6 +654,28 @@
         function escAttr(str) {
             if (!str) return '';
             return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+        }
+        function copyNote(el, text) {
+            navigator.clipboard.writeText(text).then(function() {
+                const orig = el.textContent;
+                el.textContent = 'Copied!';
+                el.style.color = '#10b981';
+                setTimeout(function() { el.textContent = orig; el.style.color = ''; }, 1500);
+            }).catch(function() {
+                // Fallback for older browsers
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                const orig = el.textContent;
+                el.textContent = 'Copied!';
+                el.style.color = '#10b981';
+                setTimeout(function() { el.textContent = orig; el.style.color = ''; }, 1500);
+            });
         }
 
         navigate(location.pathname, false);
