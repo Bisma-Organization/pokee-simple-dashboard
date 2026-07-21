@@ -2224,6 +2224,33 @@ def ar_clinic_stats():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/ar/clients-with-notes')
+def ar_clients_with_notes():
+    """Find clients with more than 2 procedure notes AND customer notes."""
+    try:
+        min_procedures = int(request.args.get('min_procedures', 3))
+        results = []
+        for doc in ar_clients.find({}, {'_id': 0}):
+            notes_raw = doc.get('procedure_notes', '')
+            if notes_raw:
+                blocks = [b.strip() for b in notes_raw.split(' || ') if b.strip()]
+                if len(blocks) >= min_procedures:
+                    cust_notes = doc.get('customer_notes', '')
+                    if cust_notes and cust_notes.strip():
+                        results.append({
+                            'name': doc.get('name', ''),
+                            'clinic': doc.get('clinic_name', ''),
+                            'procedure_notes_count': len(blocks),
+                            'customer_notes': cust_notes.strip()[:500],
+                            'email': doc.get('email', ''),
+                            'phone': doc.get('phone', ''),
+                        })
+        results.sort(key=lambda r: r['procedure_notes_count'], reverse=True)
+        return jsonify({'success': True, 'count': len(results), 'clients': results})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
