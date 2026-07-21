@@ -572,7 +572,7 @@
             if (!notes.length) { list.innerHTML = '<div class="no-data">No procedure notes available</div>'; return; }
 
             let html = '';
-            notes.forEach(noteStr => {
+            notes.forEach((noteStr, i) => {
                 const parsed = parseNoteString(noteStr);
                 const writer = parsed.writer || 'Provider';
                 const noteContent = parsed.note || parsed.raw;
@@ -614,7 +614,7 @@
             if (!noteBlocks.length) { list.innerHTML = '<div class="no-data">No customer notes available</div>'; return; }
 
             let html = '';
-            noteBlocks.forEach(noteStr => {
+            noteBlocks.forEach((noteStr, idx) => {
                 const parsed = parseNoteString(noteStr);
                 const writer = parsed.writer || 'Provider';
                 const noteContent = parsed.note || parsed.raw;
