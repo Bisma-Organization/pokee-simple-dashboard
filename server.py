@@ -2087,8 +2087,7 @@ def ar_get_clients():
 @app.route('/api/ar/client/<path:client_id>')
 def ar_get_client(client_id):
     try:
-        # Try to parse query params from client_id (e.g. "John Doe&clinic=ABC&email=john@example.com")
-        # or treat as a plain client_id
+        # Parse query params from client_id (e.g. "abc123&name=John+Doe&clinic=ABC&email=john@example.com")
         params = dict(p.split('=', 1) for p in client_id.split('&') if '=' in p)
         search_name = params.get('name', '')
         search_clinic = params.get('clinic', '')
@@ -2097,7 +2096,7 @@ def ar_get_client(client_id):
 
         doc = None
 
-        # If name and clinic are provided, search by those
+        # Strategy 1: If name and clinic are provided, search by those
         if search_name and search_clinic:
             query = {
                 '$and': [
@@ -2109,17 +2108,37 @@ def ar_get_client(client_id):
                 query['$and'].append({'email': {'$regex': search_email, '$options': 'i'}})
             doc = ar_clients.find_one(query, {'_id': 0})
 
-        # Fallback: search by client_url
-        if not doc:
+        # Strategy 2: Search by client_url containing the plain_id
+        if not doc and plain_id:
             doc = ar_clients.find_one(
                 {'client_url': {'$regex': f'/clients/profile/{plain_id}'}},
                 {'_id': 0}
             )
-        if not doc:
+
+        # Strategy 3: Search by client_url containing plain_id anywhere
+        if not doc and plain_id:
             doc = ar_clients.find_one(
                 {'client_url': {'$regex': plain_id}},
                 {'_id': 0}
             )
+
+        # Strategy 4: If we have name but no clinic, search by name + email
+        if not doc and search_name and search_email:
+            doc = ar_clients.find_one(
+                {'$and': [
+                    {'name': {'$regex': search_name, '$options': 'i'}},
+                    {'email': {'$regex': search_email, '$options': 'i'}}
+                ]},
+                {'_id': 0}
+            )
+
+        # Strategy 5: If we have name but no clinic or email, search by name only
+        if not doc and search_name:
+            doc = ar_clients.find_one(
+                {'name': {'$regex': search_name, '$options': 'i'}},
+                {'_id': 0}
+            )
+
         if not doc:
             return jsonify({'success': False, 'error': 'Client not found'}), 404
 

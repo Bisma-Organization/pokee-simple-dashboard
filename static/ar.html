@@ -468,14 +468,15 @@
             container.innerHTML = html;
         }
 
-        function openClient(clientId) { if (!clientId) return; navigate('/ar/workspaces/clients/' + clientId); }
+        function openClient(clientId) { if (!clientId) return; navigate('/ar/workspaces/clients/' + encodeURIComponent(clientId)); }
 
         // ========== CLIENT DETAIL ==========
         async function loadClientDetail(clientId) {
             const content = document.getElementById('clientDetailContent');
             content.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading client...</div></div>';
             try {
-                const resp = await fetch('/api/ar/client/' + clientId);
+                const decodedId = decodeURIComponent(clientId);
+                const resp = await fetch('/api/ar/client/' + encodeURIComponent(decodedId));
                 const data = await resp.json();
                 if (!data.success) { content.innerHTML = '<div class="empty-state">Client not found</div>'; return; }
                 currentClientData = data.client;
@@ -646,11 +647,12 @@
 
         // ========== HELPERS ==========
         async function ensureClientData(clientId) {
-            if (currentClientData && currentClientData.client_url && currentClientData.client_url.includes(clientId)) {
+            const decodedId = decodeURIComponent(clientId);
+            if (currentClientData && currentClientData.client_url && currentClientData.client_url.includes(decodedId)) {
                 return currentClientData;
             }
             try {
-                const resp = await fetch('/api/ar/client/' + clientId);
+                const resp = await fetch('/api/ar/client/' + encodeURIComponent(decodedId));
                 const data = await resp.json();
                 if (data.success) { currentClientData = data.client; return data.client; }
             } catch (e) {}
