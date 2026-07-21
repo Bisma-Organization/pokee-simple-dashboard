@@ -344,6 +344,7 @@
 
             if (path === '/ar' || path === '/ar/workspaces') {
                 document.getElementById('workspacesView').classList.add('active');
+                document.getElementById('mainContainer').classList.add('full-width');
                 if (!allWorkspaces.length) loadWorkspaces();
             } else if (path.match(/^\/ar\/workspaces\/clients\/([^/]+)\/customer-notes$/)) {
                 const cid = path.match(/^\/ar\/workspaces\/clients\/([^/]+)\/customer-notes$/)[1];
@@ -360,6 +361,7 @@
                 currentClientId = cid;
                 sessionStorage.setItem('ar_currentClientId', cid);
                 document.getElementById('clientDetailView').classList.add('active');
+                document.getElementById('mainContainer').classList.add('full-width');
                 loadClientDetail(cid);
             } else if (path === '/ar/workspaces/clients') {
                 document.getElementById('clientsView').classList.add('active');
