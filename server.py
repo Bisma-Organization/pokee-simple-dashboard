@@ -2087,11 +2087,12 @@ def ar_get_clients():
 @app.route('/api/ar/client/<path:client_id>')
 def ar_get_client(client_id):
     try:
+        from urllib.parse import unquote_plus
         # Parse query params from client_id (e.g. "abc123&name=John+Doe&clinic=ABC&email=john@example.com")
         params = dict(p.split('=', 1) for p in client_id.split('&') if '=' in p)
-        search_name = params.get('name', '')
-        search_clinic = params.get('clinic', '')
-        search_email = params.get('email', '')
+        search_name = unquote_plus(params.get('name', ''))
+        search_clinic = unquote_plus(params.get('clinic', ''))
+        search_email = unquote_plus(params.get('email', ''))
         plain_id = client_id.split('&')[0] if '&' in client_id else client_id
 
         doc = None
