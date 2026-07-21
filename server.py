@@ -2285,11 +2285,11 @@ def _answer_ar_question(question, all_clients, clinics, total):
     # --- Clinic client count ---
     # "how many clients in soo faced", "does soo faced have 112 clients", "client count for soo faced"
     import re
-    clinic_match = re.search(r'(?:in|from|at|for)\s+["\']?([A-Z][A-Za-z\s&.,]+?)["\']?\s*(?:clients|patients|people)?', q)
+    clinic_match = re.search(r'(?:in|from|at|for)\s+["\']?([A-Za-z][A-Za-z\s&.,]+?)["\']?\s*(?:clients|patients|people)?', q)
     if not clinic_match:
-        clinic_match = re.search(r'(["\']?[A-Z][A-Za-z\s&.,]+?["\']?)\s+(?:has|have)\s+(\d+)\s*(?:clients|patients|people)', q)
+        clinic_match = re.search(r'(["\']?[A-Za-z][A-Za-z\s&.,]+?["\']?)\s+(?:has|have)\s+(\d+)\s*(?:clients|patients|people)', q)
     if not clinic_match:
-        clinic_match = re.search(r'(?:clients|patients|people)\s+(?:in|from|at)\s+["\']?([A-Z][A-Za-z\s&.,]+?)["\']?', q)
+        clinic_match = re.search(r'(?:clients|patients|people)\s+(?:in|from|at)\s+["\']?([A-Za-z][A-Za-z\s&.,]+?)["\']?', q)
 
     if clinic_match:
         clinic_name = clinic_match.group(1).strip().strip('"\'')
