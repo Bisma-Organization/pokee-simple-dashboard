@@ -209,10 +209,11 @@
         </div>
         <div class="controls">
             <div class="preset-btns">
-                <button class="btn btn-ghost" onclick="setPreset('last30')">Last 30d</button>
+                <button class="btn btn-ghost" onclick="setPreset('last28')">Last 28d</button>
                 <button class="btn btn-ghost" onclick="setPreset('last3m')">Last 3m</button>
                 <button class="btn btn-ghost" onclick="setPreset('last6m')">Last 6m</button>
-                <button class="btn btn-ghost" onclick="setPreset('all')">All Time</button>
+                <button class="btn btn-ghost" onclick="setPreset('last12m')">12 Month</button>
+                <button class="btn btn-ghost" onclick="setPreset('ytd')">YTD</button>
             </div>
             <input type="text" id="dateRange" class="date-input date-range-input" placeholder="Select date range" readonly>
             <button class="btn btn-primary" onclick="loadData()">Apply</button>
@@ -225,11 +226,11 @@
 
     <div class="charts-grid">
         <div class="chart-card">
-            <h3>Monthly Revenue</h3>
+            <h3>Daily Net Volume</h3>
             <canvas id="revenueChart"></canvas>
         </div>
         <div class="chart-card">
-            <h3>Monthly Churn (Cancellations)</h3>
+            <h3>Daily Churn Revenue</h3>
             <canvas id="churnChart"></canvas>
         </div>
     </div>
@@ -239,39 +240,46 @@
         let churnChart = null;
         let datePicker = null;
 
+        function localDateStr(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const weekAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
             datePicker = flatpickr('#dateRange', {
                 mode: 'range',
                 dateFormat: 'Y-m-d',
                 theme: 'dark',
                 maxDate: 'today',
-                defaultDate: [
-                    new Date(new Date().getFullYear(), new Date().getMonth() - 6, 1).toISOString().split('T')[0],
-                    new Date().toISOString().split('T')[0]
-                ],
-                onReady: function() {
-                    loadData();
-                }
+                defaultDate: [localDateStr(weekAgo), localDateStr(today)]
             });
+            loadData();
         });
 
         function setPreset(preset) {
             const now = new Date();
             let start, end;
-            end = now.toISOString().split('T')[0];
+            end = localDateStr(now);
 
             switch (preset) {
-                case 'last30':
-                    start = new Date(now - 30 * 86400000).toISOString().split('T')[0];
+                case 'last28':
+                    start = localDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28));
                     break;
                 case 'last3m':
-                    start = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString().split('T')[0];
+                    start = localDateStr(new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()));
                     break;
                 case 'last6m':
-                    start = new Date(now.getFullYear(), now.getMonth() - 6, 1).toISOString().split('T')[0];
+                    start = localDateStr(new Date(now.getFullYear(), now.getMonth() - 6, now.getDate()));
                     break;
-                case 'all':
-                    start = '2022-01-01';
+                case 'last12m':
+                    start = localDateStr(new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()));
+                    break;
+                case 'ytd':
+                    start = now.getFullYear() + '-01-01';
                     break;
             }
 
@@ -289,8 +297,8 @@
 
         async function loadData() {
             const dates = datePicker ? datePicker.selectedDates : [];
-            const start = dates.length > 0 ? dates[0].toISOString().split('T')[0] : '';
-            const end = dates.length > 1 ? dates[1].toISOString().split('T')[0] : (dates.length > 0 ? dates[0].toISOString().split('T')[0] : '');
+            const start = dates.length > 0 ? localDateStr(dates[0]) : '';
+            const end = dates.length > 1 ? localDateStr(dates[1]) : (dates.length > 0 ? localDateStr(dates[0]) : '');
 
             let params = new URLSearchParams();
             if (start) params.set('start', start);
@@ -323,13 +331,13 @@
                     </div>
                     <div class="kpi-card yellow">
                         <div class="label">Churn Revenue</div>
-                        <div class="value">${formatCurrency(data.lost_mrr)}</div>
+                        <div class="value">${formatCurrencyFull(data.lost_mrr)}</div>
                         <div class="sub">${data.churn_count} cancellations</div>
                     </div>
                     <div class="kpi-card green">
-                        <div class="label">Net Revenue</div>
-                        <div class="value">${formatCurrency(data.net_revenue)}</div>
-                        <div class="sub">Gross - fees - refunds + adjustments</div>
+                        <div class="label">Net Volume</div>
+                        <div class="value">${formatCurrencyFull(data.net_volume)}</div>
+                        <div class="sub">Sum of net from balance transactions</div>
                     </div>
                 `;
 
@@ -347,10 +355,10 @@
             revenueChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: monthly.map(m => m.month),
+                    labels: monthly.map(m => m.date),
                     datasets: [{
-                        label: 'Revenue',
-                        data: monthly.map(m => m.revenue),
+                        label: 'Net Volume',
+                        data: monthly.map(m => m.net_volume),
                         backgroundColor: 'rgba(99, 102, 241, 0.6)',
                         borderColor: '#6366f1',
                         borderWidth: 1,
@@ -388,10 +396,10 @@
             churnChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: monthly.map(m => m.month),
+                    labels: monthly.map(m => m.date),
                     datasets: [{
-                        label: 'Cancellations',
-                        data: monthly.map(m => m.churn),
+                        label: 'Churn Revenue',
+                        data: monthly.map(m => m.churn_revenue || 0),
                         backgroundColor: 'rgba(239, 68, 68, 0.6)',
                         borderColor: '#ef4444',
                         borderWidth: 1,
@@ -404,14 +412,17 @@
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
-                                label: ctx => ctx.parsed.y + ' cancellations'
+                                label: ctx => formatCurrencyFull(ctx.parsed.y)
                             }
                         }
                     },
                     scales: {
                         x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(99,102,241,0.08)' } },
                         y: {
-                            ticks: { color: '#94a3b8', stepSize: 1 },
+                            ticks: {
+                                color: '#94a3b8',
+                                callback: val => '$' + (val / 1000).toFixed(1) + 'k'
+                            },
                             grid: { color: 'rgba(99,102,241,0.08)' }
                         }
                     }
