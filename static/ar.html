@@ -3,424 +3,699 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aesthetic Record — USMD</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%233b82f6'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='32' font-weight='bold' fill='white'>US</text></svg>">
+    <title>Aesthetic Record</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%233b82f6'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='32' font-weight='bold' fill='white'>AR</text></svg>">
     <style>
-        :root {
-            --bg-primary: #0f0f1a;
-            --bg-card: rgba(22, 27, 58, 0.8);
-            --border: rgba(99, 102, 241, 0.15);
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --accent: #6366f1;
-            --accent-hover: #818cf8;
-            --success: #10b981;
-            --warning: #f59e0b;
-        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
+            background: #ffffff;
+            color: #333;
             min-height: 100vh;
-            padding: 20px;
+            font-size: 17px;
         }
-        .nav-links {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 24px;
+
+        /* ===== HEADER ===== */
+        /* ===== CONTAINER ===== */
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 32px 24px 32px; }
+        .container.full-width { max-width: 100%; padding: 0 32px 24px 32px; }
+
+        /* ===== PAGE LOGO ===== */
+        .page-logo { display: flex; align-items: center; padding: 0 0 0 0; }
+        .page-logo img { height: 160px; width: auto; }
+
+        /* ===== BACK LINK ===== */
+        .back-link {
+            color: #2196F3; font-size: 1rem; text-decoration: none;
+            cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 18px; margin-top: 0;
         }
-        .nav-links a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 0.82rem;
-            padding: 8px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            transition: all 0.2s;
+        .back-link:hover { text-decoration: underline; }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+        .page-header h1 { font-size: 1.7rem; font-weight: 700; color: #1a1a1a; }
+
+        /* ===== SEARCH ===== */
+        .search-box { position: relative; }
+        .search-box input {
+            border: 1px solid #d1d5db; border-radius: 6px;
+            padding: 11px 16px 11px 40px; font-size: 1.05rem;
+            width: 250px; outline: none; color: #333; transition: border-color 0.2s;
         }
-        .nav-links a:hover {
-            border-color: var(--accent);
-            color: var(--text-primary);
+        .search-box input:focus { border-color: #2196F3; }
+        .search-box input::placeholder { color: #9ca3af; }
+        .search-box .search-icon {
+            position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+            color: #9ca3af; width: 18px; height: 18px;
         }
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 16px;
-            margin-bottom: 24px;
+
+        /* ===== WORKSPACE ROWS ===== */
+        .alpha-header { font-size: 1.2rem; font-weight: 700; color: #1a1a1a; padding: 18px 0 10px 0; }
+        .workspace-row {
+            display: flex; align-items: center; padding: 16px;
+            border-bottom: 1px solid #f0f0f0; transition: background 0.15s;
         }
-        .header h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
+        .workspace-row:hover { background: #f9fafb; }
+        .workspace-logo {
+            width: 52px; height: 52px; border-radius: 8px; background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-right: 18px; border: 1px solid #e5e7eb; overflow: hidden;
         }
-        .controls {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
+        .workspace-logo img { width: 100%; height: 100%; object-fit: contain; }
+        .workspace-name {
+            font-size: 1.1rem; font-weight: 500; color: #333; flex: 1;
+            min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        .controls label {
-            color: var(--text-secondary);
-            font-size: 0.82rem;
+        .btn-launch {
+            background: #2196F3; color: white; border: none;
+            padding: 10px 28px; border-radius: 6px; font-size: 1rem;
+            font-weight: 600; cursor: pointer; transition: background 0.2s; flex-shrink: 0;
         }
-        .controls input[type="date"] {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-primary);
-            padding: 8px 12px;
-            font-size: 0.85rem;
-            outline: none;
+        .btn-launch:hover { background: #1976D2; }
+
+        /* ===== ALPHA FILTER ===== */
+        .alpha-filter { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 18px; align-items: center; }
+        .alpha-filter .alpha-btn {
+            background: none; border: none; padding: 5px 8px; font-size: 1rem;
+            font-weight: 500; color: #6b7280; cursor: pointer; border-radius: 4px; transition: all 0.15s;
         }
-        .controls input[type="date"]:focus {
-            border-color: var(--accent);
+        .alpha-filter .alpha-btn:hover { color: #2196F3; background: #eff6ff; }
+        .alpha-filter .alpha-btn.active { color: #2196F3; font-weight: 700; }
+
+        /* ===== TABLE ===== */
+        .table-container { border: 1px solid #e5e7eb; border-radius: 8px; overflow: auto; max-height: calc(100vh - 340px); }
+        table { width: 100%; border-collapse: collapse; font-size: 1.05rem; }
+        thead { position: sticky; top: 0; z-index: 2; }
+        th { background: #f9fafb; color: #6b7280; font-weight: 600; font-size: 1rem; padding: 14px 24px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        td { padding: 14px 24px; border-bottom: 1px solid #f0f0f0; color: #333; font-size: 1.05rem; }
+        tr.clickable-row { cursor: pointer; }
+        tr.clickable-row:hover td { background: #f0f7ff; }
+        tr:last-child td { border-bottom: none; }
+
+        /* ===== CLIENT PROFILE ===== */
+        .client-profile-back {
+            color: #555; font-size: 1rem; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px; cursor: pointer;
         }
-        .btn {
-            padding: 8px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
+        .client-profile-back:hover { color: #111; }
+        .client-profile-title { font-size: 1.4rem; font-weight: 700; color: #1a1a1a; margin-bottom: 20px; }
+        .client-layout { display: flex; gap: 28px; align-items: flex-start; }
+
+        /* Left sidebar */
+        .client-left { width: 280px; flex-shrink: 0; }
+        .client-info-header {
+            font-size: 0.8rem; font-weight: 700; color: #ef4444;
+            text-transform: uppercase; letter-spacing: 0.04em;
+            padding: 8px 12px; border-left: 3px solid #ef4444; background: #fef2f2; margin-bottom: 16px;
         }
-        .btn-primary {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
-            box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
+        .client-avatar-section { text-align: center; margin-bottom: 16px; }
+        .client-avatar {
+            width: 90px; height: 90px; border-radius: 50%; border: 2px solid #e5e7eb;
+            margin: 0 auto 12px auto; display: flex; align-items: center;
+            justify-content: center; background: #f9fafb; overflow: hidden;
         }
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+        .client-avatar svg { width: 50px; height: 50px; color: #9ca3af; }
+        .client-profile-name { font-size: 1.3rem; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
+        .client-profile-dob { font-size: 0.92rem; color: #6b7280; margin-bottom: 10px; }
+        .client-detail-section { margin-bottom: 14px; }
+        .client-detail-label {
+            font-size: 0.75rem; font-weight: 700; color: #9ca3af;
+            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px;
         }
-        .btn-secondary {
-            background: var(--bg-card);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
+        .client-detail-value { font-size: 0.95rem; color: #333; word-break: break-word; min-height: 18px; }
+
+        /* Right content */
+        .client-right { flex: 1; min-width: 0; }
+        .client-top-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+        .client-top-tab {
+            padding: 8px 16px; font-size: 0.9rem; font-weight: 600;
+            border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s;
+            background: #f3f4f6; color: #555;
         }
-        .btn-secondary:hover {
-            border-color: var(--accent);
+        .client-top-tab.active { background: #2196F3; color: white; }
+        .client-top-tab:hover:not(.active) { background: #e5e7eb; }
+
+        .procedures-section-header {
+            font-size: 0.88rem; font-weight: 600; color: #555;
+            text-transform: uppercase; letter-spacing: 0.04em;
+            margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;
         }
-        .btn-update {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+
+        /* Procedure entry */
+        .procedure-entry {
+            border: 1px solid #e5e7eb; border-radius: 10px;
+            margin-bottom: 16px; background: #fff; overflow: hidden;
         }
-        .btn-update:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+        .procedure-entry-top { padding: 16px 18px; }
+        .procedure-entry-title { font-size: 1.05rem; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
+        .procedure-entry-meta { font-size: 0.9rem; color: #6b7280; margin-bottom: 2px; }
+        .procedure-bottom-tabs {
+            display: flex; border-top: 1px solid #e5e7eb; background: #f9fafb;
         }
-        .stats-bar {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+        .procedure-bottom-tab {
+            flex: 1; padding: 10px 8px; text-align: center;
+            font-size: 0.82rem; font-weight: 600; color: #2196F3;
+            border: none; background: none; cursor: pointer;
+            border-right: 1px solid #e5e7eb; transition: background 0.15s;
         }
-        .stat-chip {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 10px 18px;
-            font-size: 0.85rem;
+        .procedure-bottom-tab:last-child { border-right: none; }
+        .procedure-bottom-tab:hover { background: #eff6ff; }
+
+        /* ===== NOTES FULL PAGE (shared base) ===== */
+        .notes-page { display: none; position: fixed; inset: 0; z-index: 9999; overflow-y: auto; }
+        .notes-page.active { display: block; }
+
+        /* Procedure Notes - large sky-blue top area, white content */
+        .notes-page--procedure { background: #ffffff; }
+        .notes-page--procedure .notes-pg-top-bg {
+            background: linear-gradient(180deg, #d6eaf8 0%, #dceefb 100%);
+            height: 90px;
         }
-        .stat-chip strong {
-            color: var(--accent);
+        .notes-page--procedure .notes-pg-header { background: #85c1e9; }
+
+        /* Customer Notes - white bg */
+        .notes-page--customer { background: #ffffff; }
+        .notes-page--customer .notes-pg-header { background: #4a4a4a; }
+
+        .notes-pg-header {
+            color: white; padding: 14px 24px; display: flex; align-items: center;
+            font-size: 0.92rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
         }
-        .table-container {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            overflow: auto;
-            max-height: calc(100vh - 260px);
+        .notes-pg-close {
+            background: none; border: none; color: white;
+            font-size: 1.5rem; cursor: pointer; padding: 2px 12px 2px 4px; line-height: 1; margin-right: 12px;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.82rem;
-            min-width: 1200px;
+        .notes-pg-title { flex: 1; text-align: center; }
+        .notes-pg-body { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
+
+        /* Note entries */
+        .notes-entries { border-top: 1px solid #e5e7eb; padding-top: 20px; }
+        .note-entry {
+            display: flex; gap: 14px; padding: 18px 0; border-bottom: 1px solid #f0f0f0;
+            align-items: flex-start;
         }
-        thead {
-            position: sticky;
-            top: 0;
-            z-index: 2;
+        .note-entry:last-child { border-bottom: none; }
+        .note-avatar {
+            width: 40px; height: 40px; border-radius: 50%; background: #e5e7eb;
+            flex-shrink: 0; display: flex; align-items: center; justify-content: center;
         }
-        th {
-            background: rgba(30, 35, 75, 0.95);
-            color: var(--text-secondary);
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.72rem;
-            letter-spacing: 0.05em;
-            padding: 12px 10px;
-            text-align: left;
-            white-space: nowrap;
-            border-bottom: 1px solid var(--border);
+        .note-avatar svg { width: 22px; height: 22px; color: #9ca3af; }
+        .note-meta { min-width: 180px; flex-shrink: 0; }
+
+        /* Procedure notes: blue uppercase author */
+        .note-author--procedure {
+            font-size: 0.88rem; font-weight: 700; color: #2196F3;
+            text-transform: uppercase; margin-bottom: 2px; line-height: 1.4;
         }
-        td {
-            padding: 10px;
-            border-bottom: 1px solid rgba(99, 102, 241, 0.06);
-            vertical-align: top;
-            max-width: 200px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+        /* Customer notes: dark bold sentence case author */
+        .note-author--customer {
+            font-size: 0.95rem; font-weight: 700; color: #1a1a1a;
+            margin-bottom: 2px; line-height: 1.4;
         }
-        tr:hover td {
-            background: rgba(99, 102, 241, 0.04);
+        .note-date { font-size: 0.82rem; color: #9ca3af; }
+        .note-body-wrapper { flex: 1; min-width: 0; }
+        .note-actions-row { display: flex; gap: 16px; justify-content: flex-end; margin-bottom: 6px; }
+        .note-action-link { font-size: 0.82rem; color: #2196F3; cursor: pointer; text-decoration: none; }
+        .note-action-link:hover { text-decoration: underline; }
+        .note-text-box {
+            background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px;
+            padding: 14px 16px; font-size: 0.92rem; color: #333;
+            line-height: 1.7; white-space: pre-wrap; word-break: break-word;
         }
-        td.notes-cell {
-            max-width: 350px;
-            white-space: normal;
-            word-break: break-word;
-        }
-        .note-block {
-            background: rgba(99, 102, 241, 0.06);
-            border-left: 3px solid var(--accent);
-            padding: 6px 10px;
-            margin-bottom: 6px;
-            border-radius: 0 6px 6px 0;
-            font-size: 0.78rem;
-            line-height: 1.4;
-        }
-        .note-block:last-child { margin-bottom: 0; }
-        .note-date {
-            color: var(--accent);
-            font-weight: 600;
-        }
-        .loading {
-            text-align: center;
-            padding: 60px;
-            color: var(--text-secondary);
-        }
-        .loading .spinner {
-            display: inline-block;
-            width: 28px;
-            height: 28px;
-            border: 3px solid var(--border);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-bottom: 12px;
+
+        /* ===== VIEWS ===== */
+        .view { display: none; }
+        .view.active { display: block; }
+
+        /* ===== LOADING ===== */
+        .loading { text-align: center; padding: 60px; color: #9ca3af; font-size: 1rem; }
+        .spinner {
+            display: inline-block; width: 32px; height: 32px;
+            border: 3px solid #e5e7eb; border-top-color: #2196F3;
+            border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .error-msg {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #fca5a5;
-            padding: 12px 18px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-        }
-        .client-link {
-            color: var(--accent);
-            text-decoration: none;
-        }
-        .client-link:hover {
-            text-decoration: underline;
-        }
-        .expand-btn {
-            background: none;
-            border: none;
-            color: var(--accent);
-            cursor: pointer;
-            font-size: 0.75rem;
-            padding: 2px 6px;
-        }
-        .expand-btn:hover { text-decoration: underline; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 1rem; }
+        .no-data { text-align: center; padding: 40px; color: #9ca3af; font-size: 1rem; }
+
         @media (max-width: 768px) {
-            body { padding: 12px; }
-            .header { flex-direction: column; align-items: flex-start; }
-            .controls { width: 100%; }
+            .container { padding: 16px; }
+            .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .search-box input { width: 100%; }
+            .workspace-row { padding: 12px 8px; }
+            .client-layout { flex-direction: column; }
+            .client-left { width: 100%; }
+            .note-entry { flex-direction: column; gap: 8px; }
+            .note-meta { min-width: auto; }
+            body { font-size: 15px; }
         }
     </style>
 </head>
 <body>
-    <div class="nav-links">
-        <a href="/">Dashboard</a>
-        <a href="/monthly-summary">Monthly Summary</a>
-        <a href="/sdr">SDR</a>
-        <a href="/stripe-dashboard">Stripe</a>
-    </div>
+    <div class="container" id="mainContainer">
+        <!-- Workspaces View -->
+        <div class="view" id="workspacesView">
+            <div class="page-logo">
+                <a href="/ar/workspaces"><img src="/static/ar-logo.png" alt="Aesthetic Record"></a>
+            </div>
+            <a class="back-link" href="/">&#60; Back</a>
+            <div class="page-header">
+                <h1 id="workspacesTitle">All Workspaces</h1>
+                <div class="search-box">
+                    <svg class="search-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    <input type="text" id="workspaceSearch" placeholder="Search..." oninput="filterWorkspaces()">
+                </div>
+            </div>
+            <div id="workspacesGrid">
+                <div class="loading"><div class="spinner"></div><div>Loading workspaces...</div></div>
+            </div>
+        </div>
 
-    <div class="header">
-        <h1>Aesthetic Record — Client Data</h1>
-        <div class="controls">
-            <label>From</label>
-            <input type="date" id="startDate">
-            <label>To</label>
-            <input type="date" id="endDate">
-            <button class="btn btn-primary" onclick="loadClients()">Filter</button>
-            <button class="btn btn-secondary" onclick="clearFilter()">Clear</button>
-            <button class="btn btn-update" onclick="refreshData()">Update</button>
+        <!-- Clients View -->
+        <div class="view" id="clientsView">
+            <div class="page-logo">
+                <a href="/ar/workspaces"><img src="/static/ar-logo.png" alt="Aesthetic Record"></a>
+            </div>
+            <a class="back-link" href="/ar/workspaces">&#60; Back to Workspaces</a>
+            <div class="page-header">
+                <h1 id="clinicTitle">Clients</h1>
+                <div class="search-box">
+                    <svg class="search-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    <input type="text" id="clientSearch" placeholder="Search" oninput="filterClients()">
+                </div>
+            </div>
+            <div class="alpha-filter" id="alphaFilter"></div>
+            <div id="clientsTable"></div>
+        </div>
+
+        <!-- Client Detail View -->
+        <div class="view" id="clientDetailView">
+            <div class="page-logo">
+                <a href="/ar/workspaces"><img src="/static/ar-logo.png" alt="Aesthetic Record"></a>
+            </div>
+            <a class="client-profile-back" id="backToClientsLink" href="/ar/workspaces/clients">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+                Client Profile
+            </a>
+            <div id="clientDetailContent">
+                <div class="loading"><div class="spinner"></div><div>Loading client...</div></div>
+            </div>
         </div>
     </div>
 
-    <div class="stats-bar" id="statsBar"></div>
-    <div id="errorBox"></div>
-    <div id="tableContainer">
-        <div class="loading">
-            <div class="spinner"></div>
-            <div>Loading clients from MongoDB...</div>
+    <!-- Procedure Notes Full Page -->
+    <div class="notes-page notes-page--procedure" id="procedureNotesPage">
+        <div class="notes-pg-top-bg"></div>
+        <div class="notes-pg-header">
+            <button class="notes-pg-close" onclick="closeNotesPage('procedure')">&times;</button>
+            <span class="notes-pg-title" id="procNotesTitle">PROCEDURE NOTES</span>
+        </div>
+        <div class="notes-pg-body">
+            <div class="notes-entries" id="procNotesList"></div>
+        </div>
+    </div>
+
+    <!-- Customer Notes Full Page -->
+    <div class="notes-page notes-page--customer" id="customerNotesPage">
+        <div class="notes-pg-header">
+            <button class="notes-pg-close" onclick="closeNotesPage('customer')">&times;</button>
+            <span class="notes-pg-title" id="custNotesTitle">CUSTOMER NOTES</span>
+        </div>
+        <div class="notes-pg-body">
+            <div class="notes-entries" id="custNotesList"></div>
         </div>
     </div>
 
     <script>
-        function getDefaultDates() {
-            const now = new Date();
-            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
-            function fmt(d) {
-                return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        let allWorkspaces = [];
+        let allClients = [];
+        let activeAlpha = 'All';
+        let currentClinic = sessionStorage.getItem('ar_currentClinic') || '';
+        let currentClientData = null;
+        let currentClientId = sessionStorage.getItem('ar_currentClientId') || '';
+
+        function navigate(path, pushState = true) {
+            if (pushState) history.pushState({path: path}, '', path);
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById('procedureNotesPage').classList.remove('active');
+            document.getElementById('customerNotesPage').classList.remove('active');
+            document.getElementById('mainContainer').style.display = '';
+            document.getElementById('mainContainer').classList.remove('full-width');
+
+            if (path === '/ar' || path === '/ar/workspaces') {
+                document.getElementById('workspacesView').classList.add('active');
+                document.getElementById('mainContainer').classList.add('full-width');
+                if (!allWorkspaces.length) loadWorkspaces();
+            } else if (path.match(/^\/ar\/workspaces\/clients\/([^/]+)\/customer-notes$/)) {
+                const cid = path.match(/^\/ar\/workspaces\/clients\/([^/]+)\/customer-notes$/)[1];
+                currentClientId = cid;
+                sessionStorage.setItem('ar_currentClientId', cid);
+                showCustomerNotesPage(cid);
+            } else if (path.match(/^\/ar\/workspaces\/clients\/([^/]+)\/notes$/)) {
+                const cid = path.match(/^\/ar\/workspaces\/clients\/([^/]+)\/notes$/)[1];
+                currentClientId = cid;
+                sessionStorage.setItem('ar_currentClientId', cid);
+                showProcedureNotesPage(cid);
+            } else if (path.match(/^\/ar\/workspaces\/clients\/([^/]+)$/)) {
+                const cid = path.match(/^\/ar\/workspaces\/clients\/([^/]+)$/)[1];
+                currentClientId = cid;
+                sessionStorage.setItem('ar_currentClientId', cid);
+                document.getElementById('clientDetailView').classList.add('active');
+                document.getElementById('mainContainer').classList.add('full-width');
+                loadClientDetail(cid);
+            } else if (path === '/ar/workspaces/clients') {
+                document.getElementById('clientsView').classList.add('active');
+                document.getElementById('mainContainer').classList.add('full-width');
+                if (currentClinic) loadClients(currentClinic);
             }
-            return { start: fmt(start), end: fmt(now) };
         }
 
-        function init() {
-            const defaults = getDefaultDates();
-            document.getElementById('startDate').value = defaults.start;
-            document.getElementById('endDate').value = defaults.end;
-            loadClients();
-        }
+        window.addEventListener('popstate', () => navigate(location.pathname, false));
 
-        async function loadClients() {
-            const start = document.getElementById('startDate').value;
-            const end = document.getElementById('endDate').value;
-            const container = document.getElementById('tableContainer');
-            const errorBox = document.getElementById('errorBox');
-            errorBox.innerHTML = '';
-
-            container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading clients...</div></div>';
-
-            let url = '/api/ar/clients';
-            const params = [];
-            if (start) params.push('start=' + start);
-            if (end) params.push('end=' + end);
-            if (params.length) url += '?' + params.join('&');
-
+        // ========== WORKSPACES ==========
+        async function loadWorkspaces() {
+            const grid = document.getElementById('workspacesGrid');
             try {
-                const resp = await fetch(url);
+                const resp = await fetch('/api/ar/workspaces');
                 const data = await resp.json();
-                if (!data.success) {
-                    errorBox.innerHTML = '<div class="error-msg">Error: ' + (data.error || 'Unknown error') + '</div>';
-                    container.innerHTML = '';
-                    return;
-                }
-                renderStats(data);
-                renderTable(data.clients);
-            } catch (e) {
-                errorBox.innerHTML = '<div class="error-msg">Failed to fetch data: ' + e.message + '</div>';
-                container.innerHTML = '';
-            }
+                if (!data.success) { grid.innerHTML = '<div class="empty-state">Error loading workspaces</div>'; return; }
+                if (!data.workspaces.length) { grid.innerHTML = '<div class="empty-state">No workspaces found</div>'; return; }
+                allWorkspaces = data.workspaces;
+                document.getElementById('workspacesTitle').textContent = 'All Workspaces: ' + allWorkspaces.length;
+                renderWorkspaces(allWorkspaces);
+            } catch (e) { grid.innerHTML = '<div class="empty-state">Failed to load workspaces</div>'; }
         }
 
-        function renderStats(data) {
-            const bar = document.getElementById('statsBar');
-            const clinics = new Set(data.clients.map(c => c.clinic_name).filter(Boolean));
-            let totalNotes = 0;
-            data.clients.forEach(c => { totalNotes += c.procedure_notes_count || 0; });
-            bar.innerHTML =
-                '<div class="stat-chip">Clients: <strong>' + data.count + '</strong></div>' +
-                '<div class="stat-chip">Clinics: <strong>' + clinics.size + '</strong></div>' +
-                '<div class="stat-chip">Procedure Notes: <strong>' + totalNotes + '</strong></div>';
+        function renderWorkspaces(workspaces) {
+            const grid = document.getElementById('workspacesGrid');
+            if (!workspaces.length) { grid.innerHTML = '<div class="empty-state">No workspaces match your search</div>'; return; }
+            let currentLetter = '', html = '';
+            workspaces.forEach(w => {
+                const fl = w.name.charAt(0).toUpperCase();
+                if (fl !== currentLetter) { currentLetter = fl; html += '<div class="alpha-header">' + fl + '</div>'; }
+                html += `<div class="workspace-row">
+                    <div class="workspace-logo"><img src="/static/ar-logo.png" alt="AR"></div>
+                    <div class="workspace-name">${escHtml(w.name)}</div>
+                    <button class="btn-launch" onclick="launchWorkspace('${escAttr(w.name)}')">Launch</button>
+                </div>`;
+            });
+            grid.innerHTML = html;
         }
 
-        function renderTable(clients) {
-            const container = document.getElementById('tableContainer');
-            if (!clients.length) {
-                container.innerHTML = '<div class="loading">No clients found for the selected date range.</div>';
-                return;
-            }
-            let html = '<div class="table-container"><table><thead><tr>' +
-                '<th>Clinic</th><th>Name</th><th>DOB</th><th>Age</th>' +
-                '<th>Email</th><th>Phone</th><th>Address</th>' +
-                '<th>Primary Clinic</th><th>Created</th><th>Notes Count</th><th>Procedure Notes</th>' +
-                '</tr></thead><tbody>';
+        function filterWorkspaces() {
+            const q = document.getElementById('workspaceSearch').value.toLowerCase().trim();
+            renderWorkspaces(q ? allWorkspaces.filter(w => w.name.toLowerCase().includes(q)) : allWorkspaces);
+        }
 
-            clients.forEach((c, idx) => {
-                const nameCell = c.client_url
-                    ? '<a class="client-link" href="' + escHtml(c.client_url) + '" target="_blank">' + escHtml(c.name) + '</a>'
-                    : escHtml(c.name);
-                html += '<tr>' +
-                    '<td>' + escHtml(c.clinic_name) + '</td>' +
-                    '<td>' + nameCell + '</td>' +
-                    '<td>' + escHtml(c.dob) + '</td>' +
-                    '<td>' + escHtml(String(c.age || '')) + '</td>' +
-                    '<td>' + escHtml(c.email) + '</td>' +
-                    '<td>' + escHtml(c.phone) + '</td>' +
-                    '<td title="' + escAttr(c.address) + '">' + escHtml(c.address) + '</td>' +
-                    '<td>' + escHtml(c.primary_clinic) + '</td>' +
-                    '<td>' + escHtml(c.creation_date) + '</td>' +
-                    '<td>' + (c.procedure_notes_count || 0) + '</td>' +
-                    '<td class="notes-cell">' + renderNotes(c.procedure_notes, idx) + '</td>' +
-                    '</tr>';
+        function launchWorkspace(clinicName) {
+            currentClinic = clinicName; allClients = [];
+            sessionStorage.setItem('ar_currentClinic', clinicName);
+            navigate('/ar/workspaces/clients');
+            loadClients(clinicName);
+        }
+
+        // ========== CLIENTS ==========
+        async function loadClients(clinicName) {
+            document.getElementById('clinicTitle').textContent = 'Clients';
+            document.getElementById('clientsTable').innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading clients...</div></div>';
+            document.getElementById('clientSearch').value = '';
+            activeAlpha = 'All';
+            try {
+                const resp = await fetch('/api/ar/clients?clinic=' + encodeURIComponent(clinicName));
+                const data = await resp.json();
+                if (!data.success) { document.getElementById('clientsTable').innerHTML = '<div class="empty-state">Error loading clients</div>'; return; }
+                allClients = data.clients;
+                document.getElementById('clinicTitle').textContent = 'Clients : ' + data.count;
+                buildAlphaFilter();
+                renderClientsTable(allClients);
+            } catch (e) { document.getElementById('clientsTable').innerHTML = '<div class="empty-state">Failed to load clients</div>'; }
+        }
+
+        function buildAlphaFilter() {
+            let html = '<button class="alpha-btn active" onclick="setAlphaFilter(\'All\')">All</button>';
+            'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(l => { html += `<button class="alpha-btn" onclick="setAlphaFilter('${l}')">${l}</button>`; });
+            document.getElementById('alphaFilter').innerHTML = html;
+        }
+
+        function setAlphaFilter(letter) {
+            activeAlpha = letter;
+            document.querySelectorAll('.alpha-filter .alpha-btn').forEach(btn => btn.classList.toggle('active', btn.textContent === letter));
+            filterClients();
+        }
+
+        function filterClients() {
+            const q = document.getElementById('clientSearch').value.toLowerCase().trim();
+            let filtered = allClients;
+            if (activeAlpha !== 'All') filtered = filtered.filter(c => (c.first_name || '').charAt(0).toUpperCase() === activeAlpha);
+            if (q) filtered = filtered.filter(c => ((c.first_name || '') + ' ' + (c.last_name || '')).toLowerCase().includes(q));
+            renderClientsTable(filtered);
+        }
+
+        function renderClientsTable(clients) {
+            const container = document.getElementById('clientsTable');
+            if (!clients.length) { container.innerHTML = '<div class="empty-state">No clients found</div>'; return; }
+            let html = '<div class="table-container"><table><thead><tr><th>First Name</th><th>Last Name</th></tr></thead><tbody>';
+            clients.forEach(c => {
+                html += `<tr class="clickable-row" onclick="openClient('${escAttr(c.client_id || '')}')"><td>${escHtml(c.first_name)}</td><td>${escHtml(c.last_name)}</td></tr>`;
             });
             html += '</tbody></table></div>';
             container.innerHTML = html;
         }
 
-        function renderNotes(notes, idx) {
-            if (!notes || !notes.length) return '<span style="color:var(--text-secondary)">—</span>';
-            const MAX_SHOW = 2;
+        function openClient(clientId) { if (!clientId) return; navigate('/ar/workspaces/clients/' + clientId); }
+
+        // ========== CLIENT DETAIL ==========
+        async function loadClientDetail(clientId) {
+            const content = document.getElementById('clientDetailContent');
+            content.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading client...</div></div>';
+            try {
+                const resp = await fetch('/api/ar/client/' + clientId);
+                const data = await resp.json();
+                if (!data.success) { content.innerHTML = '<div class="empty-state">Client not found</div>'; return; }
+                currentClientData = data.client;
+                renderClientProfile(data.client, content);
+            } catch (e) { content.innerHTML = '<div class="empty-state">Failed to load client</div>'; }
+        }
+
+        function renderClientProfile(c, el) {
+            el.innerHTML = `
+            <div class="client-layout">
+                <div class="client-left">
+                    <div class="client-info-header">CLIENT INFORMATION</div>
+                    <div class="client-avatar-section">
+                        <div class="client-avatar">
+                            <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg>
+                        </div>
+                        <div class="client-profile-name">${escHtml(c.name)}</div>
+                        <div class="client-profile-dob">${c.dob ? 'DOB: ' + escHtml(c.dob) : 'DOB: —'}</div>
+                        <div class="client-profile-dob">${c.age ? 'Age: ' + escHtml(c.age) : ''}</div>
+                    </div>
+                    <div class="client-detail-section"><div class="client-detail-label">ADDRESS</div><div class="client-detail-value">${escHtml(c.address) || '—'}</div></div>
+                    <div class="client-detail-section"><div class="client-detail-label">PHONE</div><div class="client-detail-value">${escHtml(c.phone) || '—'}</div></div>
+                    <div class="client-detail-section"><div class="client-detail-label">EMAIL</div><div class="client-detail-value">${escHtml(c.email) || '—'}</div></div>
+                    <div class="client-detail-section"><div class="client-detail-label">CLIENT CREATED ON</div><div class="client-detail-value">${escHtml(c.creation_date) || '—'}</div></div>
+                    <div class="client-detail-section"><div class="client-detail-label">PRIMARY CLINIC</div><div class="client-detail-value">${escHtml(c.primary_clinic || c.clinic_name) || '—'}</div></div>
+                </div>
+                <div class="client-right">
+                    <div class="client-top-tabs">
+                        <button class="client-top-tab" onclick="goToCustomerNotes()">Customer Notes</button>
+                    </div>
+                    <div class="procedures-section-header">Procedures</div>
+                    <div id="proceduresList">${renderProcedures(c.procedure_notes)}</div>
+                </div>
+            </div>`;
+        }
+
+        function parseNoteString(noteStr) {
+            const parts = noteStr.split(' | ');
+            const obj = { date: '', writer: '', note: '', raw: noteStr };
+            parts.forEach(p => {
+                if (p.startsWith('Date: ')) obj.date = p.substring(6);
+                else if (p.startsWith('Writer: ')) obj.writer = p.substring(8);
+                else if (p.startsWith('Note: ')) obj.note = p.substring(6);
+            });
+            return obj;
+        }
+
+        function renderProcedures(notes) {
+            if (!notes || !notes.length) return '<div class="no-data">No procedures recorded</div>';
             let html = '';
-            const show = notes.slice(0, MAX_SHOW);
-            show.forEach(n => { html += '<div class="note-block">' + formatNote(n) + '</div>'; });
-            if (notes.length > MAX_SHOW) {
-                html += '<div id="more-' + idx + '" style="display:none">';
-                notes.slice(MAX_SHOW).forEach(n => { html += '<div class="note-block">' + formatNote(n) + '</div>'; });
-                html += '</div>';
-                html += '<button class="expand-btn" onclick="toggleNotes(' + idx + ', this)">Show ' + (notes.length - MAX_SHOW) + ' more</button>';
-            }
+            notes.forEach((n, i) => {
+                const parsed = parseNoteString(n);
+                const title = 'Cosmetic Procedures #' + (i + 1);
+                html += `<div class="procedure-entry">
+                    <div class="procedure-entry-top">
+                        <div class="procedure-entry-title">${escHtml(title)}</div>
+                        <div class="procedure-entry-meta">${escHtml(parsed.date)}</div>
+                        ${parsed.writer ? '<div class="procedure-entry-meta">' + escHtml(parsed.writer) + '</div>' : ''}
+                    </div>
+                    <div class="procedure-bottom-tabs">
+                        <button class="procedure-bottom-tab" onclick="goToProcedureNotes()">Notes</button>
+                    </div>
+                </div>`;
+            });
             return html;
         }
 
-        function toggleNotes(idx, btn) {
-            const el = document.getElementById('more-' + idx);
-            if (el.style.display === 'none') {
-                el.style.display = 'block';
-                btn.textContent = 'Show less';
+        // ========== NAVIGATION TO NOTES PAGES ==========
+        function goToProcedureNotes() {
+            if (!currentClientId) return;
+            navigate('/ar/workspaces/clients/' + currentClientId + '/notes');
+        }
+
+        function goToCustomerNotes() {
+            if (!currentClientId) return;
+            navigate('/ar/workspaces/clients/' + currentClientId + '/customer-notes');
+        }
+
+        // ========== PROCEDURE NOTES PAGE ==========
+        async function showProcedureNotesPage(clientId) {
+            document.getElementById('mainContainer').style.display = 'none';
+            document.getElementById('procedureNotesPage').classList.add('active');
+
+            const list = document.getElementById('procNotesList');
+            list.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading...</div></div>';
+
+            const c = await ensureClientData(clientId);
+            if (!c) { list.innerHTML = '<div class="no-data">Client not found</div>'; return; }
+
+            document.getElementById('procNotesTitle').textContent = (c.name || 'CLIENT').toUpperCase() + ' - PROCEDURE NOTES';
+
+            const notes = c.procedure_notes || [];
+            if (!notes.length) { list.innerHTML = '<div class="no-data">No procedure notes available</div>'; return; }
+
+            let html = '';
+            notes.forEach(noteStr => {
+                const parsed = parseNoteString(noteStr);
+                const writer = parsed.writer || 'Provider';
+                const noteContent = parsed.note || parsed.raw;
+                const noteId = 'proc-note-' + i;
+                html += `<div class="note-entry">
+                    <div class="note-avatar"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg></div>
+                    <div class="note-meta">
+                        <div class="note-author--procedure">${escHtml(writer).toUpperCase()} LEFT A NOTE</div>
+                        <div class="note-date">${escHtml(parsed.date)}</div>
+                    </div>
+                    <div class="note-body-wrapper">
+                        <div class="note-actions-row">
+                            <span class="note-action-link" data-note-id="${noteId}">Copy</span>
+                        </div>
+                        <div class="note-text-box" id="${noteId}">${escHtml(noteContent)}</div>
+                    </div>
+                </div>`;
+            });
+            list.innerHTML = html;
+        }
+
+        // ========== CUSTOMER NOTES PAGE ==========
+        async function showCustomerNotesPage(clientId) {
+            document.getElementById('mainContainer').style.display = 'none';
+            document.getElementById('customerNotesPage').classList.add('active');
+
+            const list = document.getElementById('custNotesList');
+            list.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading...</div></div>';
+
+            const c = await ensureClientData(clientId);
+            if (!c) { list.innerHTML = '<div class="no-data">Client not found</div>'; return; }
+
+            document.getElementById('custNotesTitle').textContent = (c.name || 'CLIENT').toUpperCase() + ' - CUSTOMER NOTES';
+
+            const notesRaw = c.customer_notes || '';
+            if (!notesRaw) { list.innerHTML = '<div class="no-data">No customer notes available</div>'; return; }
+
+            const noteBlocks = notesRaw.split(' || ').filter(b => b.trim());
+            if (!noteBlocks.length) { list.innerHTML = '<div class="no-data">No customer notes available</div>'; return; }
+
+            let html = '';
+            noteBlocks.forEach(noteStr => {
+                const parsed = parseNoteString(noteStr);
+                const writer = parsed.writer || 'Provider';
+                const noteContent = parsed.note || parsed.raw;
+                const noteId = 'cust-note-' + idx;
+                html += `<div class="note-entry">
+                    <div class="note-avatar"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg></div>
+                    <div class="note-meta">
+                        <div class="note-author--customer">${escHtml(writer)} left a note</div>
+                        <div class="note-date">${escHtml(parsed.date)}</div>
+                    </div>
+                    <div class="note-body-wrapper">
+                        <div class="note-actions-row">
+                            <span class="note-action-link" data-note-id="${noteId}">Copy</span>
+                        </div>
+                        <div class="note-text-box" id="${noteId}">${escHtml(noteContent)}</div>
+                    </div>
+                </div>`;
+            });
+            list.innerHTML = html;
+        }
+
+        // ========== CLOSE NOTES PAGES ==========
+        function closeNotesPage(type) {
+            if (currentClientId) {
+                navigate('/ar/workspaces/clients/' + currentClientId);
             } else {
-                el.style.display = 'none';
-                btn.textContent = 'Show more';
+                navigate('/ar/workspaces');
             }
         }
 
-        function formatNote(note) {
-            return note.replace(/Date:\s*(\d{2}\/\d{2}\/\d{4})/g, '<span class="note-date">Date: $1</span>');
+        // ========== HELPERS ==========
+        async function ensureClientData(clientId) {
+            if (currentClientData && currentClientData.client_url && currentClientData.client_url.includes(clientId)) {
+                return currentClientData;
+            }
+            try {
+                const resp = await fetch('/api/ar/client/' + clientId);
+                const data = await resp.json();
+                if (data.success) { currentClientData = data.client; return data.client; }
+            } catch (e) {}
+            return null;
         }
 
         function escHtml(str) {
             if (!str) return '';
-            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
-
         function escAttr(str) {
             if (!str) return '';
-            return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+        }
+        function copyNote(el, text) {
+            navigator.clipboard.writeText(text).then(function() {
+                const orig = el.textContent;
+                el.textContent = 'Copied!';
+                el.style.color = '#10b981';
+                setTimeout(function() { el.textContent = orig; el.style.color = ''; }, 1500);
+            }).catch(function() {
+                // Fallback for older browsers
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                const orig = el.textContent;
+                el.textContent = 'Copied!';
+                el.style.color = '#10b981';
+                setTimeout(function() { el.textContent = orig; el.style.color = ''; }, 1500);
+            });
         }
 
-        function clearFilter() {
-            document.getElementById('startDate').value = '';
-            document.getElementById('endDate').value = '';
-            loadClients();
-        }
-
-        async function refreshData() {
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'Updating...';
-            try {
-                const resp = await fetch('/api/ar/refresh', { method: 'POST' });
-                const data = await resp.json();
-                alert(data.message || 'Refresh triggered');
-            } catch (e) {
-                alert('Error: ' + e.message);
+        // Event delegation for copy buttons
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('note-action-link') && e.target.textContent === 'Copy') {
+                const noteId = e.target.getAttribute('data-note-id');
+                if (noteId) {
+                    const noteBox = document.getElementById(noteId);
+                    if (noteBox) {
+                        copyNote(e.target, noteBox.textContent);
+                    }
+                }
             }
-            btn.disabled = false;
-            btn.textContent = 'Update';
-        }
+        });
 
-        init();
+        navigate(location.pathname, false);
     </script>
 </body>
 </html>
