@@ -456,13 +456,8 @@
             if (!clients.length) { container.innerHTML = '<div class="empty-state">No clients found</div>'; return; }
             let html = '<div class="table-container"><table><thead><tr><th>First Name</th><th>Last Name</th></tr></thead><tbody>';
             clients.forEach(c => {
-                const searchParams = new URLSearchParams();
-                searchParams.set('name', (c.first_name || '') + ' ' + (c.last_name || ''));
-                searchParams.set('clinic', c.clinic_name || '');
-                if (c.email) searchParams.set('email', c.email);
-                const queryStr = searchParams.toString();
-                const clickId = queryStr ? (c.client_id || '') + '&' + queryStr : (c.client_id || '');
-                html += `<tr class="clickable-row" onclick="openClient('${escAttr(clickId)}')"><td>${escHtml(c.first_name)}</td><td>${escHtml(c.last_name)}</td></tr>`;
+                const cid = c.client_id || '';
+                html += `<tr class="clickable-row" onclick="openClient('${escAttr(cid)}')"><td>${escHtml(c.first_name)}</td><td>${escHtml(c.last_name)}</td></tr>`;
             });
             html += '</tbody></table></div>';
             container.innerHTML = html;
@@ -475,12 +470,12 @@
             const content = document.getElementById('clientDetailContent');
             content.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading client...</div></div>';
             try {
-                const resp = await fetch('/api/ar/client/' + clientId);
+                const resp = await fetch('/api/ar/client/' + encodeURIComponent(clientId));
                 const data = await resp.json();
-                if (!data.success) { content.innerHTML = '<div class="empty-state">Client not found</div>'; return; }
+                if (!data.success) { content.innerHTML = '<div class="empty-state">Client not found. Please go back and try again.</div>'; return; }
                 currentClientData = data.client;
                 renderClientProfile(data.client, content);
-            } catch (e) { content.innerHTML = '<div class="empty-state">Failed to load client</div>'; }
+            } catch (e) { content.innerHTML = '<div class="empty-state">Failed to load client details. Please try again.</div>'; }
         }
 
         function renderClientProfile(c, el) {
@@ -575,7 +570,7 @@
                 const parsed = parseNoteString(noteStr);
                 const writer = parsed.writer || 'Provider';
                 const noteContent = parsed.note || parsed.raw;
-                const noteId = 'proc-note-' + notes.indexOf(noteStr);
+                const noteId = 'proc-note-' + i;
                 html += `<div class="note-entry">
                     <div class="note-avatar"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg></div>
                     <div class="note-meta">
@@ -617,7 +612,7 @@
                 const parsed = parseNoteString(noteStr);
                 const writer = parsed.writer || 'Provider';
                 const noteContent = parsed.note || parsed.raw;
-                const noteId = 'cust-note-' + noteBlocks.indexOf(noteStr);
+                const noteId = 'cust-note-' + idx;
                 html += `<div class="note-entry">
                     <div class="note-avatar"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg></div>
                     <div class="note-meta">
@@ -646,11 +641,12 @@
 
         // ========== HELPERS ==========
         async function ensureClientData(clientId) {
-            if (currentClientData && currentClientData.client_url && currentClientData.client_url.includes(clientId)) {
+            if (!clientId) return null;
+            if (currentClientData && currentClientData.client_id === clientId) {
                 return currentClientData;
             }
             try {
-                const resp = await fetch('/api/ar/client/' + clientId);
+                const resp = await fetch('/api/ar/client/' + encodeURIComponent(clientId));
                 const data = await resp.json();
                 if (data.success) { currentClientData = data.client; return data.client; }
             } catch (e) {}
