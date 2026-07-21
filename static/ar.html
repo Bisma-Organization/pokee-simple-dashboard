@@ -456,7 +456,13 @@
             if (!clients.length) { container.innerHTML = '<div class="empty-state">No clients found</div>'; return; }
             let html = '<div class="table-container"><table><thead><tr><th>First Name</th><th>Last Name</th></tr></thead><tbody>';
             clients.forEach(c => {
-                html += `<tr class="clickable-row" onclick="openClient('${escAttr(c.client_id || '')}')"><td>${escHtml(c.first_name)}</td><td>${escHtml(c.last_name)}</td></tr>`;
+                const searchParams = new URLSearchParams();
+                searchParams.set('name', (c.first_name || '') + ' ' + (c.last_name || ''));
+                searchParams.set('clinic', c.clinic_name || '');
+                if (c.email) searchParams.set('email', c.email);
+                const queryStr = searchParams.toString();
+                const clickId = queryStr ? (c.client_id || '') + '&' + queryStr : (c.client_id || '');
+                html += `<tr class="clickable-row" onclick="openClient('${escAttr(clickId)}')"><td>${escHtml(c.first_name)}</td><td>${escHtml(c.last_name)}</td></tr>`;
             });
             html += '</tbody></table></div>';
             container.innerHTML = html;
@@ -569,6 +575,7 @@
                 const parsed = parseNoteString(noteStr);
                 const writer = parsed.writer || 'Provider';
                 const noteContent = parsed.note || parsed.raw;
+                const noteId = 'proc-note-' + i;
                 html += `<div class="note-entry">
                     <div class="note-avatar"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg></div>
                     <div class="note-meta">
@@ -577,9 +584,9 @@
                     </div>
                     <div class="note-body-wrapper">
                         <div class="note-actions-row">
-                            <span class="note-action-link" onclick="copyNote(this, '${escAttr(noteContent)}')">Copy</span>
+                            <span class="note-action-link" data-note-id="${noteId}">Copy</span>
                         </div>
-                        <div class="note-text-box">${escHtml(noteContent)}</div>
+                        <div class="note-text-box" id="${noteId}">${escHtml(noteContent)}</div>
                     </div>
                 </div>`;
             });
@@ -610,6 +617,7 @@
                 const parsed = parseNoteString(noteStr);
                 const writer = parsed.writer || 'Provider';
                 const noteContent = parsed.note || parsed.raw;
+                const noteId = 'cust-note-' + idx;
                 html += `<div class="note-entry">
                     <div class="note-avatar"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z"/></svg></div>
                     <div class="note-meta">
@@ -618,9 +626,9 @@
                     </div>
                     <div class="note-body-wrapper">
                         <div class="note-actions-row">
-                            <span class="note-action-link" onclick="copyNote(this, '${escAttr(noteContent)}')">Copy</span>
+                            <span class="note-action-link" data-note-id="${noteId}">Copy</span>
                         </div>
-                        <div class="note-text-box">${escHtml(noteContent)}</div>
+                        <div class="note-text-box" id="${noteId}">${escHtml(noteContent)}</div>
                     </div>
                 </div>`;
             });
@@ -679,6 +687,19 @@
                 setTimeout(function() { el.textContent = orig; el.style.color = ''; }, 1500);
             });
         }
+
+        // Event delegation for copy buttons
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('note-action-link') && e.target.textContent === 'Copy') {
+                const noteId = e.target.getAttribute('data-note-id');
+                if (noteId) {
+                    const noteBox = document.getElementById(noteId);
+                    if (noteBox) {
+                        copyNote(e.target, noteBox.textContent);
+                    }
+                }
+            }
+        });
 
         navigate(location.pathname, false);
     </script>
