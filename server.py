@@ -2251,6 +2251,169 @@ def ar_clients_with_notes():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/ar/query', methods=['POST'])
+def ar_query():
+    """Natural language query endpoint — asks a question about AR data and gets an answer."""
+    try:
+        data = request.get_json(force=True)
+        question = data.get('question', '').strip()
+        if not question:
+            return jsonify({'success': False, 'error': 'No question provided'}), 400
+
+        # Get all clients data
+        all_clients = list(ar_clients.find({}, {'_id': 0}))
+        total = len(all_clients)
+
+        # Get distinct clinics
+        clinics = ar_clients.distinct('clinic_name')
+        clinics = [c for c in clinics if c]
+
+        # Build a context string with summary stats
+        context = f"Total clients: {total}\nClinics: {', '.join(sorted(clinics))}\n\n"
+
+        # Parse the question and execute the query
+        answer = _answer_ar_question(question, all_clients, clinics)
+        return jsonify({'success': True, 'question': question, 'answer': answer})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def _answer_ar_question(question, all_clients, clinics):
+    """Parse a natural language question and return an answer with data."""
+    q = question.lower().strip()
+
+    # --- Clinic client count ---
+    # "how many clients in soo faced", "does soo faced have 112 clients", "client count for soo faced"
+    import re
+    clinic_match = re.search(r'(?:in|from|at|for)\s+["\']?([A-Z][A-Za-z\s&.,]+?)["\']?\s*(?:clients|patients|people)?', q)
+    if not clinic_match:
+        clinic_match = re.search(r'(["\']?[A-Z][A-Za-z\s&.,]+?["\']?)\s+(?:has|have)\s+(\d+)\s*(?:clients|patients|people)', q)
+    if not clinic_match:
+        clinic_match = re.search(r'(?:clients|patients|people)\s+(?:in|from|at)\s+["\']?([A-Z][A-Za-z\s&.,]+?)["\']?', q)
+
+    if clinic_match:
+        clinic_name = clinic_match.group(1).strip().strip('"\'')
+        # Check if it's a "does X have N clients" question
+        has_count_match = re.search(r'(?:has|have)\s+(\d+)\s*(?:clients|patients|people)', q)
+        count = sum(1 for c in all_clients if c.get('clinic_name', '') == clinic_name)
+        if has_count_match:
+            expected = int(has_count_match.group(1))
+            if count == expected:
+                return {'type': 'clinic_count', 'clinic': clinic_name, 'count': count, 'answer': f"Yes, {clinic_name} has exactly {count} clients."}
+            else:
+                return {'type': 'clinic_count', 'clinic': clinic_name, 'count': count, 'expected': expected, 'answer': f"No, {clinic_name} has {count} clients, not {expected}."}
+        else:
+            return {'type': 'clinic_count', 'clinic': clinic_name, 'count': count, 'answer': f"{clinic_name} has {count} clients."}
+
+    # --- Common clients across clinics ---
+    # "which clients are in multiple clinics", "common clients", "clients in more than one clinic"
+    if any(phrase in q for phrase in ['common client', 'multiple clinic', 'more than one clinic', 'same client', 'duplicate client', 'shared client', 'in both', 'in all']):
+        client_map = {}
+        for c in all_clients:
+            name = c.get('name', '').strip()
+            clinic = c.get('clinic_name', '').strip()
+            if name and clinic:
+                if name not in client_map:
+                    client_map[name] = set()
+                client_map[name].add(clinic)
+        multi = {name: sorted(list(clinics_set)) for name, clinics_set in client_map.items() if len(clinics_set) > 1}
+        multi_sorted = sorted(multi.items(), key=lambda x: len(x[1]), reverse=True)
+        if multi_sorted:
+            details = '\n'.join([f"• {name}: {', '.join(clinics)}" for name, clinics in multi_sorted[:20]])
+            return {'type': 'common_clients', 'count': len(multi_sorted), 'clients': multi_sorted[:20], 'answer': f"There are {len(multi_sorted)} clients appearing in multiple clinics.\n\nTop results:\n{details}"}
+        else:
+            return {'type': 'common_clients', 'count': 0, 'clients': [], 'answer': 'No clients appear in multiple clinics.'}
+
+    # --- Clients with most procedure notes ---
+    # "who has the most procedure notes", "top clients by procedure notes", "most notes"
+    if any(phrase in q for phrase in ['most procedure notes', 'most notes', 'top clients by procedure', 'highest procedure notes', 'most procedures']):
+        results = []
+        for c in all_clients:
+            notes_raw = c.get('procedure_notes', '')
+            if notes_raw:
+                blocks = [b.strip() for b in notes_raw.split(' || ') if b.strip()]
+                if blocks:
+                    results.append({'name': c.get('name', ''), 'clinic': c.get('clinic_name', ''), 'count': len(blocks)})
+        results.sort(key=lambda r: r['count'], reverse=True)
+        top = results[:10]
+        details = '\n'.join([f"• {r['name']} ({r['clinic']}): {r['count']} notes" for r in top])
+        return {'type': 'top_procedure_notes', 'clients': top, 'answer': f"Top clients by procedure notes count:\n\n{details}"}
+
+    # --- Clients with most customer notes ---
+    if any(phrase in q for phrase in ['most customer notes', 'most customer note', 'longest customer notes']):
+        results = []
+        for c in all_clients:
+            notes = c.get('customer_notes', '')
+            if notes and notes.strip():
+                results.append({'name': c.get('name', ''), 'clinic': c.get('clinic_name', ''), 'length': len(notes.strip())})
+        results.sort(key=lambda r: r['length'], reverse=True)
+        top = results[:10]
+        details = '\n'.join([f"• {r['name']} ({r['clinic']}): {r['length']} chars" for r in top])
+        return {'type': 'top_customer_notes', 'clients': top, 'answer': f"Top clients by customer notes length:\n\n{details}"}
+
+    # --- Clients by clinic ---
+    # "show me clients from soo faced", "list clients in clinic X"
+    list_match = re.search(r'(?:show|list|get|find|tell me)\s+(?:all\s+)?(?:clients|patients|people)\s+(?:in|from|at)\s+["\']?([A-Z][A-Za-z\s&.,]+?)["\']?', q)
+    if list_match:
+        clinic_name = list_match.group(1).strip().strip('"\'')
+        clients = [c for c in all_clients if c.get('clinic_name', '') == clinic_name]
+        clients.sort(key=lambda c: c.get('name', ''))
+        names = [c.get('name', '') for c in clients[:30]]
+        if len(clients) > 30:
+            return {'type': 'clinic_clients', 'clinic': clinic_name, 'count': len(clients), 'clients': names, 'answer': f"{clinic_name} has {len(clients)} clients. First 30:\n\n" + '\n'.join([f'{i+1}. {n}' for i, n in enumerate(names)])}
+        else:
+            return {'type': 'clinic_clients', 'clinic': clinic_name, 'count': len(clients), 'clients': names, 'answer': f"{clinic_name} has {len(clients)} clients:\n\n" + '\n'.join([f'{i+1}. {n}' for i, n in enumerate(names)])}
+
+    # --- Search by name ---
+    # "find john doe", "search for sarah", "is there a client named..."
+    search_match = re.search(r'(?:find|search|is there|do you have)\s+(?:a\s+)?(?:client|patient|person)\s+(?:named|called)\s+["\']?([A-Za-z][A-Za-z\s.]+?)["\']?', q)
+    if not search_match:
+        search_match = re.search(r'(?:find|search)\s+["\']?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)["\']?', q)
+    if search_match:
+        search_name = search_match.group(1).strip().strip('"\'')
+        results = [c for c in all_clients if search_name.lower() in c.get('name', '').lower()]
+        results.sort(key=lambda c: c.get('name', ''))
+        if results:
+            details = '\n'.join([f"• {c.get('name', '')} — {c.get('clinic_name', '')} (email: {c.get('email', 'N/A')}, phone: {c.get('phone', 'N/A')})" for c in results[:20]])
+            return {'type': 'name_search', 'query': search_name, 'count': len(results), 'clients': results[:20], 'answer': f"Found {len(results)} clients matching '{search_name}':\n\n{details}"}
+        else:
+            return {'type': 'name_search', 'query': search_name, 'count': 0, 'clients': [], 'answer': f"No clients found matching '{search_name}'."}
+
+    # --- Clinic summary ---
+    # "summary of all clinics", "how many clients per clinic", "clinic breakdown"
+    if any(phrase in q for phrase in ['clinic summary', 'clinics summary', 'clients per clinic', 'clinic breakdown', 'how many clients in each clinic', 'overview of clinics']):
+        clinic_counts = {}
+        for c in all_clients:
+            clinic = c.get('clinic_name', 'Unknown')
+            clinic_counts[clinic] = clinic_counts.get(clinic, 0) + 1
+        sorted_clinics = sorted(clinic_counts.items(), key=lambda x: x[1], reverse=True)
+        details = '\n'.join([f"• {name}: {count} clients" for name, count in sorted_clinics])
+        return {'type': 'clinic_summary', 'clinics': sorted_clinics, 'answer': f"Client count by clinic ({total} total):\n\n{details}"}
+
+    # --- Recent clients ---
+    # "newest clients", "recent clients", "clients added this month"
+    if any(phrase in q for phrase in ['newest clients', 'recent clients', 'latest clients', 'clients added', 'new clients']):
+        from datetime import datetime, timedelta
+        now = datetime.utcnow()
+        results = []
+        for c in all_clients:
+            created = c.get('creation_date', '')
+            if created:
+                try:
+                    cd = datetime.strptime(created[:10], '%Y-%m-%d')
+                    days_ago = (now - cd).days
+                    results.append({'name': c.get('name', ''), 'clinic': c.get('clinic_name', ''), 'created': created[:10], 'days_ago': days_ago})
+                except:
+                    pass
+        results.sort(key=lambda r: r['days_ago'])
+        top = results[:20]
+        details = '\n'.join([f"• {r['name']} ({r['clinic']}) — {r['created']} ({r['days_ago']} days ago)" for r in top])
+        return {'type': 'recent_clients', 'count': len(results), 'clients': top, 'answer': f"Most recently added clients ({len(results)} total with creation dates):\n\n{details}"}
+
+    # --- Default: return raw data summary ---
+    return {'type': 'unknown', 'answer': f"I couldn't understand that question. Here's what I can help with:\n\n• 'How many clients in [clinic name]?' — count clients by clinic\n• 'Which clients are in multiple clinics?' — find duplicates across clinics\n• 'Who has the most procedure notes?' — top clients by procedure notes\n• 'Show me clients from [clinic name]' — list clients in a clinic\n• 'Find [client name]' — search by name\n• 'Clinic summary' — overview of all clinics\n• 'Newest clients' — recently added clients\n\nAsk me any of these!", 'total_clients': total, 'total_clinics': len(clinics)}
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
