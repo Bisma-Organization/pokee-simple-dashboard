@@ -254,7 +254,6 @@
             <span style="color:var(--text-muted)">to</span>
             <input type="date" class="date-input" id="endDate">
             <button class="btn btn-primary" onclick="applyFilters()">Apply</button>
-            <button class="btn btn-ghost" onclick="resetFilters()">Reset</button>
             <button class="btn btn-ghost" onclick="refreshData()">&#8635; Refresh</button>
             <button class="btn btn-primary" onclick="sendEmailReport()" id="emailBtn" style="background:#10b981;">&#9993; Email Report</button>
         </div>
@@ -294,12 +293,6 @@
     }
 
     function applyFilters() { loadDashboard(); }
-    function resetFilters() {
-        const defaults = getDefaultDates();
-        document.getElementById('startDate').value = defaults.start;
-        document.getElementById('endDate').value = defaults.end;
-        loadDashboard();
-    }
     async function refreshData() {
         await fetch('/api/refresh', { method: 'POST' });
         loadDashboard();
